@@ -17,6 +17,47 @@ Local3DProvider          Cloud3DProvider
 MapProvider              StreetImageryProvider
 ```
 
+
+## Claude models
+
+Helix selects between three Claude models. The ids below are the exact strings
+the Anthropic API accepts - they are complete as written. Never append a date
+suffix and never construct an id by pattern.
+
+| Model | Id | Context | $/1M in | $/1M out |
+|---|---|---|---|---|
+| Opus 5 | `claude-opus-5` | 1M | $5 | $25 |
+| Sonnet 5 | `claude-sonnet-5` | 1M | $2 | $10 |
+| Haiku 4.5 | `claude-haiku-4-5` | 200K | $1 | $5 |
+
+**There is no Haiku 5.** The current Haiku is 4.5. A request to switch to
+"Haiku 5" selects Haiku 4.5 and the reply says so, rather than accepting a
+model id that would 404 the moment a key is connected.
+
+Opus 5 is the default. Helix does not downgrade for cost on the user's behalf -
+that is the user's decision.
+
+Switching is real and persisted: say "switch to Sonnet" on the home screen, or
+use Settings -> AI providers. The choice survives a restart.
+
+**Selecting a model does not connect to it.** No API key is configured and the
+request path is not built, so Helix reports the selected model and states that
+it still cannot answer. See the note below on why the key cannot live in the
+browser.
+
+### Why the API key is not in the browser
+
+Helix currently runs as a browser application. Calling the Anthropic API
+directly from browser code would ship the API key to the client, where any
+viewer can read it - the official SDK requires an explicit
+`dangerouslyAllowBrowser` flag for exactly this reason.
+
+Helix will not do that. The request path belongs in the Tauri shell, where the
+key stays in the native process and never reaches frontend code, which is
+consistent with the rule in [SECURITY.md](SECURITY.md) that secrets are never
+exposed to the frontend. Until that shell exists, model selection is stored and
+reported but no request is made.
+
 ## Selection and fallback
 
 `ProviderManager` chooses per request based on availability, user preference, and

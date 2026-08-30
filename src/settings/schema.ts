@@ -223,6 +223,21 @@ export const SETTINGS_SCHEMA = {
     optionLabels: { none: 'None', local: 'Local model', cloud: 'Cloud provider' },
     default: 'none',
   },
+  languageModel: {
+    kind: 'enum',
+    section: 'providers',
+    label: 'Claude model',
+    description:
+      'Which Claude model Helix uses. Switch it here, or say "switch to Sonnet" on the home screen.',
+    options: ['claude-opus-5', 'claude-sonnet-5', 'claude-haiku-4-5'],
+    optionLabels: {
+      'claude-opus-5': 'Opus 5 - most capable',
+      'claude-sonnet-5': 'Sonnet 5 - balanced',
+      'claude-haiku-4-5': 'Haiku 4.5 - fastest',
+    },
+    default: 'claude-opus-5',
+  },
+
   languageEndpoint: {
     kind: 'string',
     section: 'providers',

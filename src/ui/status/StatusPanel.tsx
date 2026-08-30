@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Icon, type IconName } from '../components/Icon.js';
 import { useHelix, useSettings } from '../HelixProvider.js';
 import type { Activity } from '../../core/ActivityManager.js';
+import { formatContext, getModelOrDefault } from '../../models/catalog.js';
 
 /**
  * The Helix status panel.
@@ -33,6 +34,7 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
   const { platform, store, activity, conversations, projects } = useHelix();
   const settings = useSettings([
     'languageProvider',
+    'languageModel',
     'speechToTextProvider',
     'visionProvider',
     'offlineMode',
@@ -58,9 +60,16 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
   }, [conversations]);
 
   useEffect(() => {
+    // Resolved together and set in one update. Separately, listProjects takes
+    // several more IndexedDB round-trips than countAssets, so the panel briefly
+    // rendered the contradictory pair "1 file" / "No projects yet".
     const refresh = () => {
-      void projects.countAssets().then(setAssetCount);
-      void projects.listProjects().then((list) => setProjectCount(list.length));
+      void Promise.all([projects.countAssets(), projects.listProjects()]).then(
+        ([assets, list]) => {
+          setAssetCount(assets);
+          setProjectCount(list.length);
+        },
+      );
     };
     refresh();
     return projects.subscribe(refresh);
@@ -69,6 +78,7 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
   const forcedOffline = settings.offlineMode === 'offline';
   const effectivelyOnline = online && !forcedOffline;
   const durable = (store as { durable?: boolean }).durable ?? false;
+  const model = getModelOrDefault(settings.languageModel);
 
   const rows: StatusRow[] = [
     {
@@ -83,15 +93,12 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
       key: 'model',
       icon: 'chip',
       label: 'AI MODEL',
-      // Selecting a provider is not the same as connecting to one. Provider
-      // connections arrive in phase 5, so a selection reports honestly.
-      ...(settings.languageProvider === 'none'
-        ? { value: 'Not configured', tone: 'off' as Tone }
-        : {
-            value: 'Not connected',
-            tone: 'warn' as Tone,
-            detail: `${settings.languageProvider} selected, connection not built yet`,
-          }),
+      // The selected model is real and persisted; the connection is not built.
+      // Showing the model name alongside "not connected" keeps both facts visible,
+      // so switching models never reads as having connected to one.
+      value: model.name,
+      tone: 'off',
+      detail: `${formatContext(model.contextTokens)} context - not connected, no API key`,
     },
     {
       key: 'memory',

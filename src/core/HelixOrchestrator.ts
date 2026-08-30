@@ -6,6 +6,7 @@ import type { SettingsManager } from '../settings/SettingsManager.js';
 import type { ConversationStore } from '../conversations/ConversationStore.js';
 import { resolveWorkspace, type WorkspaceId } from '../ui/workspaces/registry.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
+import { formatContext, getModelOrDefault, resolveModel } from '../models/catalog.js';
 
 /**
  * The Helix orchestration seam (spec: UI -> ORCHESTRATOR -> TOOLS).
@@ -92,6 +93,9 @@ export class HelixOrchestrator {
     this.#projects = options.projects;
     this.#logger = options.logger.child('orchestrator');
 
+    // Model switching outranks the rest: "switch to Sonnet" is unambiguous and
+    // must never be mistaken for a project or workspace name.
+    this.registerTool(this.#modelTool());
     // Projects outrank navigation: "open my Iron Man project" names a project,
     // and the word "project" alone must not send the user to a workspace.
     this.registerTool(this.#projectTool());
@@ -178,13 +182,92 @@ export class HelixOrchestrator {
       };
     }
 
+    const model = getModelOrDefault(this.#settings.get('languageModel'));
     return {
       text:
-        `A ${provider} language provider is selected, but provider connections are not built yet ` +
-        '(phase 5). Helix will not invent an answer, so this request cannot be completed.',
+        `${model.name} is selected and a ${provider} provider is chosen, but the connection ` +
+        'is not built yet and no API key is configured. Helix will not invent an answer, so ' +
+        'this request cannot be completed.',
       handled: false,
       failure: 'PROVIDER_NOT_IMPLEMENTED',
     };
+  }
+
+  /**
+   * Switching the Claude model, and reporting which one is selected.
+   *
+   * Genuinely working: it changes persisted state, so the choice survives a
+   * restart and is visible in Settings and the status panel. It does not
+   * connect to anything - the reply says so, because a user who switches models
+   * would otherwise reasonably assume the next question gets answered.
+   */
+  #modelTool(): HelixTool {
+    const switchVerbs = ['switch to', 'use ', 'change to', 'set model', 'switch model'];
+    const askPhrases = [
+      'which model',
+      'what model',
+      'which claude',
+      'current model',
+      'model are you',
+    ];
+
+    return {
+      name: 'switchModel',
+      description: 'Switch the Claude model, or report which one is selected.',
+      priority: 300,
+      matches: (request) => {
+        const lower = request.text.toLowerCase();
+        if (askPhrases.some((phrase) => lower.includes(phrase))) return true;
+        // A switch needs both a switching verb and a recognisable model name.
+        return switchVerbs.some((verb) => lower.includes(verb)) && resolveModel(lower) !== null;
+      },
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const lower = request.text.toLowerCase();
+        const current = getModelOrDefault(this.#settings.get('languageModel'));
+
+        // A question about the current model, not a switch.
+        if (askPhrases.some((phrase) => lower.includes(phrase))) {
+          return {
+            text:
+              `Selected model: ${current.name} (${current.id}). ` +
+              `${formatContext(current.contextTokens)} context, ` +
+              `$${current.inputPricePerMTok}/$${current.outputPricePerMTok} per million tokens. ` +
+              this.#connectionCaveat(),
+            handled: true,
+          };
+        }
+
+        const target = resolveModel(lower);
+        if (!target) return null;
+
+        if (target.id === current.id) {
+          return {
+            text: `Already using ${target.name}. ${this.#connectionCaveat()}`,
+            handled: true,
+          };
+        }
+
+        await this.#settings.set('languageModel', target.id);
+        this.#logger.info('Model switched.', { from: current.id, to: target.id });
+
+        return {
+          text:
+            `Switched to ${target.name} (${target.id}). ${target.summary} ` +
+            `${formatContext(target.contextTokens)} context. ` +
+            this.#connectionCaveat(),
+          handled: true,
+        };
+      },
+    };
+  }
+
+  /**
+   * Appended to every model reply. Selecting a model is real and persisted;
+   * talking to it is not built, and the user must not be left guessing which.
+   */
+  #connectionCaveat(): string {
+    return 'No API key is connected yet, so I still cannot answer questions with it.';
   }
 
   /**
