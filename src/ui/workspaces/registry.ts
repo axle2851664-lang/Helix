@@ -1,22 +1,29 @@
 /**
- * Workspace registry (spec 3).
+ * Workspace registry (spec 3, and the reference interface's left navigation).
  *
- * Workspaces are declared as data so the nav rail, the router and any future
- * voice command ("Helix, open camera mode") all read from one list rather than
- * each keeping their own copy.
+ * Workspaces are declared as data so the sidebar, the router and the
+ * orchestrator's navigation tool all read one list rather than each keeping
+ * their own copy. Adding a workspace is a single entry here.
  *
- * `phase` records the milestone that makes a workspace functional. It is shown
- * in the UI: a workspace that cannot do its job yet says so plainly instead of
- * presenting controls that do nothing.
+ * `phase` records the milestone that makes a workspace functional, and
+ * `implemented` is the honest flag the UI keys off: a workspace that cannot do
+ * its job yet says so rather than presenting controls that do nothing.
  */
 
 export const WORKSPACE_IDS = [
-  'console',
-  'projects',
-  'camera',
-  'viewer',
-  'system',
+  'home',
+  'conversations',
+  'memory',
+  'files',
+  'web-research',
+  'coding',
+  'image-generation',
+  'earth',
+  'storage',
+  'upload-project',
+  'gesture-control',
   'settings',
+  'system',
 ] as const;
 
 export type WorkspaceId = (typeof WORKSPACE_IDS)[number];
@@ -24,56 +31,114 @@ export type WorkspaceId = (typeof WORKSPACE_IDS)[number];
 export interface WorkspaceDescriptor {
   id: WorkspaceId;
   title: string;
-  /** Short description shown in the workspace header. */
   subtitle: string;
-  /** Spoken/typed aliases that should resolve to this workspace. */
+  /** Spoken or typed aliases that should resolve to this workspace. */
   aliases: readonly string[];
-  /** Milestone at which this workspace becomes functional. */
   phase: number;
-  /** True when the workspace does real work today. */
   implemented: boolean;
+  /** False for entries reachable only indirectly (e.g. the status panel). */
+  inSidebar: boolean;
 }
 
 export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
-  console: {
-    id: 'console',
-    title: 'Console',
-    subtitle: 'Talk to Helix by voice or text.',
-    aliases: ['home', 'chat', 'talk', 'assistant', 'main'],
-    phase: 5,
-    implemented: false,
-  },
-  projects: {
-    id: 'projects',
-    title: 'Projects',
-    subtitle: 'Your projects, assets and generated models.',
-    aliases: ['project', 'files', 'library', 'my projects'],
+  home: {
+    id: 'home',
+    title: 'Helix',
+    subtitle: 'Ask anything by voice or text.',
+    aliases: ['chat', 'assistant', 'main', 'console', 'talk', 'new conversation'],
     phase: 3,
-    implemented: false,
+    implemented: true,
+    inSidebar: false,
   },
-  camera: {
-    id: 'camera',
-    title: 'Camera',
-    subtitle: 'Live camera, vision analysis and gesture input.',
-    aliases: ['camera mode', 'vision', 'see', 'webcam'],
+  conversations: {
+    id: 'conversations',
+    title: 'Conversations',
+    subtitle: 'Your saved conversations.',
+    aliases: ['history', 'chats', 'transcripts'],
+    phase: 3,
+    implemented: true,
+    inSidebar: true,
+  },
+  memory: {
+    id: 'memory',
+    title: 'Memory',
+    subtitle: 'What Helix remembers, and what it forgets.',
+    aliases: ['memories', 'remember', 'recall'],
+    phase: 4,
+    implemented: false,
+    inSidebar: true,
+  },
+  files: {
+    id: 'files',
+    title: 'Files',
+    subtitle: 'Indexed files and knowledge.',
+    aliases: ['documents', 'knowledge', 'library'],
+    phase: 4,
+    implemented: false,
+    inSidebar: true,
+  },
+  'web-research': {
+    id: 'web-research',
+    title: 'Web Research',
+    subtitle: 'Search and summarise the web.',
+    aliases: ['web', 'search', 'research', 'browse', 'internet'],
     phase: 6,
     implemented: false,
+    inSidebar: true,
   },
-  viewer: {
-    id: 'viewer',
-    title: '3D Viewer',
-    subtitle: 'Inspect and manipulate 3D geometry.',
-    aliases: ['3d', 'model', 'mesh', 'three d'],
+  coding: {
+    id: 'coding',
+    title: 'Coding',
+    subtitle: 'Read, write and reason about code.',
+    aliases: ['code', 'programming', 'develop'],
+    phase: 6,
+    implemented: false,
+    inSidebar: true,
+  },
+  'image-generation': {
+    id: 'image-generation',
+    title: 'Image Generation',
+    subtitle: 'Generate and edit images.',
+    aliases: ['images', 'image', 'generate image', 'art', 'picture'],
+    phase: 8,
+    implemented: false,
+    inSidebar: true,
+  },
+  earth: {
+    id: 'earth',
+    title: 'Helix Earth',
+    subtitle: 'Maps, globe and geographic data.',
+    aliases: ['map', 'maps', 'globe', 'geography', 'earth', 'location'],
+    phase: 10,
+    implemented: false,
+    inSidebar: true,
+  },
+  storage: {
+    id: 'storage',
+    title: 'Storage',
+    subtitle: 'Space used by Helix and its data.',
+    aliases: ['disk', 'space', 'usage', 'capacity'],
+    phase: 11,
+    implemented: false,
+    inSidebar: true,
+  },
+  'upload-project': {
+    id: 'upload-project',
+    title: 'Upload Project',
+    subtitle: 'Import files and create a project.',
+    aliases: ['import', 'upload', 'new project', 'projects', 'project'],
+    phase: 3,
+    implemented: false,
+    inSidebar: true,
+  },
+  'gesture-control': {
+    id: 'gesture-control',
+    title: 'Gesture Control',
+    subtitle: 'Camera, vision and hand tracking.',
+    aliases: ['camera', 'camera mode', 'gestures', 'hands', 'vision', 'webcam'],
     phase: 7,
     implemented: false,
-  },
-  system: {
-    id: 'system',
-    title: 'System',
-    subtitle: 'Host capabilities, storage and activity log.',
-    aliases: ['status', 'diagnostics', 'about', 'logs'],
-    phase: 2,
-    implemented: true,
+    inSidebar: true,
   },
   settings: {
     id: 'settings',
@@ -82,11 +147,27 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     aliases: ['preferences', 'options', 'config', 'configure'],
     phase: 2,
     implemented: true,
+    inSidebar: true,
+  },
+  system: {
+    id: 'system',
+    title: 'System',
+    subtitle: 'Host capabilities, hardware and activity log.',
+    aliases: ['status', 'diagnostics', 'about', 'logs', 'health'],
+    phase: 2,
+    implemented: true,
+    // Reached from the status panel rather than the sidebar, matching the
+    // reference interface, which has no System entry in its navigation.
+    inSidebar: false,
   },
 };
 
 export const WORKSPACE_LIST: readonly WorkspaceDescriptor[] = WORKSPACE_IDS.map(
   (id) => WORKSPACES[id],
+);
+
+export const SIDEBAR_WORKSPACES: readonly WorkspaceDescriptor[] = WORKSPACE_LIST.filter(
+  (workspace) => workspace.inSidebar,
 );
 
 export function isWorkspaceId(value: string): value is WorkspaceId {
@@ -96,9 +177,9 @@ export function isWorkspaceId(value: string): value is WorkspaceId {
 /**
  * Resolve free text to a workspace.
  *
- * This is intentionally simple, literal matching - not intent detection. Real
- * intent routing belongs to HelixCore in a later phase; pretending this is more
- * than alias lookup would misrepresent what it does.
+ * Deliberately literal alias matching, not intent detection. Real intent
+ * routing belongs to a language provider in a later phase; presenting this as
+ * more than lookup would misrepresent what it does.
  */
 export function resolveWorkspace(input: string): WorkspaceId | null {
   const normalized = input.trim().toLowerCase();
@@ -110,10 +191,18 @@ export function resolveWorkspace(input: string): WorkspaceId | null {
     if (descriptor.aliases.includes(normalized)) return descriptor.id;
   }
 
-  // Fall back to a contained alias, e.g. "open camera mode please".
+  // Fall back to a contained alias, e.g. "open camera mode please". Longest
+  // candidates are tried first so "new conversation" beats "conversation".
+  const candidates: Array<{ id: WorkspaceId; text: string }> = [];
   for (const descriptor of WORKSPACE_LIST) {
-    const candidates = [descriptor.id, descriptor.title.toLowerCase(), ...descriptor.aliases];
-    if (candidates.some((candidate) => normalized.includes(candidate))) return descriptor.id;
+    candidates.push({ id: descriptor.id, text: descriptor.id });
+    candidates.push({ id: descriptor.id, text: descriptor.title.toLowerCase() });
+    for (const alias of descriptor.aliases) candidates.push({ id: descriptor.id, text: alias });
+  }
+  candidates.sort((a, b) => b.text.length - a.text.length);
+
+  for (const candidate of candidates) {
+    if (normalized.includes(candidate.text)) return candidate.id;
   }
 
   return null;

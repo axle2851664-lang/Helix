@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isWorkspaceId,
   resolveWorkspace,
+  SIDEBAR_WORKSPACES,
   WORKSPACE_IDS,
   WORKSPACE_LIST,
   WORKSPACES,
@@ -16,21 +17,43 @@ describe('workspace registry', () => {
     expect(WORKSPACE_LIST).toHaveLength(WORKSPACE_IDS.length);
   });
 
-  it('marks only the workspaces that actually work as implemented', () => {
-    // Guards against a workspace being quietly marked done before it is.
-    const implemented = WORKSPACE_LIST.filter((w) => w.implemented).map((w) => w.id);
-    expect(implemented.sort()).toEqual(['settings', 'system']);
+  // Matches the reference interface's eleven navigable entries.
+  it('lists the sidebar workspaces in reference order', () => {
+    expect(SIDEBAR_WORKSPACES.map((w) => w.id)).toEqual([
+      'conversations',
+      'memory',
+      'files',
+      'web-research',
+      'coding',
+      'image-generation',
+      'earth',
+      'storage',
+      'upload-project',
+      'gesture-control',
+      'settings',
+    ]);
+  });
+
+  it('keeps home and system out of the sidebar', () => {
+    expect(WORKSPACES.home.inSidebar).toBe(false);
+    expect(WORKSPACES.system.inSidebar).toBe(false);
+  });
+
+  it('marks only genuinely working workspaces as implemented', () => {
+    const implemented = WORKSPACE_LIST.filter((w) => w.implemented).map((w) => w.id).sort();
+    expect(implemented).toEqual(['conversations', 'home', 'settings', 'system']);
   });
 
   it('identifies valid ids', () => {
-    expect(isWorkspaceId('settings')).toBe(true);
+    expect(isWorkspaceId('memory')).toBe(true);
     expect(isWorkspaceId('nonsense')).toBe(false);
   });
 });
 
 describe('resolveWorkspace', () => {
   it('resolves an exact id', () => {
-    expect(resolveWorkspace('camera')).toBe('camera');
+    expect(resolveWorkspace('memory')).toBe('memory');
+    expect(resolveWorkspace('web-research')).toBe('web-research');
   });
 
   it('is case and whitespace insensitive', () => {
@@ -38,18 +61,27 @@ describe('resolveWorkspace', () => {
   });
 
   it('resolves a title', () => {
-    expect(resolveWorkspace('3D Viewer')).toBe('viewer');
+    expect(resolveWorkspace('Helix Earth')).toBe('earth');
+    expect(resolveWorkspace('Image Generation')).toBe('image-generation');
   });
 
   it('resolves declared aliases', () => {
     expect(resolveWorkspace('preferences')).toBe('settings');
-    expect(resolveWorkspace('webcam')).toBe('camera');
-    expect(resolveWorkspace('my projects')).toBe('projects');
+    expect(resolveWorkspace('webcam')).toBe('gesture-control');
+    expect(resolveWorkspace('globe')).toBe('earth');
+    expect(resolveWorkspace('disk')).toBe('storage');
   });
 
   it('resolves an alias embedded in a phrase', () => {
-    expect(resolveWorkspace('open camera mode please')).toBe('camera');
-    expect(resolveWorkspace('take me to my projects')).toBe('projects');
+    expect(resolveWorkspace('open camera mode please')).toBe('gesture-control');
+    expect(resolveWorkspace('take me to my settings')).toBe('settings');
+    expect(resolveWorkspace('show me the globe')).toBe('earth');
+  });
+
+  // "new conversation" must not be shortened to the Conversations list.
+  it('prefers the longest matching alias', () => {
+    expect(resolveWorkspace('start a new conversation')).toBe('home');
+    expect(resolveWorkspace('open conversations')).toBe('conversations');
   });
 
   it('returns null for empty or unmatched input', () => {

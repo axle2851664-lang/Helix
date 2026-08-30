@@ -1,16 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { HelixMark } from './components/HelixMark.js';
-import { NavRail } from './components/NavRail.js';
+import { Sidebar } from './sidebar/Sidebar.js';
+import { TopBar } from './header/TopBar.js';
+import { StatusPanel } from './status/StatusPanel.js';
 import { HelixProvider, useHelix, useHelixState, useSettings } from './HelixProvider.js';
 import { WorkspaceView } from './workspaces/index.js';
 import { WORKSPACES, type WorkspaceId } from './workspaces/registry.js';
-import type { HelixStatus } from '../types/status.js';
 
 /**
- * The Helix application shell.
+ * Width at or below which the sidebar becomes an overlay drawer. Mirrors the
+ * breakpoint in app.css; keep the two in step.
+ */
+const SIDEBAR_OVERLAY_WIDTH = 820;
+
+/**
+ * The Helix application shell: three columns - navigation, workspace, status.
  *
- * Kept thin on purpose: it owns navigation and the status frame and delegates
- * everything else to workspace components and the kernel's managers (spec 19).
+ * Kept thin on purpose. It owns layout, navigation and the current
+ * conversation, and delegates everything else to workspace components and the
+ * kernel's managers (spec 19).
  */
 export function App() {
   return (
@@ -25,19 +33,19 @@ function HelixShell() {
 
   if (state.phase === 'starting') {
     return (
-      <div className="helix-app helix-app--centered">
-        <HelixMark status="PROCESSING" size={92} />
-        <p className="helix-status-label">Starting</p>
+      <div className="hx-boot">
+        <HelixMark status="PROCESSING" size={84} />
+        <p className="hx-boot__label">Starting Helix</p>
       </div>
     );
   }
 
   if (state.phase === 'failed') {
     return (
-      <div className="helix-app helix-app--centered">
-        <HelixMark status="ERROR" size={92} />
-        <p className="helix-status-label">Failed to start</p>
-        <p className="helix-phase-note">{state.message}</p>
+      <div className="hx-boot">
+        <HelixMark status="ERROR" size={84} />
+        <p className="hx-boot__label">Helix could not start</p>
+        <p className="hx-boot__detail">{state.message}</p>
       </div>
     );
   }
@@ -46,16 +54,30 @@ function HelixShell() {
 }
 
 function HelixWorkspaceShell() {
-  const { bus, platform, settings } = useHelix();
+  const { bus, platform, conversations } = useHelix();
   const { warnings } = useHelixState();
   const appearance = useSettings(['reduceMotion', 'accentIntensity', 'theme', 'offlineMode']);
 
-  const [workspace, setWorkspace] = useState<WorkspaceId>('system');
+  const [workspace, setWorkspace] = useState<WorkspaceId>('home');
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [statusOpen, setStatusOpen] = useState(true);
+  // Below this width the sidebar becomes an overlay, so it must start closed or
+  // it covers the workspace on load.
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window === 'undefined' || window.innerWidth > SIDEBAR_OVERLAY_WIDTH,
+  );
   const [online, setOnline] = useState(() => platform.isOnline());
 
-  // Helix's own status. Wired to real subsystem state as those phases land;
-  // until then it stays IDLE rather than animating to imply activity.
-  const [status] = useState<HelixStatus>('IDLE');
+  // Keep the sidebar's default in step with the viewport as it is resized,
+  // without fighting a choice the user has made at the current size.
+  useEffect(() => {
+    const query = window.matchMedia(`(max-width: ${SIDEBAR_OVERLAY_WIDTH}px)`);
+    const apply = (overlay: boolean) => setSidebarOpen(!overlay);
+    apply(query.matches);
+    const onChange = (event: MediaQueryListEvent) => apply(event.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
 
   useEffect(() => {
     return platform.onConnectivityChange((next) => {
@@ -64,77 +86,109 @@ function HelixWorkspaceShell() {
     });
   }, [platform, bus]);
 
-  const changeWorkspace = (next: WorkspaceId) => {
-    setWorkspace((previous) => {
-      if (previous !== next) bus.emit('WORKSPACE_CHANGED', { workspace: next, previous });
-      return next;
-    });
-  };
+  /**
+   * Conversations are created lazily, on the first message. Creating one on
+   * mount produced an empty conversation every time Helix opened - and two
+   * under StrictMode's double-invoke - which then cluttered the history list.
+   */
+  const ensureConversation = useCallback(async (): Promise<string> => {
+    if (conversationId) return conversationId;
+    const conversation = await conversations.create();
+    setConversationId(conversation.id);
+    return conversation.id;
+  }, [conversationId, conversations]);
+
+  const navigate = useCallback(
+    (next: WorkspaceId) => {
+      setWorkspace((previous) => {
+        if (previous !== next) bus.emit('WORKSPACE_CHANGED', { workspace: next, previous });
+        return next;
+      });
+      // While the sidebar is an overlay, choosing a destination should reveal it.
+      if (window.innerWidth <= SIDEBAR_OVERLAY_WIDTH) setSidebarOpen(false);
+    },
+    [bus],
+  );
+
+  const newConversation = useCallback(() => {
+    // Reset to a blank slate; the conversation itself is created on first send.
+    setConversationId(null);
+    navigate('home');
+  }, [navigate]);
+
+  const openConversation = useCallback(
+    (id: string) => {
+      setConversationId(id);
+      navigate('home');
+      bus.emit('CONVERSATION_OPENED', { conversationId: id });
+    },
+    [navigate, bus],
+  );
 
   const descriptor = WORKSPACES[workspace];
   const forcedOffline = appearance.offlineMode === 'offline';
-  const connectivity = forcedOffline || !online ? 'OFFLINE' : 'ONLINE';
+  const effectivelyOnline = online && !forcedOffline;
 
   return (
     <div
-      className="helix-app helix-app--shell"
+      className="hx-app"
       data-theme={appearance.theme}
       data-reduce-motion={appearance.reduceMotion ? 'true' : 'false'}
-      style={{ ['--helix-accent-strength' as string]: String(appearance.accentIntensity / 100) }}
+      style={{ ['--hx-accent-strength' as string]: String(appearance.accentIntensity / 100) }}
     >
-      <header className="helix-header">
-        <div className="helix-header__id">
-          <HelixMark status={status} size={24} />
-          <span className="helix-wordmark">Helix</span>
-          <span className="helix-version">v0.1.0 &middot; milestone 2</span>
-        </div>
+      {sidebarOpen && (
+        <Sidebar
+          active={workspace}
+          onNavigate={navigate}
+          onNewConversation={newConversation}
+          collapsed={false}
+        />
+      )}
 
-        <div className="helix-badges">
-          {!settings.persistent && (
-            <span className="helix-badge helix-badge--offline" title="Changes will not be saved">
-              NOT SAVING
-            </span>
-          )}
-          <span className={`helix-badge helix-badge--${connectivity.toLowerCase()}`}>
-            {connectivity}
-            {forcedOffline ? ' (forced)' : ''}
-          </span>
-          <span className="helix-badge">{platform.kind.toUpperCase()} HOST</span>
-        </div>
-      </header>
+      <div className="hx-main">
+        <TopBar
+          online={effectivelyOnline}
+          statusOpen={statusOpen}
+          onToggleStatus={() => setStatusOpen((open) => !open)}
+          onOpenHistory={() => navigate('conversations')}
+          onToggleSidebar={() => setSidebarOpen((open) => !open)}
+        />
 
-      <div className="helix-body">
-        <NavRail active={workspace} onSelect={changeWorkspace} />
-
-        <main className="helix-main">
-          <div className="helix-main__head">
+        {workspace !== 'home' && (
+          <div className="hx-main__head">
             <div>
-              <h1 className="helix-main__title">{descriptor.title}</h1>
-              <p className="helix-main__subtitle">{descriptor.subtitle}</p>
+              <h1 className="hx-main__title">{descriptor.title}</h1>
+              <p className="hx-main__subtitle">{descriptor.subtitle}</p>
             </div>
             {!descriptor.implemented && (
-              <span className="helix-badge helix-badge--pending">PHASE {descriptor.phase}</span>
+              <span className="hx-phasebadge">PHASE {descriptor.phase}</span>
             )}
           </div>
+        )}
 
-          {warnings.length > 0 && workspace !== 'system' && (
-            <div className="helix-notice helix-notice--warn" role="alert">
-              {warnings[0]}{' '}
-              <button
-                type="button"
-                className="helix-btn helix-btn--quiet"
-                onClick={() => changeWorkspace('system')}
-              >
-                View system status
-              </button>
-            </div>
-          )}
-
-          <div className="helix-main__content">
-            <WorkspaceView workspace={workspace} />
+        {warnings.length > 0 && workspace !== 'system' && (
+          <div className="hx-notice hx-notice--warn hx-main__warning" role="alert">
+            {warnings[0]}{' '}
+            <button type="button" className="hx-btn hx-btn--quiet" onClick={() => navigate('system')}>
+              View diagnostics
+            </button>
           </div>
-        </main>
+        )}
+
+        <div className={`hx-main__body${workspace === 'home' ? ' hx-main__body--home' : ''}`}>
+          <WorkspaceView
+            workspace={workspace}
+            conversationId={conversationId}
+            ensureConversation={ensureConversation}
+            onNavigate={navigate}
+            onOpenConversation={openConversation}
+          />
+        </div>
       </div>
+
+      {statusOpen && (
+        <StatusPanel onClose={() => setStatusOpen(false)} onOpenSystem={() => navigate('system')} />
+      )}
     </div>
   );
 }

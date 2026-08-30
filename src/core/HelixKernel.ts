@@ -7,6 +7,9 @@ import { PathManager } from '../storage/PathManager.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { BrowserPlatform } from '../platform/BrowserPlatform.js';
 import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
+import { ActivityManager } from './ActivityManager.js';
+import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { ConversationStore } from '../conversations/ConversationStore.js';
 
 /**
  * The Helix service container (spec 19).
@@ -31,6 +34,9 @@ export interface KernelServices {
   readonly paths: PathManager;
   readonly store: KeyValueStore;
   readonly settings: SettingsManager;
+  readonly activity: ActivityManager;
+  readonly conversations: ConversationStore;
+  readonly orchestrator: HelixOrchestrator;
 }
 
 export interface KernelOptions {
@@ -142,9 +148,30 @@ export class HelixKernel {
       durableStorage: (store as { durable?: boolean }).durable ?? false,
     });
 
+    const activity = new ActivityManager(bus);
+    const conversations = new ConversationStore({ store, settings, logger, bus });
+    const orchestrator = new HelixOrchestrator({
+      settings,
+      conversations,
+      activity,
+      logger,
+      bus,
+    });
+
     bus.emit('helix:ready', { startedAt: Date.now() });
 
-    return { bus, logger, logBuffer, platform, paths, store, settings };
+    return {
+      bus,
+      logger,
+      logBuffer,
+      platform,
+      paths,
+      store,
+      settings,
+      activity,
+      conversations,
+      orchestrator,
+    };
   }
 
   /**
@@ -181,10 +208,11 @@ export class HelixKernel {
   /** Release resources. Flushes pending settings writes first (spec 28). */
   async shutdown(reason = 'user'): Promise<void> {
     if (!this.#services) return;
-    const { bus, settings, store, logger } = this.#services;
+    const { bus, settings, store, logger, activity } = this.#services;
 
     bus.emit('helix:shutdown', { reason });
     try {
+      activity.reset();
       await settings.flush();
       await store.close();
     } catch (error) {

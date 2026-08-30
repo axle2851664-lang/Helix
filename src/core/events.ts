@@ -67,6 +67,16 @@ export interface HelixEventMap {
 
   // --- Navigation (spec 3) ---
   WORKSPACE_CHANGED: { workspace: string; previous: string | null };
+
+  // --- Activity. Drives the ACTIVE OPERATION panel, so it must reflect work
+  //     that is genuinely happening, never a decorative animation. ---
+  ACTIVITY_CHANGED: { kind: string; label: string; detail?: string };
+
+  // --- Conversations ---
+  CONVERSATION_CREATED: { conversationId: string };
+  CONVERSATION_OPENED: { conversationId: string };
+  CONVERSATION_DELETED: { conversationId: string };
+  MESSAGE_APPENDED: { conversationId: string; role: string };
 }
 
 export type HelixEventName = keyof HelixEventMap;
