@@ -6,6 +6,7 @@ import { ConversationsWorkspace } from './ConversationsWorkspace.js';
 import { HomeWorkspace } from '../chat/HomeWorkspace.js';
 import { ProjectsWorkspace } from '../projects/ProjectsWorkspace.js';
 import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
+import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
 import { WORKSPACES, type WorkspaceId } from './registry.js';
 
 /**
@@ -51,7 +52,7 @@ export function WorkspaceView({
     case 'memory':
       return <MemoryWorkspace />;
     case 'files':
-      return <FilesPending />;
+      return <FilesWorkspace />;
     case 'web-research':
       return <WebResearchPending />;
     case 'coding':
@@ -77,26 +78,6 @@ export function WorkspaceView({
       return null;
     }
   }
-}
-
-function FilesPending() {
-  const { paths, platform } = useHelix();
-  return (
-    <PendingWorkspace
-      descriptor={WORKSPACES.files}
-      planned={[
-        'Import files into a controlled Helix workspace.',
-        'Index contents for search, with previews.',
-        'Track assets by stable id rather than filename.',
-        'Report per-file storage usage.',
-      ]}
-      inPlace={[
-        `File paths resolve portably (${paths.getDataPath()}) and survive a drive-letter change.`,
-        'Workspace containment is enforced and tested, so Helix cannot read outside its own folder.',
-      ]}
-      requires={[{ label: 'Filesystem access', status: platform.capabilities.filesystem }]}
-    />
-  );
 }
 
 function WebResearchPending() {

@@ -85,7 +85,7 @@ export function ProjectsWorkspace({
  * one is given, so a file can never land in an unnamed bucket.
  */
 function ImportPanel({ onImported }: { onImported: (projectId: string) => void }) {
-  const { projects, activity, logger } = useHelix();
+  const { projects, activity, logger, knowledge } = useHelix();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +131,12 @@ function ImportPanel({ onImported }: { onImported: (projectId: string) => void }
         token.end('failed');
         return;
       }
+
+      // Index the new files so they are searchable immediately. Indexing
+      // failures are recorded on the document, never thrown at the import.
+      await knowledge.indexProject(project.id).catch((indexError: unknown) => {
+        logger.warn('Could not index imported files.', indexError);
+      });
 
       token.end('completed');
       setName('');

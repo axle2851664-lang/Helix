@@ -74,7 +74,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     subtitle: 'Indexed files and knowledge.',
     aliases: ['documents', 'knowledge', 'library'],
     phase: 4,
-    implemented: false,
+    implemented: true,
     inSidebar: true,
   },
   'web-research': {

@@ -1,0 +1,176 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { ActivityManager } from './ActivityManager.js';
+import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { Logger } from './Logger.js';
+import { ConversationStore } from '../conversations/ConversationStore.js';
+import { SettingsManager } from '../settings/SettingsManager.js';
+import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
+import { PathManager } from '../storage/PathManager.js';
+import { ProjectManager } from '../projects/ProjectManager.js';
+import { MemoryManager } from '../memory/MemoryManager.js';
+import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
+
+const encode = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;
+
+async function makeContext() {
+  const kv = new MemoryKeyValueStore();
+  const logger = new Logger('test', { level: 'ERROR', sinks: [] });
+  const settings = new SettingsManager({ store: kv, logger });
+  await settings.load();
+
+  const conversations = new ConversationStore({ store: kv, settings, logger });
+  const activity = new ActivityManager();
+  const paths = new PathManager({ root: 'E:/Helix' });
+  const projects = new ProjectManager({ store: kv, logger, paths });
+  const memory = new MemoryManager({ store: kv, settings, logger });
+  const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
+  const orchestrator = new HelixOrchestrator({
+    settings,
+    conversations,
+    activity,
+    projects,
+    memory,
+    knowledge,
+    logger,
+  });
+  const conversation = await conversations.create();
+
+  return { orchestrator, projects, knowledge, memory, settings, conversation };
+}
+
+describe('orchestrator: file search tool', () => {
+  let context: Awaited<ReturnType<typeof makeContext>>;
+
+  beforeEach(async () => {
+    context = await makeContext();
+  });
+
+  const ask = (text: string) =>
+    context.orchestrator.submit({ text, conversationId: context.conversation.id });
+
+  const addFile = async (fileName: string, content: string, type = 'text/plain') => {
+    const project =
+      (await context.projects.listProjects())[0] ??
+      (await context.projects.createProject('Notes'));
+    const asset = await context.projects.addFileToProject({
+      projectId: project.id,
+      file: { name: fileName, size: content.length || 1, type },
+      data: encode(content),
+    });
+    await context.knowledge.indexAsset(asset.id);
+    return asset;
+  };
+
+  it('searches indexed file contents', async () => {
+    await addFile('suit.md', 'The chest reactor powers the flight system.');
+
+    const response = await ask('search my files for reactor');
+
+    expect(response.handled).toBe(true);
+    expect(response.text).toContain('suit.md');
+    expect(response.text).toContain('reactor');
+  });
+
+  it('accepts several phrasings', async () => {
+    await addFile('notes.md', 'The deadline is Friday.');
+
+    for (const phrase of [
+      'search my files for deadline',
+      'what do my files say about deadline',
+      'find in my files deadline',
+      'search my notes for deadline',
+    ]) {
+      const response = await ask(phrase);
+      expect(response.text, phrase).toContain('notes.md');
+    }
+  });
+
+  it('says plainly when nothing matches', async () => {
+    await addFile('notes.md', 'The deadline is Friday.');
+
+    const response = await ask('search my files for quantum tunnelling');
+
+    expect(response.handled).toBe(true);
+    expect(response.text).toContain('Nothing in');
+  });
+
+  it('explains when no files are indexed', async () => {
+    const response = await ask('search my files for anything');
+
+    expect(response.handled).toBe(false);
+    expect(response.text).toContain('No files are indexed yet');
+  });
+
+  // A library of only PDFs and photos is not "no files" - it is files that
+  // could not be read, and the difference matters to the user.
+  it('distinguishes unreadable files from having no files', async () => {
+    const project = await context.projects.createProject('Scans');
+    const asset = await context.projects.addFileToProject({
+      projectId: project.id,
+      file: { name: 'scan.pdf', size: 100, type: 'application/pdf' },
+      data: encode('%PDF-1.4'),
+    });
+    await context.knowledge.indexAsset(asset.id);
+
+    const response = await ask('search my files for anything');
+
+    expect(response.text).toContain('None of your 1 file could be indexed');
+    expect(response.text).toContain('Open Files');
+    // Must not read as "you have no files" - the files exist, they are unreadable.
+    expect(response.text).not.toContain('No files are indexed yet');
+  });
+
+  it('asks what to search for when no query follows', async () => {
+    await addFile('notes.md', 'content here');
+
+    const response = await ask('search my files');
+
+    expect(response.handled).toBe(false);
+    expect(response.text).toContain('Search for what?');
+  });
+
+  it('works with no language provider configured', async () => {
+    await addFile('notes.md', 'The deadline is Friday.');
+    expect(context.settings.get('languageProvider')).toBe('none');
+
+    expect((await ask('search my files for deadline')).handled).toBe(true);
+  });
+
+  describe('routing precedence', () => {
+    // File search reads files; memory recall reads what Helix was told. They
+    // must not be confused for each other.
+    it('does not answer a memory question from files', async () => {
+      await addFile('notes.md', 'The deadline is Friday.');
+      await ask('remember that my sister is called Mira');
+
+      const response = await ask('what do you remember about my sister');
+
+      expect(response.text).toContain('Mira');
+      expect(response.text).not.toContain('notes.md');
+    });
+
+    it('does not answer a file question from memory', async () => {
+      await addFile('notes.md', 'The deadline is Friday.');
+      await ask('remember that the deadline is Monday');
+
+      const response = await ask('search my files for deadline');
+
+      expect(response.text).toContain('notes.md');
+      expect(response.text).toContain('Friday');
+    });
+
+    it('does not hijack navigation', async () => {
+      expect((await ask('open settings')).navigateTo).toBe('settings');
+    });
+
+    it('does not hijack a project request', async () => {
+      const project = await context.projects.createProject('Iron Man');
+      expect((await ask('open my Iron Man project')).openProjectId).toBe(project.id);
+    });
+
+    it('leaves an ordinary question to the unhandled path', async () => {
+      const response = await ask('what should I cook tonight?');
+      expect(response.failure).toBe('PROVIDER_NOT_CONFIGURED');
+    });
+  });
+});

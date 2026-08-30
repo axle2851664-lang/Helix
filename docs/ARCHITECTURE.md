@@ -77,6 +77,9 @@ src/
 ├── memory/
 │   ├── MemoryManager.ts     ✅ long-term memory, credential refusal
 │   └── types.ts             ✅ record shape and categories
+├── knowledge/
+│   ├── KnowledgeIndex.ts    ✅ file text index and keyword search
+│   └── extract.ts           ✅ text extraction, honest about limits
 ├── projects/
 │   ├── ProjectManager.ts    ✅ projects, assets, search
 │   ├── validation.ts        ✅ upload allowlist and sanitising
@@ -139,8 +142,8 @@ Consequences carried into the roadmap:
 | 2 | Kernel, persistence, settings, workspace navigation | **Complete** |
 | 3 | Reference interface, orchestrator, conversations, projects | **Complete** |
 | 4 | Memory system | **Complete** |
-| 4b | File and knowledge indexing | Next |
-| 5 | Voice pipeline and language providers | Planned |
+| 4b | File and knowledge indexing | **Complete** |
+| 5 | Voice pipeline and language providers | Next |
 | 6 | Web research and coding | Planned |
 | 7 | Camera, vision, gestures | Planned |
 | 8 | Image generation | Planned |

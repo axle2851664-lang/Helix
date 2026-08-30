@@ -43,6 +43,7 @@ describe('workspace registry', () => {
     const implemented = WORKSPACE_LIST.filter((w) => w.implemented).map((w) => w.id).sort();
     expect(implemented).toEqual([
       'conversations',
+      'files',
       'home',
       'memory',
       'settings',

@@ -267,3 +267,84 @@
   padding: 6px 10px;
   font-size: 12.5px;
 }
+
+/* --------------------------- knowledge ------------------------ */
+.hx-filelist,
+.hx-hitlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hx-filelist__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 11px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.hx-filelist__row:first-child {
+  border-top: none;
+}
+
+.hx-filelist__row .hx-dot {
+  margin-top: 7px;
+}
+
+.hx-filelist__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.hx-filelist__name {
+  font-size: 13.5px;
+  color: var(--hx-text);
+  word-break: break-word;
+}
+
+.hx-filelist__meta {
+  font-size: 11.5px;
+  color: var(--hx-text-faint);
+  margin-top: 2px;
+}
+
+.hx-filelist__reason {
+  font-size: 11.5px;
+  color: var(--hx-warn);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.hx-hitlist__row {
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.hx-hitlist__row:first-child {
+  border-top: none;
+}
+
+.hx-hitlist__file {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--helix-mono);
+  font-size: 11.5px;
+  color: var(--hx-accent);
+}
+
+.hx-hitlist__snippet {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--hx-text);
+  word-break: break-word;
+}
+
+.hx-hitlist__meta {
+  margin-top: 5px;
+  font-family: var(--helix-mono);
+  font-size: 10.5px;
+  color: var(--hx-text-faint);
+}

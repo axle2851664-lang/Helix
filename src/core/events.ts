@@ -72,6 +72,9 @@ export interface HelixEventMap {
   //     that is genuinely happening, never a decorative animation. ---
   ACTIVITY_CHANGED: { kind: string; label: string; detail?: string };
 
+  // --- Knowledge index (spec 12) ---
+  KNOWLEDGE_INDEXED: { assetId: string; indexed: boolean };
+
   // --- Conversations ---
   CONVERSATION_CREATED: { conversationId: string };
   CONVERSATION_OPENED: { conversationId: string };

@@ -12,6 +12,7 @@ import { HelixOrchestrator } from './HelixOrchestrator.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { MemoryManager } from '../memory/MemoryManager.js';
+import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 
 /**
  * The Helix service container (spec 19).
@@ -40,6 +41,7 @@ export interface KernelServices {
   readonly conversations: ConversationStore;
   readonly projects: ProjectManager;
   readonly memory: MemoryManager;
+  readonly knowledge: KnowledgeIndex;
   readonly orchestrator: HelixOrchestrator;
 }
 
@@ -156,14 +158,25 @@ export class HelixKernel {
     const conversations = new ConversationStore({ store, settings, logger, bus });
     const projects = new ProjectManager({ store, logger, paths, bus });
     const memory = new MemoryManager({ store, settings, logger, bus });
+    const knowledge = new KnowledgeIndex({ store, projects, logger, bus });
     const orchestrator = new HelixOrchestrator({
       settings,
       conversations,
       activity,
       projects,
       memory,
+      knowledge,
       logger,
       bus,
+    });
+
+    // Newly imported files are indexed in the background. Indexing failures
+    // are recorded on the document, not thrown at the import, so a file that
+    // cannot be read still imports successfully.
+    projects.subscribe(() => {
+      void knowledge.prune().catch((error: unknown) => {
+        logger.debug('Index prune failed.', error);
+      });
     });
 
     bus.emit('helix:ready', { startedAt: Date.now() });
@@ -180,6 +193,7 @@ export class HelixKernel {
       conversations,
       projects,
       memory,
+      knowledge,
       orchestrator,
     };
   }

@@ -8,6 +8,7 @@ import { resolveWorkspace, type WorkspaceId } from '../ui/workspaces/registry.js
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { formatContext, getModelOrDefault, resolveModel } from '../models/catalog.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
+import type { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 
 /**
  * The Helix orchestration seam (spec: UI -> ORCHESTRATOR -> TOOLS).
@@ -76,6 +77,7 @@ export interface OrchestratorOptions {
   activity: ActivityManager;
   projects: ProjectManager;
   memory: MemoryManager;
+  knowledge: KnowledgeIndex;
   logger: Logger;
   bus?: EventBus;
 }
@@ -86,6 +88,7 @@ export class HelixOrchestrator {
   readonly #activity: ActivityManager;
   readonly #projects: ProjectManager;
   readonly #memory: MemoryManager;
+  readonly #knowledge: KnowledgeIndex;
   readonly #logger: Logger;
   readonly #tools: HelixTool[] = [];
 
@@ -95,8 +98,11 @@ export class HelixOrchestrator {
     this.#activity = options.activity;
     this.#projects = options.projects;
     this.#memory = options.memory;
+    this.#knowledge = options.knowledge;
     this.#logger = options.logger.child('orchestrator');
 
+    // File search sits just below memory: "search my files for X" is explicit.
+    this.registerTool(this.#fileSearchTool());
     // Memory runs first: "remember that ..." is an explicit instruction and
     // must never be mistaken for a project or navigation request.
     this.registerTool(this.#memoryTool());
@@ -197,6 +203,92 @@ export class HelixOrchestrator {
         'this request cannot be completed.',
       handled: false,
       failure: 'PROVIDER_NOT_IMPLEMENTED',
+    };
+  }
+
+  /**
+   * Searching indexed file contents (spec 12).
+   *
+   * Deliberately distinct from memory: this reads what is in the user's files,
+   * never what Helix has been told to remember. Keyword search, no model, so it
+   * works offline and with no provider configured.
+   */
+  #fileSearchTool(): HelixTool {
+    const phrases = [
+      'search my files',
+      'search files',
+      'find in my files',
+      'find in files',
+      'what do my files say',
+      'search my documents',
+      'look in my files',
+      'search my notes',
+    ];
+
+    return {
+      name: 'searchFiles',
+      description: 'Search the text of your indexed files.',
+      priority: 450,
+      matches: (request) => {
+        const lower = request.text.toLowerCase();
+        return phrases.some((phrase) => lower.includes(phrase));
+      },
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const lower = request.text.toLowerCase();
+        // Longest phrase first so "search my files" is not cut at "search files".
+        const phrase = [...phrases]
+          .sort((a, b) => b.length - a.length)
+          .find((candidate) => lower.includes(candidate));
+        const at = phrase ? lower.indexOf(phrase) + phrase.length : 0;
+        const query = request.text
+          .slice(at)
+          .replace(/^\s*(?:for|about|regarding|on)\b/i, '')
+          .replace(/[?!.]+$/, '')
+          .trim();
+
+        const stats = await this.#knowledge.stats();
+
+        if (query === '') {
+          return {
+            text:
+              stats.searchable === 0
+                ? 'No files are indexed yet. Import some from Upload Project.'
+                : `Search for what? ${stats.searchable} ${
+                    stats.searchable === 1 ? 'file is' : 'files are'
+                  } indexed.`,
+            handled: false,
+            failure: 'VALIDATION_FAILED',
+          };
+        }
+
+        if (stats.searchable === 0) {
+          const unreadable = stats.documents - stats.searchable;
+          return {
+            text:
+              unreadable > 0
+                ? `None of your ${stats.documents} ${
+                    stats.documents === 1 ? 'file' : 'files'
+                  } could be indexed, so there is nothing to search. Open Files to see why.`
+                : 'No files are indexed yet. Import some from Upload Project.',
+            handled: false,
+            failure: 'NOT_FOUND',
+          };
+        }
+
+        const hits = await this.#knowledge.search(query, { limit: 4 });
+        if (hits.length === 0) {
+          return {
+            text: `Nothing in your ${stats.searchable} indexed ${
+              stats.searchable === 1 ? 'file' : 'files'
+            } mentions "${query}".`,
+            handled: true,
+          };
+        }
+
+        const lines = hits.map((hit) => `- ${hit.fileName}: ${hit.snippet}`).join('\n');
+        return { text: `Found in your files for "${query}":\n${lines}`, handled: true };
+      },
     };
   }
 
