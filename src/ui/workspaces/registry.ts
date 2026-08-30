@@ -65,7 +65,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     subtitle: 'What Helix remembers, and what it forgets.',
     aliases: ['memories', 'remember', 'recall'],
     phase: 4,
-    implemented: false,
+    implemented: true,
     inSidebar: true,
   },
   files: {

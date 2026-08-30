@@ -7,6 +7,7 @@ import { SettingsManager } from '../settings/SettingsManager.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
 import { PathManager } from '../storage/PathManager.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
+import { MemoryManager } from '../memory/MemoryManager.js';
 
 /**
  * Routing between the project tool and the navigation tool.
@@ -24,11 +25,13 @@ async function makeContext() {
   const activity = new ActivityManager();
   const paths = new PathManager({ root: 'E:/Helix' });
   const projects = new ProjectManager({ store: kv, logger, paths });
+  const memory = new MemoryManager({ store: kv, settings, logger });
   const orchestrator = new HelixOrchestrator({
     settings,
     conversations,
     activity,
     projects,
+    memory,
     logger,
   });
   const conversation = await conversations.create();

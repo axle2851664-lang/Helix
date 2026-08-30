@@ -11,6 +11,7 @@ import { ActivityManager } from './ActivityManager.js';
 import { HelixOrchestrator } from './HelixOrchestrator.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
+import { MemoryManager } from '../memory/MemoryManager.js';
 
 /**
  * The Helix service container (spec 19).
@@ -38,6 +39,7 @@ export interface KernelServices {
   readonly activity: ActivityManager;
   readonly conversations: ConversationStore;
   readonly projects: ProjectManager;
+  readonly memory: MemoryManager;
   readonly orchestrator: HelixOrchestrator;
 }
 
@@ -153,11 +155,13 @@ export class HelixKernel {
     const activity = new ActivityManager(bus);
     const conversations = new ConversationStore({ store, settings, logger, bus });
     const projects = new ProjectManager({ store, logger, paths, bus });
+    const memory = new MemoryManager({ store, settings, logger, bus });
     const orchestrator = new HelixOrchestrator({
       settings,
       conversations,
       activity,
       projects,
+      memory,
       logger,
       bus,
     });
@@ -175,6 +179,7 @@ export class HelixKernel {
       activity,
       conversations,
       projects,
+      memory,
       orchestrator,
     };
   }

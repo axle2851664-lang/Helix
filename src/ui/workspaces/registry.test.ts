@@ -44,6 +44,7 @@ describe('workspace registry', () => {
     expect(implemented).toEqual([
       'conversations',
       'home',
+      'memory',
       'settings',
       'system',
       'upload-project',

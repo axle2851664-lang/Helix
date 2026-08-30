@@ -11,7 +11,10 @@
 - Keys belong in environment variables or OS credential storage — never in
   source, never in frontend-reachable code, never in a committed config file.
 - Passwords, API keys, tokens and private keys must **never** be written into
-  normal memory records or logs.
+  normal memory records or logs. This is enforced, not advisory: `core/secrets.ts`
+  holds one pattern list, `Logger` redacts matches before they reach a sink, and
+  `MemoryManager` refuses to store them at all. Both consumers share the list so
+  they cannot drift apart.
 
 `C:\Users\selam\.claude\.credentials.json` belongs to Claude Code, not Helix. It
 is not a Helix credential source and must not be read or copied into this project.

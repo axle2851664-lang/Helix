@@ -58,7 +58,7 @@ src/
 │   ├── HelixCore.ts         ▫ later — deeper orchestration
 │   ├── ContextManager.ts    ▫ phase 5 — context assembly
 │   ├── ProviderManager.ts   ▫ phase 5 — local/cloud/hybrid selection
-│   ├── MemoryManager.ts     ▫ phase 4
+│   ├── secrets.ts           ✅ shared credential detection
 │   └── PermissionManager.ts ▫ phase 7 — sensor and tool permissions
 ├── platform/
 │   ├── PlatformAdapter.ts   ✅ the host boundary
@@ -74,6 +74,9 @@ src/
 │   └── SettingsManager.ts   ✅ load, validate, migrate, persist
 ├── conversations/
 │   └── ConversationStore.ts ✅ short-term memory, privacy-gated
+├── memory/
+│   ├── MemoryManager.ts     ✅ long-term memory, credential refusal
+│   └── types.ts             ✅ record shape and categories
 ├── projects/
 │   ├── ProjectManager.ts    ✅ projects, assets, search
 │   ├── validation.ts        ✅ upload allowlist and sanitising
@@ -135,7 +138,8 @@ Consequences carried into the roadmap:
 | 1 | Repository analysis, architecture, build system | **Complete** |
 | 2 | Kernel, persistence, settings, workspace navigation | **Complete** |
 | 3 | Reference interface, orchestrator, conversations, projects | **Complete** |
-| 4 | Memory and knowledge system | Next |
+| 4 | Memory system | **Complete** |
+| 4b | File and knowledge indexing | Next |
 | 5 | Voice pipeline and language providers | Planned |
 | 6 | Web research and coding | Planned |
 | 7 | Camera, vision, gestures | Planned |

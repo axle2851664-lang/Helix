@@ -31,7 +31,7 @@ interface StatusPanelProps {
 }
 
 export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
-  const { platform, store, activity, conversations, projects } = useHelix();
+  const { platform, store, activity, conversations, projects, memory } = useHelix();
   const settings = useSettings([
     'languageProvider',
     'languageModel',
@@ -47,6 +47,7 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
   const [conversationCount, setConversationCount] = useState(0);
   const [assetCount, setAssetCount] = useState(0);
   const [projectCount, setProjectCount] = useState(0);
+  const [memoryCount, setMemoryCount] = useState(0);
 
   useEffect(() => platform.onConnectivityChange(setOnline), [platform]);
   useEffect(() => activity.subscribe(setCurrent), [activity]);
@@ -74,6 +75,14 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
     refresh();
     return projects.subscribe(refresh);
   }, [projects]);
+
+  useEffect(() => {
+    const refresh = () => {
+      void memory.count().then(setMemoryCount);
+    };
+    refresh();
+    return memory.subscribe(refresh);
+  }, [memory]);
 
   const forcedOffline = settings.offlineMode === 'offline';
   const effectivelyOnline = online && !forcedOffline;
@@ -104,11 +113,15 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
       key: 'memory',
       icon: 'brain',
       label: 'MEMORY',
-      value: durable ? 'Local store ready' : 'Not saving',
-      tone: durable ? 'ok' : 'warn',
+      value: !durable
+        ? 'Not saving'
+        : memoryCount === 0
+          ? 'Nothing stored'
+          : `${memoryCount} remembered`,
+      tone: !durable ? 'warn' : memoryCount > 0 ? 'ok' : 'off',
       detail: settings.allowLongTermMemory
-        ? 'Long-term memory allowed'
-        : 'Long-term memory disabled',
+        ? 'Only stores what you ask it to'
+        : 'Long-term memory turned off',
     },
     {
       key: 'web',

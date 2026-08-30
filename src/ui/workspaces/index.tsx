@@ -1,10 +1,11 @@
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHelix } from '../HelixProvider.js';
 import { PendingWorkspace } from './PendingWorkspace.js';
 import { SettingsWorkspace } from './SettingsWorkspace.js';
 import { SystemWorkspace } from './SystemWorkspace.js';
 import { ConversationsWorkspace } from './ConversationsWorkspace.js';
 import { HomeWorkspace } from '../chat/HomeWorkspace.js';
 import { ProjectsWorkspace } from '../projects/ProjectsWorkspace.js';
+import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
 import { WORKSPACES, type WorkspaceId } from './registry.js';
 
 /**
@@ -48,7 +49,7 @@ export function WorkspaceView({
     case 'system':
       return <SystemWorkspace />;
     case 'memory':
-      return <MemoryPending />;
+      return <MemoryWorkspace />;
     case 'files':
       return <FilesPending />;
     case 'web-research':
@@ -76,28 +77,6 @@ export function WorkspaceView({
       return null;
     }
   }
-}
-
-function MemoryPending() {
-  const settings = useSettings(['allowLongTermMemory']);
-  return (
-    <PendingWorkspace
-      descriptor={WORKSPACES.memory}
-      planned={[
-        'Inspect and delete anything Helix has remembered.',
-        'Separate short-term, long-term, project and file memory.',
-        'Save a memory only when you explicitly ask for one.',
-        'Search memory semantically once an embedding provider exists.',
-      ]}
-      inPlace={[
-        'Namespaced durable storage is working, so memory cannot collide with settings or projects.',
-        `Long-term memory is currently ${settings.allowLongTermMemory ? 'allowed' : 'disabled'} in Settings.`,
-        'Conversation memory is implemented and is deliberately not promoted to long-term storage.',
-        'MEMORY_SAVED and MEMORY_DELETED events are declared.',
-      ]}
-      blockedBy="Semantic search needs an embedding provider, and none is configured. Keyword memory search does not need one and lands first."
-    />
-  );
 }
 
 function FilesPending() {

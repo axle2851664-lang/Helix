@@ -7,6 +7,7 @@ import type { ConversationStore } from '../conversations/ConversationStore.js';
 import { resolveWorkspace, type WorkspaceId } from '../ui/workspaces/registry.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { formatContext, getModelOrDefault, resolveModel } from '../models/catalog.js';
+import type { MemoryManager } from '../memory/MemoryManager.js';
 
 /**
  * The Helix orchestration seam (spec: UI -> ORCHESTRATOR -> TOOLS).
@@ -74,6 +75,7 @@ export interface OrchestratorOptions {
   conversations: ConversationStore;
   activity: ActivityManager;
   projects: ProjectManager;
+  memory: MemoryManager;
   logger: Logger;
   bus?: EventBus;
 }
@@ -83,6 +85,7 @@ export class HelixOrchestrator {
   readonly #conversations: ConversationStore;
   readonly #activity: ActivityManager;
   readonly #projects: ProjectManager;
+  readonly #memory: MemoryManager;
   readonly #logger: Logger;
   readonly #tools: HelixTool[] = [];
 
@@ -91,8 +94,12 @@ export class HelixOrchestrator {
     this.#conversations = options.conversations;
     this.#activity = options.activity;
     this.#projects = options.projects;
+    this.#memory = options.memory;
     this.#logger = options.logger.child('orchestrator');
 
+    // Memory runs first: "remember that ..." is an explicit instruction and
+    // must never be mistaken for a project or navigation request.
+    this.registerTool(this.#memoryTool());
     // Model switching outranks the rest: "switch to Sonnet" is unambiguous and
     // must never be mistaken for a project or workspace name.
     this.registerTool(this.#modelTool());
@@ -190,6 +197,128 @@ export class HelixOrchestrator {
         'this request cannot be completed.',
       handled: false,
       failure: 'PROVIDER_NOT_IMPLEMENTED',
+    };
+  }
+
+  /**
+   * Remembering, recalling and forgetting (spec 6, 10).
+   *
+   * Saving happens here and only here, in response to an explicit instruction.
+   * Nothing in the conversation path writes long-term memory on its own, which
+   * is the specification's rule that temporary context is never silently
+   * promoted to permanent memory.
+   *
+   * Fully working offline and with no provider: storage and retrieval are
+   * literal, no model involved.
+   */
+  #memoryTool(): HelixTool {
+    const savePrefixes = [
+      'remember that ',
+      'remember this: ',
+      'remember: ',
+      'remember ',
+      'note that ',
+      'keep in mind that ',
+    ];
+    const recallPhrases = [
+      'what do you remember',
+      'what do you know about',
+      'do you remember',
+      'recall ',
+      'what have you remembered',
+      'list my memories',
+      'show my memories',
+      'what do you remember about',
+    ];
+    const forgetPrefixes = ['forget that ', 'forget about ', 'forget ', 'delete the memory '];
+
+    return {
+      name: 'memory',
+      description: 'Remember something, recall what is stored, or forget it.',
+      priority: 400,
+      matches: (request) => {
+        const lower = request.text.toLowerCase();
+        return (
+          savePrefixes.some((prefix) => lower.startsWith(prefix.trim())) ||
+          recallPhrases.some((phrase) => lower.includes(phrase)) ||
+          forgetPrefixes.some((prefix) => lower.startsWith(prefix.trim()))
+        );
+      },
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const text = request.text.trim();
+        const lower = text.toLowerCase();
+
+        // --- forget ---
+        const forgetPrefix = forgetPrefixes.find((prefix) => lower.startsWith(prefix.trim()));
+        if (forgetPrefix && !recallPhrases.some((phrase) => lower.includes(phrase))) {
+          const subject = text.slice(forgetPrefix.trim().length).trim();
+          if (subject === '') {
+            return { text: 'Forget what, specifically?', handled: false, failure: 'VALIDATION_FAILED' };
+          }
+          const found = await this.#memory.search(subject, { limit: 5 });
+          if (found.length === 0) {
+            return {
+              text: `I have nothing remembered about "${subject}".`,
+              handled: false,
+              failure: 'NOT_FOUND',
+            };
+          }
+          const target = found[0];
+          if (!target) {
+            return { text: 'Nothing matched.', handled: false, failure: 'NOT_FOUND' };
+          }
+          await this.#memory.delete(target.memory.id);
+          return { text: `Forgotten: "${target.memory.content}"`, handled: true };
+        }
+
+        // --- recall ---
+        if (recallPhrases.some((phrase) => lower.includes(phrase))) {
+          const subject = extractRecallSubject(lower, recallPhrases);
+
+          if (subject === '') {
+            const all = await this.#memory.list();
+            if (all.length === 0) {
+              return {
+                text: 'I have not been asked to remember anything yet. Say "remember that ..." and I will keep it.',
+                handled: true,
+              };
+            }
+            const preview = all.slice(0, 5).map((record) => `- ${record.content}`).join('\n');
+            const more = all.length > 5 ? `\n...and ${all.length - 5} more.` : '';
+            return { text: `I remember ${all.length}:\n${preview}${more}`, handled: true };
+          }
+
+          const found = await this.#memory.search(subject, { limit: 5 });
+          if (found.length === 0) {
+            return {
+              text: `I have nothing remembered about "${subject}".`,
+              handled: true,
+            };
+          }
+          const lines = found.map((match) => `- ${match.memory.content}`).join('\n');
+          return { text: `About "${subject}":\n${lines}`, handled: true };
+        }
+
+        // --- remember ---
+        const savePrefix = savePrefixes.find((prefix) => lower.startsWith(prefix.trim()));
+        if (!savePrefix) return null;
+
+        const content = text.slice(savePrefix.trim().length).replace(/^[:,\s]+/, '').trim();
+        if (content === '') {
+          return { text: 'Remember what, specifically?', handled: false, failure: 'VALIDATION_FAILED' };
+        }
+
+        try {
+          const record = await this.#memory.save({ content });
+          return { text: `Remembered: "${record.content}"`, handled: true };
+        } catch (error) {
+          // Refusals (credentials, memory disabled) are the user's answer, not
+          // an internal failure - surface the reason verbatim.
+          const helix = HelixError.from(error, 'I could not store that.');
+          return { text: helix.userMessage, handled: false, failure: helix.code };
+        }
+      },
     };
   }
 
@@ -387,4 +516,25 @@ export class HelixOrchestrator {
       },
     };
   }
+}
+
+/**
+ * Pull the subject out of a recall question.
+ *
+ * "what do you remember about my sister" -> "my sister";
+ * "what do you remember" -> "" (a request to list everything).
+ */
+function extractRecallSubject(lower: string, phrases: readonly string[]): string {
+  // Longest phrase first, so "what do you remember about" wins over
+  // "what do you remember" and the word "about" is not left in the subject.
+  const ordered = [...phrases].sort((a, b) => b.length - a.length);
+
+  for (const phrase of ordered) {
+    const index = lower.indexOf(phrase);
+    if (index === -1) continue;
+    let rest = lower.slice(index + phrase.length);
+    rest = rest.replace(/^(?:about|of|regarding)/, '');
+    return rest.replace(/[?!.]+$/, '').trim();
+  }
+  return '';
 }

@@ -1,3 +1,5 @@
+import { isSensitiveKey, secretValuePatterns } from './secrets.js';
+
 /**
  * Structured logging with redaction (spec 18, 22).
  *
@@ -30,33 +32,11 @@ export interface LogSink {
 
 export const REDACTED = '[redacted]';
 
-/**
- * Keys whose values are replaced wholesale. Matched case-insensitively as a
- * substring, so `openaiApiKey`, `API_KEY` and `refresh_token` all match.
- */
-const SENSITIVE_KEY_PATTERNS = [
-  'password', 'passwd', 'secret', 'token', 'apikey', 'api_key',
-  'accesskey', 'access_key', 'authorization', 'auth', 'credential',
-  'privatekey', 'private_key', 'sessionid', 'session_id', 'cookie',
-];
-
-/** Value-shaped secrets that can appear even under an innocuous key. */
-const SENSITIVE_VALUE_PATTERNS: RegExp[] = [
-  /\bsk-[A-Za-z0-9_-]{16,}\b/g,           // OpenAI-style keys
-  /\bsk-ant-[A-Za-z0-9_-]{16,}\b/g,       // Anthropic-style keys
-  /\bgh[pousr]_[A-Za-z0-9]{16,}\b/g,      // GitHub tokens
-  /\bBearer\s+[A-Za-z0-9._~+/-]{12,}=*/gi, // bearer headers
-  /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+/g, // JWTs
-];
-
-function isSensitiveKey(key: string): boolean {
-  const normalized = key.toLowerCase().replace(/[^a-z_]/g, '');
-  return SENSITIVE_KEY_PATTERNS.some((p) => normalized.includes(p.replace(/[^a-z_]/g, '')));
-}
-
 function redactString(value: string): string {
   let out = value;
-  for (const pattern of SENSITIVE_VALUE_PATTERNS) {
+  // Fresh instances per call: these patterns carry the g flag, and reusing one
+  // object would carry lastIndex between calls and skip matches.
+  for (const pattern of secretValuePatterns()) {
     out = out.replace(pattern, REDACTED);
   }
   return out;

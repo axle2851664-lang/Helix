@@ -8,7 +8,7 @@ user approves, and — as later phases land — see through a permitted camera,
 understand hand gestures, display interactive 3D projects, and provide a spatial
 geographic environment.
 
-> **Status: milestone 3 of 12.** The kernel, persistence, settings, the reference
+> **Status: phase 4 of 12.** The kernel, persistence, settings, the reference
 > interface, the orchestrator, conversations and projects are built and tested.
 > Voice, vision, camera, gestures, memory, 3D, web and computer control are
 > **not yet implemented**. This
@@ -34,9 +34,11 @@ geographic environment.
 | `ConversationStore` - real conversations, privacy-gated persistence | Working |
 | `HelixOrchestrator` - tool registry; navigation and project tools | Working |
 | `ProjectManager` - projects, assets, validation, search (spec 7) | Working |
+| `MemoryManager` - long-term memory, refuses credentials (spec 6) | Working |
+| Claude model selection and switching by command | Working |
 | Reference three-column UI, 11 navigable workspaces | Working |
 | Upload Project - real import, validation, originals vs generated | Working |
-| Memory, Files, Web, Coding, Image Gen, Earth, Storage, Gestures | Not implemented |
+| Files, Web, Coding, Image Gen, Earth, Storage, Gestures | Not implemented |
 
 ## Requirements
 
