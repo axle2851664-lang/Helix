@@ -1,0 +1,133 @@
+# Helix Architecture
+
+## Current state
+
+Helix began as an empty repository (`git init`, zero commits, zero files). There
+was no prior framework, build system or feature set to preserve. Everything here
+is new, which is why this document describes intent as well as implementation —
+but implemented and planned items are labelled distinctly throughout.
+
+## Shell strategy: browser-first, Tauri later
+
+**Target:** a portable `Helix.exe` built with Tauri.
+
+**Why Tauri over Electron.** The requirement that "Core should remain small" is
+decisive. A Tauri binary is single-digit megabytes; Electron bundles a ~150 MB+
+Chromium runtime into every copy, which on a portable drive ships with the app
+forever. The WebView2 runtime that Tauri renders through is **already present on
+the development machine** (v151.0.4129.107), so the runtime side of that choice
+costs nothing.
+
+**Why not Tauri from day one.** Building Tauri requires the Rust toolchain, MSVC
+Build Tools and the Windows SDK — roughly 7–10 GB, none of which is installed on
+the development machine. Rather than block every feature phase behind that
+install, Helix is built browser-first.
+
+**Why this is safe.** Nearly everything in phases 3–8 is browser-native:
+`getUserMedia` for camera and microphone, MediaPipe for hand tracking, WebGL2
+and Three.js for the 3D viewer, Spatial Mode and Helix Earth. These run
+unmodified inside a Tauri WebView later.
+
+**What absorbs the change.** [`PlatformAdapter`](../src/platform/PlatformAdapter.ts)
+is the single boundary where the two hosts differ. Feature code depends on that
+interface and never touches `window.__TAURI__` or a browser global directly.
+Adding the Tauri shell means writing `TauriPlatform` alongside the existing
+`BrowserPlatform` — not rewriting features.
+
+The interface deliberately forces honesty: capabilities are *reported*, not
+assumed, and values the host cannot determine are `null` rather than estimated.
+`BrowserPlatform` therefore declares filesystem access, real disk statistics,
+process spawning and removable-media control **unavailable, with reasons**,
+instead of stubbing them out to look functional.
+
+## Module map
+
+Implemented modules are marked ✅; the rest are planned and named here so
+boundaries are fixed before code lands.
+
+```
+src/
+├── core/
+│   ├── EventBus.ts          ✅ typed pub/sub, error-isolated dispatch
+│   ├── events.ts            ✅ the event catalogue (single source of truth)
+│   ├── HelixCore.ts         ▫ phase 3 — orchestration
+│   ├── IntentEngine.ts      ▫ phase 3
+│   ├── ContextManager.ts    ▫ phase 3
+│   ├── ToolRegistry.ts      ▫ phase 3 — schema-validated tools
+│   ├── ProviderManager.ts   ▫ phase 3 — local/cloud/hybrid selection
+│   ├── MemoryManager.ts     ▫ phase 4
+│   ├── ProjectManager.ts    ▫ phase 4
+│   └── PermissionManager.ts ▫ phase 3
+├── platform/
+│   ├── PlatformAdapter.ts   ✅ the host boundary
+│   ├── BrowserPlatform.ts   ✅ browser implementation
+│   └── TauriPlatform.ts     ▫ later phase
+├── storage/
+│   ├── PathManager.ts       ▫ phase 2 — dynamic path resolution
+│   └── StorageManager.ts    ▫ phase 2 — the storage ceiling
+├── ui/                      ✅ shell, Helix mark, design tokens
+└── types/                   ✅ shared types
+```
+
+## The EventBus contract
+
+Modules communicate through [`EventBus`](../src/core/EventBus.ts) rather than
+importing each other. This is what keeps Camera, Spatial, Memory and Storage
+independently removable, and it is why the event catalogue is a typed map — a
+mistyped event name or payload is a compile error, not a silent no-op.
+
+Three properties matter and are covered by tests:
+
+1. **A throwing subscriber cannot stop the others.** Each handler runs in its own
+   try/catch, so one broken listener cannot prevent camera teardown or block a
+   storage warning from reaching anyone else.
+2. **Errors are never swallowed silently.** They are reported to an injected
+   logger (spec §23).
+3. **Dispatch iterates a snapshot,** so a handler may subscribe or unsubscribe
+   mid-dispatch without corrupting the in-flight iteration.
+
+Sensor events (`CAMERA_STARTED` / `CAMERA_STOPPED`, `MICROPHONE_STARTED` /
+`MICROPHONE_STOPPED`) exist specifically so the active-sensor indicator can never
+drift out of sync with real device state. See [SECURITY.md](SECURITY.md).
+
+## Hardware reality on the development machine
+
+These measurements constrain the design and are recorded so later phases do not
+promise what the hardware cannot deliver:
+
+```
+CPU    12th Gen Intel Core i5-1235U (10 cores / 12 threads, mobile)
+RAM    7.8 GB total
+GPU    Intel Iris Xe integrated — no dedicated VRAM, no CUDA
+C:     237.1 GB total / 87.1 GB free (NTFS)
+G:     15 GB FAT32 — Google Drive mount, not removable media
+```
+
+Consequences carried into the roadmap:
+
+- **Local image generation and local image-to-3D are not feasible here.** Those
+  pipelines want 8–12 GB VRAM. The `ImageTo3DEngine` interface is still built as
+  specified, with cloud implementations, and a local implementation that reports
+  itself unavailable on this hardware rather than failing obscurely.
+- **Local LLM is marginal.** At 7.8 GB total RAM, realistically ~3B at Q4 while
+  contending with the OS and a WebView process. Hybrid is therefore the default
+  posture: cloud primary, local opt-in.
+- **The 500 GB ceiling has no volume that can approach it.** See
+  [STORAGE.md](STORAGE.md).
+
+## Phase plan
+
+| Phase | Scope | State |
+|---|---|---|
+| 1 | Repository analysis, architecture, build system | **Complete** |
+| 2 | PathManager, StorageManager, settings | Next |
+| 3 | HelixCore, ToolRegistry, ProviderManager, permissions | Planned |
+| 4 | Memory, projects, knowledge | Planned |
+| 5 | Voice, vision, camera | Planned |
+| 6 | Hand tracking, Spatial Mode | Planned |
+| 7 | Helix 3D | Planned |
+| 8 | Helix Earth | Planned |
+| 9 | Model Manager, local AI | Planned |
+| 10 | Security hardening, testing, packaging, Tauri shell | Planned |
+
+A phase does not begin while the previous one is fundamentally broken.

@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------
+# Helix — secrets and credentials. Keep this block first.
+# ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+secrets.json
+credentials.json
+.credentials.json
+Config/secrets.*
+Config/providers.local.*
+
+# ---------------------------------------------------------------
+# Helix portable data directories (never committed)
+# ---------------------------------------------------------------
+/Models/
+/Memory/
+/Projects/
+/Knowledge/
+/Generated/
+/Cache/
+/Temp/
+/Logs/
+/Backups/
+/Config/
+/HelixData/
+
+# ---------------------------------------------------------------
+# Build output / dependencies
+# ---------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+build/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# Tauri (added in a later phase)
+src-tauri/target/
+src-tauri/gen/
+
+# ---------------------------------------------------------------
+# Editor / OS
+# ---------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.log
+npm-debug.log*

@@ -1,0 +1,225 @@
+/* ---------------------------------------------------------------
+   Helix design tokens (spec 25)
+   Dark charcoal foundation, restrained red accent, glass panels.
+   --------------------------------------------------------------- */
+:root {
+  --helix-bg: #0a0a0c;
+  --helix-bg-raised: #101014;
+  --helix-panel: rgba(255, 255, 255, 0.035);
+  --helix-panel-border: rgba(255, 255, 255, 0.09);
+
+  --helix-text: #e8e8ea;
+  --helix-text-dim: #8f8f98;
+  --helix-text-faint: #5e5e68;
+
+  --helix-accent: #e02434;
+  --helix-accent-soft: rgba(224, 36, 52, 0.16);
+  --helix-accent-glow: rgba(224, 36, 52, 0.34);
+
+  --helix-ok: #3fb950;
+  --helix-warn: #d29922;
+  --helix-error: #f85149;
+
+  --helix-mark-top: #f2f2f4;
+  --helix-mark-bottom: #9a9aa4;
+
+  --helix-radius: 14px;
+  --helix-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+
+  --helix-font: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --helix-mono: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #helix-root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--helix-bg);
+  color: var(--helix-text);
+  font-family: var(--helix-font);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle depth behind the whole shell */
+.helix-app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(1100px 620px at 50% -12%, rgba(224, 36, 52, 0.07), transparent 62%),
+    var(--helix-bg);
+}
+
+/* --------------------------- Header --------------------------- */
+.helix-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--helix-panel-border);
+}
+
+.helix-header__id {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.helix-wordmark {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.helix-version {
+  font-family: var(--helix-mono);
+  font-size: 11px;
+  color: var(--helix-text-faint);
+}
+
+.helix-badges { display: flex; gap: 8px; }
+
+.helix-badge {
+  font-family: var(--helix-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--helix-panel-border);
+  background: var(--helix-panel);
+  color: var(--helix-text-dim);
+}
+
+.helix-badge--online { color: var(--helix-ok); border-color: rgba(63, 185, 80, 0.3); }
+.helix-badge--offline { color: var(--helix-warn); border-color: rgba(210, 153, 34, 0.3); }
+
+/* --------------------------- Stage ---------------------------- */
+.helix-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 22px;
+}
+
+.helix-status-label {
+  font-family: var(--helix-mono);
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--helix-text-dim);
+}
+
+.helix-phase-note {
+  max-width: 46ch;
+  text-align: center;
+  color: var(--helix-text-faint);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* ------------------------ Status states ----------------------- */
+.helix-mark { display: block; }
+.helix-mark__strand, .helix-mark__bar { transition: stroke 240ms ease; }
+
+.helix-mark--idle { opacity: 0.9; }
+
+.helix-mark--listening .helix-mark__bar { stroke: var(--helix-ok); }
+.helix-mark--listening { animation: helix-pulse 1.9s ease-in-out infinite; }
+
+.helix-mark--thinking { animation: helix-breathe 1.25s ease-in-out infinite; }
+
+.helix-mark--speaking .helix-mark__bar { stroke: var(--helix-accent); }
+.helix-mark--speaking { animation: helix-pulse 0.85s ease-in-out infinite; }
+
+.helix-mark--processing { animation: helix-spin 2.4s linear infinite; transform-origin: 50% 50%; }
+
+.helix-mark--error .helix-mark__strand { stroke: var(--helix-error); }
+.helix-mark--error .helix-mark__bar { stroke: var(--helix-error); }
+
+@keyframes helix-pulse {
+  0%, 100% { filter: drop-shadow(0 0 3px var(--helix-accent-glow)); }
+  50%      { filter: drop-shadow(0 0 15px var(--helix-accent-glow)); }
+}
+@keyframes helix-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+@keyframes helix-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .helix-mark { animation: none !important; }
+}
+
+/* -------------------- State switcher (dev) -------------------- */
+.helix-state-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 18px; }
+
+.helix-state-btn {
+  font-family: var(--helix-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--helix-panel-border);
+  background: var(--helix-panel);
+  color: var(--helix-text-dim);
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.helix-state-btn:hover { color: var(--helix-text); border-color: rgba(255, 255, 255, 0.2); }
+.helix-state-btn[aria-pressed='true'] {
+  color: var(--helix-text);
+  border-color: var(--helix-accent);
+  background: var(--helix-accent-soft);
+}
+
+/* --------------------- Capability panel ----------------------- */
+.helix-panel {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  border: 1px solid var(--helix-panel-border);
+  border-radius: var(--helix-radius);
+  background: var(--helix-panel);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--helix-shadow);
+  padding: 18px 20px;
+}
+
+.helix-panel__title {
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--helix-text-faint);
+  margin: 0 0 14px;
+}
+
+.helix-cap { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; border-top: 1px solid rgba(255, 255, 255, 0.045); }
+.helix-cap:first-of-type { border-top: none; }
+
+.helix-cap__dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 8px; flex: none; }
+.helix-cap__dot--yes { background: var(--helix-ok); box-shadow: 0 0 8px rgba(63, 185, 80, 0.5); }
+.helix-cap__dot--no { background: var(--helix-text-faint); }
+
+.helix-cap__body { min-width: 0; }
+.helix-cap__name { font-family: var(--helix-mono); font-size: 12px; color: var(--helix-text); }
+.helix-cap__reason { font-size: 12px; color: var(--helix-text-faint); }
+
+.helix-footer {
+  padding: 12px 22px;
+  border-top: 1px solid var(--helix-panel-border);
+  font-size: 12px;
+  color: var(--helix-text-faint);
+  text-align: center;
+}
