@@ -1,14 +1,16 @@
-import { useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useSettings } from '../HelixProvider.js';
+import { useHelix } from '../HelixProvider.js';
+import { toUserMessage } from '../../core/HelixError.js';
+import type { VoiceSnapshot } from '../../voice/VoiceManager.js';
 
 /**
  * The main Helix input.
  *
- * Text submission is fully wired to the orchestrator. Microphone, attachment
- * and image buttons are rendered as the reference shows, but each is disabled
- * with a specific reason until its subsystem exists - they are never wired to a
- * no-op that looks like it worked.
+ * The microphone is wired to the real voice pipeline: pressing it opens the
+ * device, and the indicator follows actual device state rather than an
+ * optimistic flag. Attachment and image buttons remain unbuilt and say so
+ * specifically rather than being no-ops that look like they worked.
  */
 
 interface ComposerProps {
@@ -20,11 +22,15 @@ interface ComposerProps {
 }
 
 export function Composer({ value, onChange, onSubmit, busy, autoFocus }: ComposerProps) {
-  const settings = useSettings(['speechToTextProvider']);
+  const { voice } = useHelix();
   const [notice, setNotice] = useState<string | null>(null);
+  const [voiceState, setVoiceState] = useState<VoiceSnapshot>(() => voice.snapshot);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const voiceLocked = settings.speechToTextProvider === 'none';
+  useEffect(() => voice.subscribe(setVoiceState), [voice]);
+
+  const listening = voiceState.state === 'listening';
+  const voiceBlocker = voice.inputBlocker();
 
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
@@ -41,9 +47,36 @@ export function Composer({ value, onChange, onSubmit, busy, autoFocus }: Compose
     }
   };
 
-  const unavailable = (what: string, reason: string) => {
-    setNotice(`${what} ${reason}`);
-    window.setTimeout(() => setNotice(null), 4000);
+  const say = (message: string) => {
+    setNotice(message);
+    window.setTimeout(() => setNotice(null), 5000);
+  };
+
+  const toggleListening = async () => {
+    if (listening) {
+      voice.stopListening();
+      return;
+    }
+
+    const blocker = voice.inputBlocker();
+    if (blocker !== null) {
+      say(blocker);
+      return;
+    }
+
+    try {
+      const transcript = await voice.listen();
+      if (transcript.trim() === '') {
+        say("I'm afraid I didn't catch that, sir.");
+        return;
+      }
+      // Fills the composer rather than sending, so the user can correct a
+      // misheard word before Helix acts on it.
+      onChange(transcript);
+      textareaRef.current?.focus();
+    } catch (error) {
+      say(toUserMessage(error));
+    }
   };
 
   return (
@@ -54,19 +87,27 @@ export function Composer({ value, onChange, onSubmit, busy, autoFocus }: Compose
         </div>
       )}
 
+      {listening && (
+        <div className="hx-listening" role="status">
+          <span className="hx-listening__pulse" aria-hidden="true" />
+          <span>Listening&hellip;</span>
+          {voiceState.transcript && (
+            <span className="hx-listening__text">{voiceState.transcript}</span>
+          )}
+          <button type="button" className="hx-btn hx-btn--quiet" onClick={() => voice.stopListening()}>
+            Stop
+          </button>
+        </div>
+      )}
+
       <form className="hx-composer" onSubmit={submit}>
         <button
           type="button"
-          className="hx-iconbtn"
-          aria-label={voiceLocked ? 'Voice input unavailable' : 'Voice input'}
-          onClick={() =>
-            unavailable(
-              'Voice input is unavailable:',
-              voiceLocked
-                ? 'no speech provider is configured. Choose one in Settings under Voice.'
-                : 'the voice pipeline is built in phase 5.',
-            )
-          }
+          className={`hx-iconbtn${listening ? ' hx-iconbtn--live' : ''}`}
+          aria-label={listening ? 'Stop listening' : 'Speak to Helix'}
+          aria-pressed={listening}
+          title={voiceBlocker ?? 'Speak to Helix'}
+          onClick={() => void toggleListening()}
         >
           <Icon name="microphone" size={19} />
         </button>
@@ -75,7 +116,9 @@ export function Composer({ value, onChange, onSubmit, busy, autoFocus }: Compose
           type="button"
           className="hx-iconbtn"
           aria-label="Attach a file"
-          onClick={() => unavailable('Attachments are unavailable:', 'file handling is built in phase 4.')}
+          onClick={() =>
+            say("I'm afraid attachments aren't available here yet, sir. You may import files from Upload Project.")
+          }
         >
           <Icon name="paperclip" size={19} />
         </button>
@@ -84,7 +127,9 @@ export function Composer({ value, onChange, onSubmit, busy, autoFocus }: Compose
           type="button"
           className="hx-iconbtn"
           aria-label="Attach an image"
-          onClick={() => unavailable('Images are unavailable:', 'vision is built in phase 7.')}
+          onClick={() =>
+            say("I'm afraid image understanding isn't configured yet, sir. It arrives with vision in phase 7.")
+          }
         >
           <Icon name="image" size={19} />
         </button>

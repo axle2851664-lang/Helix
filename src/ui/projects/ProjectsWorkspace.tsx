@@ -45,8 +45,8 @@ export function ProjectsWorkspace({
       {list.length === 0 ? (
         <div className="hx-panel hx-empty">
           <Icon name="folder" size={26} />
-          <p>No projects yet.</p>
-          <p className="hx-muted">Import a file above to create your first one.</p>
+          <p>No projects as yet, sir.</p>
+          <p className="hx-muted">Importing a file above will create your first.</p>
         </div>
       ) : (
         <div className="hx-panel">
@@ -214,8 +214,8 @@ function ImportPanel({ onImported }: { onImported: (projectId: string) => void }
       )}
 
       <p className="hx-settings__note">
-        Images, 3D models, documents and data files are accepted. Programs and scripts are refused,
-        and nothing imported is ever executed.
+        Images, 3D models, documents and data files are accepted, sir. Programs and scripts are
+        declined, and nothing imported is ever executed.
       </p>
     </section>
   );

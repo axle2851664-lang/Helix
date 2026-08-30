@@ -51,7 +51,9 @@ describe('orchestrator: memory tool', () => {
       const response = await ask('remember that I prefer dark interfaces');
 
       expect(response.handled).toBe(true);
-      expect(response.text).toContain('Remembered');
+      expect(response.text).toContain("made a note");
+      // Quoted, not echoed in first person, so it does not read as Helix's own view.
+      expect(response.text).toContain('"I prefer dark interfaces"');
 
       const stored = await context.memory.list();
       expect(stored).toHaveLength(1);
@@ -133,7 +135,7 @@ describe('orchestrator: memory tool', () => {
 
     it('says plainly when it has nothing on a subject', async () => {
       const response = await ask('what do you remember about my car?');
-      expect(response.text).toContain('nothing remembered');
+      expect(response.text).toContain('nothing on record');
     });
 
     it('says plainly when it has nothing at all', async () => {
@@ -142,7 +144,7 @@ describe('orchestrator: memory tool', () => {
         text: 'what do you remember?',
         conversationId: fresh.conversation.id,
       });
-      expect(response.text).toContain('not been asked to remember anything');
+      expect(response.text).toContain('not yet asked me to remember anything');
     });
 
     // Works with no provider and offline: retrieval is literal, not a model.
@@ -162,7 +164,7 @@ describe('orchestrator: memory tool', () => {
       const response = await ask('forget about my sister');
 
       expect(response.handled).toBe(true);
-      expect(response.text).toContain('Forgotten');
+      expect(response.text).toContain('out of mind');
       expect(await context.memory.count()).toBe(0);
     });
 

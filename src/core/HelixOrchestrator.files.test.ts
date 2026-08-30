@@ -114,8 +114,8 @@ describe('orchestrator: file search tool', () => {
 
     const response = await ask('search my files for anything');
 
-    expect(response.text).toContain('None of your 1 file could be indexed');
-    expect(response.text).toContain('Open Files');
+    expect(response.text).toContain('none of your 1 file could be indexed');
+    expect(response.text).toContain('Files will show you why');
     // Must not read as "you have no files" - the files exist, they are unreadable.
     expect(response.text).not.toContain('No files are indexed yet');
   });
@@ -126,7 +126,7 @@ describe('orchestrator: file search tool', () => {
     const response = await ask('search my files');
 
     expect(response.handled).toBe(false);
-    expect(response.text).toContain('Search for what?');
+    expect(response.text).toContain('What shall I search for');
   });
 
   it('works with no language provider configured', async () => {

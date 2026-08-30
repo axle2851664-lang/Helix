@@ -77,6 +77,13 @@ src/
 ├── memory/
 │   ├── MemoryManager.ts     ✅ long-term memory, credential refusal
 │   └── types.ts             ✅ record shape and categories
+├── voice/
+│   ├── VoiceManager.ts      ✅ pipeline, mic indicator, interruption
+│   ├── BrowserSpeechRecognition.ts ✅ Web Speech API input
+│   ├── BrowserSpeechSynthesis.ts   ✅ speech output
+│   └── selectVoice.ts       ✅ British voice preference
+├── persona/
+│   └── voice.ts             ✅ the Helix character, in one place
 ├── knowledge/
 │   ├── KnowledgeIndex.ts    ✅ file text index and keyword search
 │   └── extract.ts           ✅ text extraction, honest about limits
@@ -143,7 +150,8 @@ Consequences carried into the roadmap:
 | 3 | Reference interface, orchestrator, conversations, projects | **Complete** |
 | 4 | Memory system | **Complete** |
 | 4b | File and knowledge indexing | **Complete** |
-| 5 | Voice pipeline and language providers | Next |
+| 5a | Voice pipeline (browser speech) | **Complete** |
+| 5b | Language provider connection | Blocked on the Tauri shell |
 | 6 | Web research and coding | Planned |
 | 7 | Camera, vision, gestures | Planned |
 | 8 | Image generation | Planned |

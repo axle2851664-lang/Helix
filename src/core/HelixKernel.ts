@@ -13,6 +13,9 @@ import { ConversationStore } from '../conversations/ConversationStore.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { MemoryManager } from '../memory/MemoryManager.js';
 import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
+import { VoiceManager } from '../voice/VoiceManager.js';
+import { BrowserSpeechRecognition } from '../voice/BrowserSpeechRecognition.js';
+import { BrowserSpeechSynthesis } from '../voice/BrowserSpeechSynthesis.js';
 
 /**
  * The Helix service container (spec 19).
@@ -42,6 +45,7 @@ export interface KernelServices {
   readonly projects: ProjectManager;
   readonly memory: MemoryManager;
   readonly knowledge: KnowledgeIndex;
+  readonly voice: VoiceManager;
   readonly orchestrator: HelixOrchestrator;
 }
 
@@ -159,6 +163,23 @@ export class HelixKernel {
     const projects = new ProjectManager({ store, logger, paths, bus });
     const memory = new MemoryManager({ store, settings, logger, bus });
     const knowledge = new KnowledgeIndex({ store, projects, logger, bus });
+
+    // Voice providers are constructed only where the platform supports them,
+    // so VoiceManager reports 'not available in this build' rather than
+    // failing at the moment the user presses the microphone.
+    const voice = new VoiceManager({
+      settings,
+      logger,
+      activity,
+      bus,
+      isOnline: () => platform.isOnline(),
+      ...(BrowserSpeechRecognition.isSupported()
+        ? { stt: new BrowserSpeechRecognition() }
+        : {}),
+      ...(BrowserSpeechSynthesis.isSupported()
+        ? { tts: new BrowserSpeechSynthesis() }
+        : {}),
+    });
     const orchestrator = new HelixOrchestrator({
       settings,
       conversations,
@@ -194,6 +215,7 @@ export class HelixKernel {
       projects,
       memory,
       knowledge,
+      voice,
       orchestrator,
     };
   }
@@ -232,10 +254,11 @@ export class HelixKernel {
   /** Release resources. Flushes pending settings writes first (spec 28). */
   async shutdown(reason = 'user'): Promise<void> {
     if (!this.#services) return;
-    const { bus, settings, store, logger, activity } = this.#services;
+    const { bus, settings, store, logger, activity, voice } = this.#services;
 
     bus.emit('helix:shutdown', { reason });
     try {
+      voice.shutdown();
       activity.reset();
       await settings.flush();
       await store.close();

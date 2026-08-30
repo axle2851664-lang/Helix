@@ -106,7 +106,7 @@ describe('orchestrator: model switching', () => {
 
   it('says when the model is already selected', async () => {
     const response = await ask('switch to Opus');
-    expect(response.text).toContain('Already using Opus 5');
+    expect(response.text).toContain('already set to Opus 5');
   });
 
   // The switch is real; the connection is not. Every reply must say so, or a
@@ -114,7 +114,7 @@ describe('orchestrator: model switching', () => {
   it('always states that no API key is connected', async () => {
     for (const phrase of ['switch to sonnet', 'which model are you using?', 'switch to sonnet']) {
       const response = await ask(phrase);
-      expect(response.text, phrase).toContain('No API key is connected');
+      expect(response.text, phrase).toContain('no API key is connected');
     }
   });
 

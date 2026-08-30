@@ -79,8 +79,8 @@ export function FilesWorkspace() {
       {assets.length === 0 ? (
         <div className="hx-panel hx-empty">
           <Icon name="folder" size={26} />
-          <p>No files yet.</p>
-          <p className="hx-muted">Import some from Upload Project to make them searchable.</p>
+          <p>No files as yet, sir.</p>
+          <p className="hx-muted">Import some from Upload Project and I shall index them.</p>
         </div>
       ) : (
         <>
@@ -204,8 +204,8 @@ export function FilesWorkspace() {
             <section className="hx-panel">
               <h2 className="hx-panel__title">Why some files are not searchable</h2>
               <p className="hx-settings__note">
-                These are stored safely and remain part of their project. Helix simply cannot read
-                their text yet, so search will not find them.
+                These are stored safely and remain part of their project, sir. I am simply unable
+                to read their text as yet, so search will not reach them.
               </p>
               <ul className="hx-list">
                 {[...new Set(unreadable.map((document) => document.reason))]

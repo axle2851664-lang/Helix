@@ -15,10 +15,10 @@ import type { WorkspaceId } from '../workspaces/registry.js';
  */
 
 const SUGGESTIONS = [
-  "What's trending today?",
-  'Write a poem about the ocean',
   'Open my settings',
+  'What do you remember?',
   'Show me system diagnostics',
+  'Which model are you using?',
 ] as const;
 
 interface HomeWorkspaceProps {
@@ -87,8 +87,8 @@ export function HomeWorkspace({
           <div className={`hx-core${busy ? ' hx-core--busy' : ''}`} aria-hidden="true">
             <span className="hx-core__glyph">H</span>
           </div>
-          <h1 className="hx-home__title">How can I help?</h1>
-          <p className="hx-home__sub">Ask anything, or try one of these:</p>
+          <h1 className="hx-home__title">How may I help?</h1>
+          <p className="hx-home__sub">Ask anything, sir, or try one of these:</p>
 
           <div className="hx-suggestions">
             {SUGGESTIONS.map((suggestion) => (

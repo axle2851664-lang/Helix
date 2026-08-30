@@ -110,3 +110,43 @@ never substitute something else and present it as that location.
 Providers are configured through environment variables or OS credential storage.
 No key is ever hard-coded, committed, or exposed to frontend code. See
 [SECURITY.md](SECURITY.md).
+
+## Voice
+
+Speech input and output use the browser's Web Speech API. No key and no
+additional dependency are required, and both sit behind replaceable interfaces
+(`SpeechToTextProvider`, `TextToSpeechProvider`) so a local model or cloud
+provider can be substituted later.
+
+### Speech recognition is not on-device
+
+**Chrome and Edge implement `SpeechRecognition` by streaming microphone audio to
+a Google speech service.** It is not local, despite being a browser API with no
+key. Helix reports this rather than letting the absence of a key imply privacy:
+
+- the provider declares `processing: 'remote'` and `requiresNetwork: true`;
+- `VoiceManager` refuses to start it in offline mode, or when the browser
+  reports no connection, rather than failing mid-utterance;
+- nothing is recorded or stored. Helix keeps the resulting text only, and audio
+  is never buffered, written to disk, or logged.
+
+Firefox does not implement `SpeechRecognition` at all, and Helix says so instead
+of appearing broken.
+
+### Voice selection
+
+`selectVoice.ts` ranks installed voices toward a composed British English voice:
+British English first, then names that conventionally indicate a male voice in
+the standard Windows, Chrome and macOS sets, then quality markers. It is a
+preference over what the machine has, not a guarantee, and
+`describeSelection()` states what was actually chosen.
+
+**On the current development machine no British English voice is installed** -
+only `Microsoft David`, `Mark` and `Zira`, all `en-US`. Helix therefore falls
+back to a US male voice and says so. On Windows a British voice can be added
+under Settings, Time & Language, Speech, Manage voices, English (United
+Kingdom); Helix will pick it up automatically once installed.
+
+Speech synthesis voices are generally installed with the operating system and
+run locally, but the API does not reliably distinguish local from remote voices,
+so `processing` is reported as `'unknown'` rather than claiming on-device.

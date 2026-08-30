@@ -35,7 +35,7 @@ function HelixShell() {
     return (
       <div className="hx-boot">
         <HelixMark status="PROCESSING" size={84} />
-        <p className="hx-boot__label">Starting Helix</p>
+        <p className="hx-boot__label">Helix is starting</p>
       </div>
     );
   }
@@ -44,7 +44,7 @@ function HelixShell() {
     return (
       <div className="hx-boot">
         <HelixMark status="ERROR" size={84} />
-        <p className="hx-boot__label">Helix could not start</p>
+        <p className="hx-boot__label">I'm afraid Helix could not start</p>
         <p className="hx-boot__detail">{state.message}</p>
       </div>
     );

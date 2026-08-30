@@ -8,7 +8,7 @@ user approves, and — as later phases land — see through a permitted camera,
 understand hand gestures, display interactive 3D projects, and provide a spatial
 geographic environment.
 
-> **Status: phase 4b of 12.** The kernel, persistence, settings, the reference
+> **Status: phase 5a of 12.** The kernel, persistence, settings, the reference
 > interface, the orchestrator, conversations and projects are built and tested.
 > Voice, vision, camera, gestures, memory, 3D, web and computer control are
 > **not yet implemented**. This
@@ -36,6 +36,8 @@ geographic environment.
 | `ProjectManager` - projects, assets, validation, search (spec 7) | Working |
 | `MemoryManager` - long-term memory, refuses credentials (spec 6) | Working |
 | `KnowledgeIndex` - file text indexing and keyword search (spec 12) | Working |
+| `VoiceManager` + browser speech - listen, speak, interrupt (spec 9) | Working |
+| Helix persona - one module owning every user-facing sentence | Working |
 | Claude model selection and switching by command | Working |
 | Reference three-column UI, 11 navigable workspaces | Working |
 | Upload Project - real import, validation, originals vs generated | Working |

@@ -57,8 +57,8 @@ export function MemoryWorkspace() {
     <div className="hx-page">
       {!privacy.allowLongTermMemory && (
         <div className="hx-notice hx-notice--warn" role="alert">
-          <strong>Long-term memory is off.</strong> Helix will not store anything new. Existing
-          memories are still listed below and can be deleted.{' '}
+          <strong>Long-term memory is off.</strong> I shall not store anything new, sir. What
+          is already recorded remains below and may still be deleted.{' '}
           <button
             type="button"
             className="hx-btn hx-btn--quiet"
@@ -72,8 +72,8 @@ export function MemoryWorkspace() {
       <section className="hx-panel">
         <h2 className="hx-panel__title">Remember something</h2>
         <p className="hx-settings__note">
-          Helix only stores what you explicitly ask it to keep. Nothing from a conversation is
-          saved here automatically, and credentials are refused.
+          I retain only what you explicitly ask me to keep, sir. Nothing from a conversation is
+          recorded here of its own accord, and credentials are declined.
         </p>
 
         <div className="hx-field">
@@ -128,7 +128,7 @@ export function MemoryWorkspace() {
       {records.length === 0 ? (
         <div className="hx-panel hx-empty">
           <Icon name="brain" size={26} />
-          <p>Nothing remembered yet.</p>
+          <p>Nothing on record as yet, sir.</p>
           <p className="hx-muted">
             Add one above, or say &ldquo;remember that ...&rdquo; on the home screen.
           </p>

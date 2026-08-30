@@ -117,7 +117,7 @@ describe('HelixOrchestrator', () => {
 
       expect(response.handled).toBe(false);
       expect(response.failure).toBe('PROVIDER_NOT_CONFIGURED');
-      expect(response.text).toContain('No language provider is configured');
+      expect(response.text).toContain('no language provider is configured');
     });
 
     it('records the failure on the stored message', async () => {
@@ -140,7 +140,7 @@ describe('HelixOrchestrator', () => {
 
       expect(response.handled).toBe(false);
       expect(response.failure).toBe('PROVIDER_NOT_IMPLEMENTED');
-      expect(response.text).toContain('will not invent an answer');
+      expect(response.text).toContain('rather say so than invent an answer');
     });
   });
 

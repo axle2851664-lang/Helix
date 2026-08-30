@@ -9,6 +9,14 @@ import { ProjectManager } from '../projects/ProjectManager.js';
 import { formatContext, getModelOrDefault, resolveModel } from '../models/catalog.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
 import type { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
+import {
+  confirm,
+  enquire,
+  observe,
+  regret,
+  uncertain,
+  unavailable,
+} from '../persona/voice.js';
 
 /**
  * The Helix orchestration seam (spec: UI -> ORCHESTRATOR -> TOOLS).
@@ -168,7 +176,10 @@ export class HelixOrchestrator {
         if (response === null) continue;
         return response;
       } catch (error) {
-        const helix = HelixError.from(error, 'That request could not be completed.');
+        const helix = HelixError.from(
+          error,
+          regret('that request could not be completed'),
+        );
         this.#logger.error('Tool execution failed.', { tool: tool.name, error });
         return { text: helix.userMessage, handled: false, failure: helix.code };
       }
@@ -186,10 +197,10 @@ export class HelixOrchestrator {
 
     if (provider === 'none') {
       return {
-        text:
-          'No language provider is configured, so I cannot answer that yet. ' +
-          'Choose one in Settings under AI providers. ' +
-          'I can still open any Helix workspace if you tell me where to go.',
+        text: unavailable(
+          'no language provider is configured, so I am unable to answer that yet',
+          'You may select one in Settings under AI providers. In the meantime I can open any Helix workspace you name.',
+        ),
         handled: false,
         failure: 'PROVIDER_NOT_CONFIGURED',
       };
@@ -197,10 +208,10 @@ export class HelixOrchestrator {
 
     const model = getModelOrDefault(this.#settings.get('languageModel'));
     return {
-      text:
-        `${model.name} is selected and a ${provider} provider is chosen, but the connection ` +
-        'is not built yet and no API key is configured. Helix will not invent an answer, so ' +
-        'this request cannot be completed.',
+      text: unavailable(
+        `${model.name} is selected with a ${provider} provider, but the connection is not yet built and no API key is configured`,
+        'I would rather say so than invent an answer.',
+      ),
       handled: false,
       failure: 'PROVIDER_NOT_IMPLEMENTED',
     };
@@ -253,10 +264,12 @@ export class HelixOrchestrator {
           return {
             text:
               stats.searchable === 0
-                ? 'No files are indexed yet. Import some from Upload Project.'
-                : `Search for what? ${stats.searchable} ${
-                    stats.searchable === 1 ? 'file is' : 'files are'
-                  } indexed.`,
+                ? observe('No files are indexed yet. You may import some from Upload Project')
+                : enquire(
+                    `What shall I search for? ${stats.searchable} ${
+                      stats.searchable === 1 ? 'file is' : 'files are'
+                    } indexed`,
+                  ),
             handled: false,
             failure: 'VALIDATION_FAILED',
           };
@@ -267,10 +280,12 @@ export class HelixOrchestrator {
           return {
             text:
               unreadable > 0
-                ? `None of your ${stats.documents} ${
-                    stats.documents === 1 ? 'file' : 'files'
-                  } could be indexed, so there is nothing to search. Open Files to see why.`
-                : 'No files are indexed yet. Import some from Upload Project.',
+                ? regret(
+                    `none of your ${stats.documents} ${
+                      stats.documents === 1 ? 'file' : 'files'
+                    } could be indexed, so there is nothing to search. Files will show you why`,
+                  )
+                : observe('No files are indexed yet. You may import some from Upload Project'),
             handled: false,
             failure: 'NOT_FOUND',
           };
@@ -279,15 +294,25 @@ export class HelixOrchestrator {
         const hits = await this.#knowledge.search(query, { limit: 4 });
         if (hits.length === 0) {
           return {
-            text: `Nothing in your ${stats.searchable} indexed ${
-              stats.searchable === 1 ? 'file' : 'files'
-            } mentions "${query}".`,
+            text: observe(
+              `Nothing in your ${stats.searchable} indexed ${
+                stats.searchable === 1 ? 'file' : 'files'
+              } mentions "${query}"`,
+            ),
             handled: true,
           };
         }
 
         const lines = hits.map((hit) => `- ${hit.fileName}: ${hit.snippet}`).join('\n');
-        return { text: `Found in your files for "${query}":\n${lines}`, handled: true };
+        return {
+          text:
+            confirm(
+              `I've located ${hits.length === 1 ? 'a mention' : 'several mentions'} of "${query}"`,
+            ) +
+            `
+${lines}`,
+          handled: true,
+        };
       },
     };
   }
@@ -346,22 +371,34 @@ export class HelixOrchestrator {
         if (forgetPrefix && !recallPhrases.some((phrase) => lower.includes(phrase))) {
           const subject = text.slice(forgetPrefix.trim().length).trim();
           if (subject === '') {
-            return { text: 'Forget what, specifically?', handled: false, failure: 'VALIDATION_FAILED' };
+            return {
+              text: enquire('What would you like me to forget'),
+              handled: false,
+              failure: 'VALIDATION_FAILED',
+            };
           }
           const found = await this.#memory.search(subject, { limit: 5 });
           if (found.length === 0) {
             return {
-              text: `I have nothing remembered about "${subject}".`,
+              text: observe(`I have nothing on record regarding "${subject}"`),
               handled: false,
               failure: 'NOT_FOUND',
             };
           }
           const target = found[0];
           if (!target) {
-            return { text: 'Nothing matched.', handled: false, failure: 'NOT_FOUND' };
+            return {
+              text: observe('Nothing matched that description'),
+              handled: false,
+              failure: 'NOT_FOUND',
+            };
           }
           await this.#memory.delete(target.memory.id);
-          return { text: `Forgotten: "${target.memory.content}"`, handled: true };
+          return {
+            text: confirm('That has been put out of mind') + `
+"${target.memory.content}"`,
+            handled: true,
+          };
         }
 
         // --- recall ---
@@ -372,24 +409,37 @@ export class HelixOrchestrator {
             const all = await this.#memory.list();
             if (all.length === 0) {
               return {
-                text: 'I have not been asked to remember anything yet. Say "remember that ..." and I will keep it.',
+                text: observe(
+                  'You have not yet asked me to remember anything. Say "remember that ..." and I shall keep it',
+                ),
                 handled: true,
               };
             }
             const preview = all.slice(0, 5).map((record) => `- ${record.content}`).join('\n');
             const more = all.length > 5 ? `\n...and ${all.length - 5} more.` : '';
-            return { text: `I remember ${all.length}:\n${preview}${more}`, handled: true };
+            return {
+              text:
+                observe(
+                  `I have ${all.length} ${all.length === 1 ? 'item' : 'items'} on record`,
+                ) + `
+${preview}${more}`,
+              handled: true,
+            };
           }
 
           const found = await this.#memory.search(subject, { limit: 5 });
           if (found.length === 0) {
             return {
-              text: `I have nothing remembered about "${subject}".`,
+              text: observe(`I have nothing on record regarding "${subject}"`),
               handled: true,
             };
           }
           const lines = found.map((match) => `- ${match.memory.content}`).join('\n');
-          return { text: `About "${subject}":\n${lines}`, handled: true };
+          return {
+            text: observe(`Regarding "${subject}"`) + `
+${lines}`,
+            handled: true,
+          };
         }
 
         // --- remember ---
@@ -398,12 +448,23 @@ export class HelixOrchestrator {
 
         const content = text.slice(savePrefix.trim().length).replace(/^[:,\s]+/, '').trim();
         if (content === '') {
-          return { text: 'Remember what, specifically?', handled: false, failure: 'VALIDATION_FAILED' };
+          return {
+            text: enquire('What would you like me to remember'),
+            handled: false,
+            failure: 'VALIDATION_FAILED',
+          };
         }
 
         try {
           const record = await this.#memory.save({ content });
-          return { text: `Remembered: "${record.content}"`, handled: true };
+          // Quoted on its own line: echoing the content inline would put the
+          // user's first person into Helix's mouth ("I've noted that I take my
+          // coffee black" reads as Helix taking coffee black).
+          return {
+            text: confirm("I've made a note of that") + `
+"${record.content}"`,
+            handled: true,
+          };
         } catch (error) {
           // Refusals (credentials, memory disabled) are the user's answer, not
           // an internal failure - surface the reason verbatim.
@@ -451,10 +512,11 @@ export class HelixOrchestrator {
         if (askPhrases.some((phrase) => lower.includes(phrase))) {
           return {
             text:
-              `Selected model: ${current.name} (${current.id}). ` +
-              `${formatContext(current.contextTokens)} context, ` +
-              `$${current.inputPricePerMTok}/$${current.outputPricePerMTok} per million tokens. ` +
-              this.#connectionCaveat(),
+              observe(
+                `I am presently set to ${current.name} (${current.id}), with a ` +
+                  `${formatContext(current.contextTokens)} context window`,
+              ) +
+              ` ${this.#connectionCaveat()}`,
             handled: true,
           };
         }
@@ -464,7 +526,7 @@ export class HelixOrchestrator {
 
         if (target.id === current.id) {
           return {
-            text: `Already using ${target.name}. ${this.#connectionCaveat()}`,
+            text: `${observe(`I am already set to ${target.name}`)} ${this.#connectionCaveat()}`,
             handled: true,
           };
         }
@@ -474,9 +536,8 @@ export class HelixOrchestrator {
 
         return {
           text:
-            `Switched to ${target.name} (${target.id}). ${target.summary} ` +
-            `${formatContext(target.contextTokens)} context. ` +
-            this.#connectionCaveat(),
+            `${confirm(`I've switched to ${target.name}`)} ${target.summary} ` +
+            `${this.#connectionCaveat()}`,
           handled: true,
         };
       },
@@ -488,7 +549,12 @@ export class HelixOrchestrator {
    * talking to it is not built, and the user must not be left guessing which.
    */
   #connectionCaveat(): string {
-    return 'No API key is connected yet, so I still cannot answer questions with it.';
+    return regret(
+      'no API key is connected as yet, so I am still unable to answer questions with it',
+      // The sentence this follows is already addressed; a second "sir" in one
+      // reply reads as parody rather than courtesy.
+      { address: false },
+    );
   }
 
   /**
@@ -529,15 +595,19 @@ export class HelixOrchestrator {
           const total = (await this.#projects.listProjects()).length;
           if (total === 0) {
             return {
-              text: 'You do not have any projects yet. Import a file from Upload Project to create one.',
+              text: observe(
+                'You have no projects as yet. Importing a file from Upload Project will create one',
+              ),
               handled: false,
               failure: 'NOT_FOUND',
             };
           }
           return {
-            text: `I could not find a project matching that. You have ${total} ${
-              total === 1 ? 'project' : 'projects'
-            } - open Projects to see them.`,
+            text: regret(
+              `I could not find a project matching that. You have ${total} ${
+                total === 1 ? 'project' : 'projects'
+              }, which Projects will list for you`,
+            ),
             handled: false,
             failure: 'NOT_FOUND',
           };
@@ -547,19 +617,21 @@ export class HelixOrchestrator {
         const runnerUp = results[1];
         if (runnerUp && best.score - runnerUp.score < 0.1) {
           return {
-            text: `That could be "${best.project.name}" or "${runnerUp.project.name}". Which one do you mean?`,
+            text: `${uncertain(
+              `whether you mean "${best.project.name}" or "${runnerUp.project.name}"`,
+            )} ${enquire('Which did you have in mind', { address: false })}`,
             handled: false,
             failure: 'AMBIGUOUS',
           };
         }
 
         const summary = await this.#projects.openProject(best.project.id);
-        const parts = [`Opening "${summary.name}".`];
+        const parts = [confirm(`I've located the ${summary.name} project and am opening it now`)];
         parts.push(
           summary.assetCount === 0
-            ? 'It has no files yet.'
-            : `${summary.assetCount} ${summary.assetCount === 1 ? 'file' : 'files'}${
-                summary.generatedCount > 0 ? `, ${summary.generatedCount} generated` : ''
+            ? 'It holds no files as yet.'
+            : `It holds ${summary.assetCount} ${summary.assetCount === 1 ? 'file' : 'files'}${
+                summary.generatedCount > 0 ? `, ${summary.generatedCount} of them generated` : ''
               }.`,
         );
 
@@ -595,13 +667,13 @@ export class HelixOrchestrator {
         const target = resolveWorkspace(request.text.toLowerCase());
         if (target === null) {
           return {
-            text: 'I could not tell which workspace you meant.',
+            text: uncertain('which workspace you had in mind'),
             handled: false,
             failure: 'NOT_FOUND',
           };
         }
         return {
-          text: `Opening ${target.replace(/-/g, ' ')}.`,
+          text: confirm(`I'm opening ${target.replace(/-/g, ' ')}`),
           handled: true,
           navigateTo: target,
         };

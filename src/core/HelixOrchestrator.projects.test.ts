@@ -143,7 +143,7 @@ describe('orchestrator: project tool', () => {
 
   it('explains when there are no projects at all', async () => {
     const response = await ask('open my Batmobile project');
-    expect(response.text).toContain('do not have any projects yet');
+    expect(response.text).toContain('no projects as yet');
   });
 
   // Guessing between two similar names would be worse than asking.
@@ -155,7 +155,10 @@ describe('orchestrator: project tool', () => {
 
     expect(response.handled).toBe(false);
     expect(response.failure).toBe('AMBIGUOUS');
-    expect(response.text).toContain('Which one');
+    // Names both candidates and asks, rather than guessing.
+    expect(response.text).toContain('Iron Man Suit');
+    expect(response.text).toContain('Iron Man Helmet');
+    expect(response.text.trimEnd().endsWith(String.fromCharCode(63))).toBe(true);
   });
 
   it('works with no language provider configured', async () => {
