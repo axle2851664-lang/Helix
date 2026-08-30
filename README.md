@@ -8,10 +8,10 @@ user approves, and — as later phases land — see through a permitted camera,
 understand hand gestures, display interactive 3D projects, and provide a spatial
 geographic environment.
 
-> **Status: Phase 1 of 10.** The build system, core event bus, platform boundary
-> and UI shell exist and are tested. Orchestration, memory, projects, voice,
-> vision, spatial mode, 3D and Earth are **not yet implemented**. This README
-> describes what is actually here, not what is planned. See
+> **Status: milestone 2 of 12.** The application kernel, persistence, settings
+> and workspace navigation are built and tested. Voice, vision, camera, gestures,
+> projects, memory, 3D and computer control are **not yet implemented**. This
+> README describes what is actually here, not what is planned. See
 > [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the roadmap.
 
 ## What works today
@@ -19,10 +19,17 @@ geographic environment.
 | Subsystem | State |
 |---|---|
 | Build system (Vite 8 + React 19 + TypeScript 5.9, strict) | Working |
-| `EventBus` — typed pub/sub, error-isolated (spec §20) | Working, 12 tests |
-| `PlatformAdapter` / `BrowserPlatform` — host capability detection | Working |
-| UI shell with the Helix mark and six status states | Working |
-| Everything else | Not started |
+| `EventBus` — typed pub/sub, error-isolated (spec §20) | Working |
+| `Logger` — structured, leveled, redacts secrets before writing | Working |
+| `HelixError` — separate user-facing and technical messages (spec §17) | Working |
+| `PathManager` — portable paths, survives a drive-letter change (spec §13) | Working |
+| `KeyValueStore` + IndexedDB backend — durable, namespaced persistence | Working |
+| `SettingsManager` — typed, validated, migrating, **actually persists** (spec §15) | Working |
+| `HelixKernel` — DI container and lifecycle (spec §19) | Working |
+| Workspace navigation — six workspaces, real capability gating | Working |
+| Settings UI — schema-driven, survives reload | Working |
+| System UI — measured hardware, storage, capabilities, live log | Working |
+| Console, Projects, Camera, 3D Viewer | Not implemented (phases 3-7) |
 
 ## Requirements
 

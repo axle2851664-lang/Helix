@@ -1,0 +1,501 @@
+/* ===============================================================
+   Helix application shell - navigation, settings, system, pending
+   Milestone 2. Design tokens live in helix.css.
+   =============================================================== */
+
+.helix-app--centered {
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.helix-app--shell {
+  height: 100%;
+  overflow: hidden;
+  /* Driven by the appearance setting. */
+  --helix-accent-strength: 0.7;
+}
+
+[data-theme='midnight'] {
+  --helix-bg: #05060a;
+  --helix-bg-raised: #0a0c12;
+}
+
+[data-reduce-motion='true'] .helix-mark {
+  animation: none !important;
+}
+
+/* ------------------------------ layout ------------------------ */
+.helix-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.helix-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.helix-main__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 26px 14px;
+  border-bottom: 1px solid var(--helix-panel-border);
+}
+
+.helix-main__title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.helix-main__subtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--helix-text-dim);
+}
+
+.helix-main__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 26px 40px;
+}
+
+.helix-main__content > * + * {
+  margin-top: 14px;
+}
+
+/* -------------------------- navigation ------------------------ */
+.helix-rail {
+  width: 208px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 10px;
+  border-right: 1px solid var(--helix-panel-border);
+  overflow-y: auto;
+}
+
+.helix-rail__item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--helix-text-dim);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.helix-rail__item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--helix-text);
+}
+
+.helix-rail__item--active {
+  color: var(--helix-text);
+  background: var(--helix-accent-soft);
+  border-color: rgba(224, 36, 52, 0.34);
+}
+
+.helix-rail__label {
+  flex: 1;
+}
+
+.helix-rail__pending {
+  font-family: var(--helix-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--helix-panel-border);
+  color: var(--helix-text-faint);
+}
+
+/* ----------------------------- notices ------------------------ */
+.helix-notice {
+  border: 1px solid var(--helix-panel-border);
+  border-radius: 10px;
+  background: var(--helix-panel);
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--helix-text-dim);
+  line-height: 1.55;
+}
+
+.helix-notice strong {
+  color: var(--helix-text);
+}
+
+.helix-notice--warn {
+  border-color: rgba(210, 153, 34, 0.34);
+  background: rgba(210, 153, 34, 0.07);
+}
+
+.helix-notice ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.helix-badge--pending {
+  color: var(--helix-warn);
+  border-color: rgba(210, 153, 34, 0.3);
+}
+
+/* ----------------------------- buttons ------------------------ */
+.helix-btn {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: 7px;
+  border: 1px solid var(--helix-panel-border);
+  background: var(--helix-panel);
+  color: var(--helix-text-dim);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.helix-btn:hover {
+  color: var(--helix-text);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.helix-btn--quiet {
+  background: transparent;
+}
+
+/* ---------------------------- settings ------------------------ */
+.helix-settings > * + * {
+  margin-top: 14px;
+}
+
+.helix-settings__section {
+  padding: 16px 18px;
+}
+
+.helix-settings__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.helix-settings__head .helix-panel__title {
+  margin: 0;
+}
+
+.helix-settings__note {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--helix-text-faint);
+  line-height: 1.5;
+}
+
+.helix-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 11px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+.helix-setting__text {
+  min-width: 0;
+  flex: 1;
+}
+
+.helix-setting__label {
+  font-size: 13.5px;
+  color: var(--helix-text);
+  cursor: pointer;
+}
+
+.helix-setting__desc {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--helix-text-faint);
+  line-height: 1.5;
+}
+
+.helix-setting__control {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.helix-select,
+.helix-input {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  min-width: 190px;
+  border-radius: 8px;
+  border: 1px solid var(--helix-panel-border);
+  background: var(--helix-bg-raised);
+  color: var(--helix-text);
+}
+
+.helix-input {
+  min-width: 240px;
+}
+
+.helix-select:focus-visible,
+.helix-input:focus-visible {
+  outline: none;
+  border-color: var(--helix-accent);
+}
+
+.helix-select:disabled,
+.helix-input:disabled {
+  opacity: 0.5;
+}
+
+.helix-number {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.helix-number input[type='range'] {
+  width: 150px;
+  accent-color: var(--helix-accent);
+}
+
+.helix-number__value {
+  font-family: var(--helix-mono);
+  font-size: 12px;
+  color: var(--helix-text-dim);
+  min-width: 46px;
+  text-align: right;
+}
+
+/* Switch */
+.helix-switch {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.helix-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.helix-switch__track {
+  width: 38px;
+  height: 21px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--helix-panel-border);
+  transition: background 170ms ease;
+  position: relative;
+}
+
+.helix-switch__track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--helix-text-dim);
+  transition: transform 170ms ease, background 170ms ease;
+}
+
+.helix-switch input:checked + .helix-switch__track {
+  background: var(--helix-accent-soft);
+  border-color: var(--helix-accent);
+}
+
+.helix-switch input:checked + .helix-switch__track::after {
+  transform: translateX(17px);
+  background: var(--helix-accent);
+}
+
+.helix-switch input:disabled + .helix-switch__track {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.helix-switch input:focus-visible + .helix-switch__track {
+  border-color: var(--helix-accent);
+}
+
+/* ------------------------------ system ------------------------ */
+.helix-system > * + * {
+  margin-top: 14px;
+}
+
+.helix-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 7px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.045);
+  font-size: 13px;
+}
+
+.helix-row:first-of-type {
+  border-top: none;
+}
+
+.helix-row__label {
+  color: var(--helix-text-dim);
+}
+
+.helix-row__value {
+  color: var(--helix-text);
+  text-align: right;
+  word-break: break-word;
+}
+
+.helix-row__value--mono {
+  font-family: var(--helix-mono);
+  font-size: 12px;
+}
+
+.helix-muted {
+  color: var(--helix-text-faint);
+  font-size: 13px;
+  margin: 0;
+}
+
+.helix-state-preview {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.helix-state-preview .helix-state-row {
+  margin-top: 0;
+  justify-content: flex-start;
+}
+
+/* Log view */
+.helix-log {
+  font-family: var(--helix-mono);
+  font-size: 11.5px;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--helix-panel-border);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.helix-log__row {
+  display: grid;
+  grid-template-columns: 66px 46px 118px 1fr;
+  gap: 8px;
+  padding: 4px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  color: var(--helix-text-dim);
+}
+
+.helix-log__row:last-child {
+  border-bottom: none;
+}
+
+.helix-log__time,
+.helix-log__scope {
+  color: var(--helix-text-faint);
+}
+
+.helix-log__level {
+  font-weight: 600;
+}
+
+.helix-log__row--error .helix-log__level {
+  color: var(--helix-error);
+}
+
+.helix-log__row--warn .helix-log__level {
+  color: var(--helix-warn);
+}
+
+.helix-log__row--info .helix-log__level {
+  color: var(--helix-ok);
+}
+
+.helix-log__msg {
+  color: var(--helix-text);
+  word-break: break-word;
+}
+
+/* ----------------------------- pending ------------------------ */
+.helix-pending > * + * {
+  margin-top: 14px;
+}
+
+.helix-list {
+  margin: 0;
+  padding-left: 19px;
+  font-size: 13px;
+  color: var(--helix-text-dim);
+}
+
+.helix-list li {
+  margin: 5px 0;
+  line-height: 1.55;
+}
+
+.helix-list--done li::marker {
+  color: var(--helix-ok);
+}
+
+/* ---------------------------- responsive ---------------------- */
+@media (max-width: 760px) {
+  .helix-rail {
+    width: 60px;
+    padding: 12px 7px;
+  }
+
+  .helix-rail__label,
+  .helix-rail__pending {
+    display: none;
+  }
+
+  .helix-rail__item {
+    justify-content: center;
+  }
+
+  .helix-main__head,
+  .helix-main__content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .helix-setting {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .helix-select,
+  .helix-input {
+    min-width: 0;
+    width: 100%;
+  }
+}

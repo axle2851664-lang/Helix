@@ -1,103 +1,140 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HelixMark } from './components/HelixMark.js';
-import { HELIX_STATES, type HelixStatus } from '../types/status.js';
-import { BrowserPlatform } from '../platform/BrowserPlatform.js';
-import type { CapabilityStatus, PlatformAdapter } from '../platform/PlatformAdapter.js';
-import { EventBus } from '../core/EventBus.js';
+import { NavRail } from './components/NavRail.js';
+import { HelixProvider, useHelix, useHelixState, useSettings } from './HelixProvider.js';
+import { WorkspaceView } from './workspaces/index.js';
+import { WORKSPACES, type WorkspaceId } from './workspaces/registry.js';
+import type { HelixStatus } from '../types/status.js';
 
-const CAPABILITY_LABELS: Record<string, string> = {
-  filesystem: 'Filesystem access',
-  diskStats: 'Real disk statistics',
-  camera: 'Camera',
-  microphone: 'Microphone',
-  webgl2: 'WebGL2 (3D / Spatial / Earth)',
-  processSpawn: 'Local process spawn',
-  removableMedia: 'Removable media control',
-};
-
-interface AppProps {
-  platform?: PlatformAdapter;
-  bus?: EventBus;
+/**
+ * The Helix application shell.
+ *
+ * Kept thin on purpose: it owns navigation and the status frame and delegates
+ * everything else to workspace components and the kernel's managers (spec 19).
+ */
+export function App() {
+  return (
+    <HelixProvider>
+      <HelixShell />
+    </HelixProvider>
+  );
 }
 
-export function App({ platform, bus }: AppProps) {
-  const adapter = useMemo(() => platform ?? new BrowserPlatform(), [platform]);
-  const eventBus = useMemo(() => bus ?? new EventBus(), [bus]);
+function HelixShell() {
+  const { state } = useHelixState();
 
-  const [status, setStatus] = useState<HelixStatus>('IDLE');
-  const [online, setOnline] = useState(() => adapter.isOnline());
+  if (state.phase === 'starting') {
+    return (
+      <div className="helix-app helix-app--centered">
+        <HelixMark status="PROCESSING" size={92} />
+        <p className="helix-status-label">Starting</p>
+      </div>
+    );
+  }
+
+  if (state.phase === 'failed') {
+    return (
+      <div className="helix-app helix-app--centered">
+        <HelixMark status="ERROR" size={92} />
+        <p className="helix-status-label">Failed to start</p>
+        <p className="helix-phase-note">{state.message}</p>
+      </div>
+    );
+  }
+
+  return <HelixWorkspaceShell />;
+}
+
+function HelixWorkspaceShell() {
+  const { bus, platform, settings } = useHelix();
+  const { warnings } = useHelixState();
+  const appearance = useSettings(['reduceMotion', 'accentIntensity', 'theme', 'offlineMode']);
+
+  const [workspace, setWorkspace] = useState<WorkspaceId>('system');
+  const [online, setOnline] = useState(() => platform.isOnline());
+
+  // Helix's own status. Wired to real subsystem state as those phases land;
+  // until then it stays IDLE rather than animating to imply activity.
+  const [status] = useState<HelixStatus>('IDLE');
 
   useEffect(() => {
-    const unsubscribe = adapter.onConnectivityChange((next) => {
+    return platform.onConnectivityChange((next) => {
       setOnline(next);
-      eventBus.emit('CONNECTIVITY_CHANGED', { mode: next ? 'online' : 'offline' });
+      bus.emit('CONNECTIVITY_CHANGED', { mode: next ? 'online' : 'offline' });
     });
-    eventBus.emit('helix:ready', { startedAt: Date.now() });
-    return unsubscribe;
-  }, [adapter, eventBus]);
+  }, [platform, bus]);
 
-  const capabilities = Object.entries(adapter.capabilities) as Array<
-    [string, CapabilityStatus]
-  >;
+  const changeWorkspace = (next: WorkspaceId) => {
+    setWorkspace((previous) => {
+      if (previous !== next) bus.emit('WORKSPACE_CHANGED', { workspace: next, previous });
+      return next;
+    });
+  };
+
+  const descriptor = WORKSPACES[workspace];
+  const forcedOffline = appearance.offlineMode === 'offline';
+  const connectivity = forcedOffline || !online ? 'OFFLINE' : 'ONLINE';
 
   return (
-    <div className="helix-app">
+    <div
+      className="helix-app helix-app--shell"
+      data-theme={appearance.theme}
+      data-reduce-motion={appearance.reduceMotion ? 'true' : 'false'}
+      style={{ ['--helix-accent-strength' as string]: String(appearance.accentIntensity / 100) }}
+    >
       <header className="helix-header">
         <div className="helix-header__id">
+          <HelixMark status={status} size={24} />
           <span className="helix-wordmark">Helix</span>
-          <span className="helix-version">v0.1.0 &middot; phase 1</span>
+          <span className="helix-version">v0.1.0 &middot; milestone 2</span>
         </div>
+
         <div className="helix-badges">
-          <span className={`helix-badge helix-badge--${online ? 'online' : 'offline'}`}>
-            {online ? 'ONLINE' : 'OFFLINE'}
+          {!settings.persistent && (
+            <span className="helix-badge helix-badge--offline" title="Changes will not be saved">
+              NOT SAVING
+            </span>
+          )}
+          <span className={`helix-badge helix-badge--${connectivity.toLowerCase()}`}>
+            {connectivity}
+            {forcedOffline ? ' (forced)' : ''}
           </span>
-          <span className="helix-badge">{adapter.kind.toUpperCase()} HOST</span>
+          <span className="helix-badge">{platform.kind.toUpperCase()} HOST</span>
         </div>
       </header>
 
-      <main className="helix-stage">
-        <HelixMark status={status} size={116} />
-        <div className="helix-status-label">{status}</div>
-        <p className="helix-phase-note">
-          Phase 1 scaffold. Core primitives and the platform boundary are in place;
-          orchestration, memory and the sensor subsystems arrive in later phases.
-        </p>
+      <div className="helix-body">
+        <NavRail active={workspace} onSelect={changeWorkspace} />
 
-        <div className="helix-state-row">
-          {HELIX_STATES.map((state) => (
-            <button
-              key={state}
-              type="button"
-              className="helix-state-btn"
-              aria-pressed={status === state}
-              onClick={() => setStatus(state)}
-            >
-              {state}
-            </button>
-          ))}
-        </div>
-      </main>
-
-      <section className="helix-stage" style={{ paddingTop: 0, flex: 'none' }}>
-        <div className="helix-panel">
-          <h2 className="helix-panel__title">Host capabilities &mdash; detected, not assumed</h2>
-          {capabilities.map(([key, cap]) => (
-            <div className="helix-cap" key={key}>
-              <span className={`helix-cap__dot helix-cap__dot--${cap.available ? 'yes' : 'no'}`} />
-              <div className="helix-cap__body">
-                <div className="helix-cap__name">
-                  {CAPABILITY_LABELS[key] ?? key} &mdash; {cap.available ? 'available' : 'unavailable'}
-                </div>
-                {cap.reason ? <div className="helix-cap__reason">{cap.reason}</div> : null}
-              </div>
+        <main className="helix-main">
+          <div className="helix-main__head">
+            <div>
+              <h1 className="helix-main__title">{descriptor.title}</h1>
+              <p className="helix-main__subtitle">{descriptor.subtitle}</p>
             </div>
-          ))}
-        </div>
-      </section>
+            {!descriptor.implemented && (
+              <span className="helix-badge helix-badge--pending">PHASE {descriptor.phase}</span>
+            )}
+          </div>
 
-      <footer className="helix-footer">
-        Unavailable capabilities are reported, never simulated.
-      </footer>
+          {warnings.length > 0 && workspace !== 'system' && (
+            <div className="helix-notice helix-notice--warn" role="alert">
+              {warnings[0]}{' '}
+              <button
+                type="button"
+                className="helix-btn helix-btn--quiet"
+                onClick={() => changeWorkspace('system')}
+              >
+                View system status
+              </button>
+            </div>
+          )}
+
+          <div className="helix-main__content">
+            <WorkspaceView workspace={workspace} />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

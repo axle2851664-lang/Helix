@@ -59,6 +59,14 @@ export interface HelixEventMap {
 
   // --- Connectivity (spec 27) ---
   CONNECTIVITY_CHANGED: { mode: 'online' | 'offline' };
+
+  // --- Settings (spec 15) ---
+  SETTINGS_CHANGED: { keys: string[] };
+  /** Raised when settings can no longer be written to durable storage. */
+  SETTINGS_PERSISTENCE_LOST: { reason: string };
+
+  // --- Navigation (spec 3) ---
+  WORKSPACE_CHANGED: { workspace: string; previous: string | null };
 }
 
 export type HelixEventName = keyof HelixEventMap;

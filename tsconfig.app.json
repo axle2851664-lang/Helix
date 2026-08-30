@@ -18,6 +18,8 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
 
+    "types": ["vite/client"],
+
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "noEmit": false,

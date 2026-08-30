@@ -50,6 +50,9 @@ src/
 ├── core/
 │   ├── EventBus.ts          ✅ typed pub/sub, error-isolated dispatch
 │   ├── events.ts            ✅ the event catalogue (single source of truth)
+│   ├── HelixKernel.ts       ✅ DI container, startup and shutdown
+│   ├── Logger.ts            ✅ structured logging, redacts secrets on write
+│   ├── HelixError.ts        ✅ user-facing vs technical messages
 │   ├── HelixCore.ts         ▫ phase 3 — orchestration
 │   ├── IntentEngine.ts      ▫ phase 3
 │   ├── ContextManager.ts    ▫ phase 3
@@ -63,8 +66,13 @@ src/
 │   ├── BrowserPlatform.ts   ✅ browser implementation
 │   └── TauriPlatform.ts     ▫ later phase
 ├── storage/
-│   ├── PathManager.ts       ▫ phase 2 — dynamic path resolution
-│   └── StorageManager.ts    ▫ phase 2 — the storage ceiling
+│   ├── PathManager.ts       ✅ portable path resolution
+│   ├── KeyValueStore.ts     ✅ persistence boundary + memory backend
+│   ├── IndexedDbStore.ts    ✅ durable browser persistence
+│   └── StorageManager.ts    ▫ later — the storage ceiling
+├── settings/
+│   ├── schema.ts            ✅ typed, defaulted, validated schema
+│   └── SettingsManager.ts   ✅ load, validate, migrate, persist
 ├── ui/                      ✅ shell, Helix mark, design tokens
 └── types/                   ✅ shared types
 ```
@@ -120,7 +128,8 @@ Consequences carried into the roadmap:
 | Phase | Scope | State |
 |---|---|---|
 | 1 | Repository analysis, architecture, build system | **Complete** |
-| 2 | PathManager, StorageManager, settings | Next |
+| 2 | Kernel, persistence, settings, workspace navigation | **Complete** |
+| 3 | Projects and file management | Next |
 | 3 | HelixCore, ToolRegistry, ProviderManager, permissions | Planned |
 | 4 | Memory, projects, knowledge | Planned |
 | 5 | Voice, vision, camera | Planned |
