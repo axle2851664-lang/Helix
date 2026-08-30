@@ -4,6 +4,7 @@ import { App } from './ui/App.js';
 import './ui/styles/helix.css';
 import './ui/styles/shell.css';
 import './ui/styles/app.css';
+import './ui/styles/projects.css';
 
 const container = document.getElementById('helix-root');
 if (!container) {

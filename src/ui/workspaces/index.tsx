@@ -4,6 +4,7 @@ import { SettingsWorkspace } from './SettingsWorkspace.js';
 import { SystemWorkspace } from './SystemWorkspace.js';
 import { ConversationsWorkspace } from './ConversationsWorkspace.js';
 import { HomeWorkspace } from '../chat/HomeWorkspace.js';
+import { ProjectsWorkspace } from '../projects/ProjectsWorkspace.js';
 import { WORKSPACES, type WorkspaceId } from './registry.js';
 
 /**
@@ -15,12 +16,18 @@ export function WorkspaceView({
   workspace,
   conversationId,
   ensureConversation,
+  selectedProjectId,
+  onSelectProject,
+  onOpenProject,
   onNavigate,
   onOpenConversation,
 }: {
   workspace: WorkspaceId;
   conversationId: string | null;
   ensureConversation: () => Promise<string>;
+  selectedProjectId: string | null;
+  onSelectProject: (projectId: string | null) => void;
+  onOpenProject: (projectId: string) => void;
   onNavigate: (workspace: WorkspaceId) => void;
   onOpenConversation: (conversationId: string) => void;
 }) {
@@ -31,6 +38,7 @@ export function WorkspaceView({
           conversationId={conversationId}
           ensureConversation={ensureConversation}
           onNavigate={onNavigate}
+          onOpenProject={onOpenProject}
         />
       );
     case 'conversations':
@@ -54,7 +62,12 @@ export function WorkspaceView({
     case 'storage':
       return <StoragePending />;
     case 'upload-project':
-      return <UploadProjectPending />;
+      return (
+        <ProjectsWorkspace
+          selectedProjectId={selectedProjectId}
+          onSelectProject={onSelectProject}
+        />
+      );
     case 'gesture-control':
       return <GestureControlPending />;
     default: {
@@ -197,27 +210,6 @@ function StoragePending() {
         'STORAGE_WARNING is declared with severity levels.',
       ]}
       blockedBy="Real disk figures need the Tauri shell. A browser reports only an origin quota, which is not free space, so Helix will not present one as the other."
-    />
-  );
-}
-
-function UploadProjectPending() {
-  const { paths, platform } = useHelix();
-  return (
-    <PendingWorkspace
-      descriptor={WORKSPACES['upload-project']}
-      planned={[
-        'Import a file and require a project name for it.',
-        'Keep the original separate from anything generated from it.',
-        'Search projects by name, so "open my Iron Man project" resolves.',
-        'Open a project into the 3D or camera workspace when assets allow.',
-      ]}
-      inPlace={[
-        `Project paths resolve portably (${paths.getProjectPath()}).`,
-        'PROJECT_CREATED, PROJECT_OPENED and PROJECT_DELETED events are declared.',
-        'The orchestrator already resolves navigation phrases like "bring up ..." and will route project names the same way.',
-      ]}
-      requires={[{ label: 'Filesystem access', status: platform.capabilities.filesystem }]}
     />
   );
 }

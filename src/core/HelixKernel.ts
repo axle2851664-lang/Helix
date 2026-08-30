@@ -10,6 +10,7 @@ import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
 import { ActivityManager } from './ActivityManager.js';
 import { HelixOrchestrator } from './HelixOrchestrator.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
+import { ProjectManager } from '../projects/ProjectManager.js';
 
 /**
  * The Helix service container (spec 19).
@@ -36,6 +37,7 @@ export interface KernelServices {
   readonly settings: SettingsManager;
   readonly activity: ActivityManager;
   readonly conversations: ConversationStore;
+  readonly projects: ProjectManager;
   readonly orchestrator: HelixOrchestrator;
 }
 
@@ -150,10 +152,12 @@ export class HelixKernel {
 
     const activity = new ActivityManager(bus);
     const conversations = new ConversationStore({ store, settings, logger, bus });
+    const projects = new ProjectManager({ store, logger, paths, bus });
     const orchestrator = new HelixOrchestrator({
       settings,
       conversations,
       activity,
+      projects,
       logger,
       bus,
     });
@@ -170,6 +174,7 @@ export class HelixKernel {
       settings,
       activity,
       conversations,
+      projects,
       orchestrator,
     };
   }

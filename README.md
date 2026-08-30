@@ -8,9 +8,10 @@ user approves, and — as later phases land — see through a permitted camera,
 understand hand gestures, display interactive 3D projects, and provide a spatial
 geographic environment.
 
-> **Status: milestone 2 of 12.** The application kernel, persistence, settings
-> and workspace navigation are built and tested. Voice, vision, camera, gestures,
-> projects, memory, 3D and computer control are **not yet implemented**. This
+> **Status: milestone 3 of 12.** The kernel, persistence, settings, the reference
+> interface, the orchestrator, conversations and projects are built and tested.
+> Voice, vision, camera, gestures, memory, 3D, web and computer control are
+> **not yet implemented**. This
 > README describes what is actually here, not what is planned. See
 > [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the roadmap.
 
@@ -29,7 +30,13 @@ geographic environment.
 | Workspace navigation — six workspaces, real capability gating | Working |
 | Settings UI — schema-driven, survives reload | Working |
 | System UI — measured hardware, storage, capabilities, live log | Working |
-| Console, Projects, Camera, 3D Viewer | Not implemented (phases 3-7) |
+| `ActivityManager` - drives ACTIVE OPERATION from real work | Working |
+| `ConversationStore` - real conversations, privacy-gated persistence | Working |
+| `HelixOrchestrator` - tool registry; navigation and project tools | Working |
+| `ProjectManager` - projects, assets, validation, search (spec 7) | Working |
+| Reference three-column UI, 11 navigable workspaces | Working |
+| Upload Project - real import, validation, originals vs generated | Working |
+| Memory, Files, Web, Coding, Image Gen, Earth, Storage, Gestures | Not implemented |
 
 ## Requirements
 

@@ -128,7 +128,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     subtitle: 'Import files and create a project.',
     aliases: ['import', 'upload', 'new project', 'projects', 'project'],
     phase: 3,
-    implemented: false,
+    implemented: true,
     inSidebar: true,
   },
   'gesture-control': {

@@ -26,9 +26,16 @@ interface HomeWorkspaceProps {
   /** Creates the conversation on demand, so empty ones are never made. */
   ensureConversation: () => Promise<string>;
   onNavigate: (workspace: WorkspaceId) => void;
+  /** Called when a tool resolved a project the UI should open. */
+  onOpenProject: (projectId: string) => void;
 }
 
-export function HomeWorkspace({ conversationId, ensureConversation, onNavigate }: HomeWorkspaceProps) {
+export function HomeWorkspace({
+  conversationId,
+  ensureConversation,
+  onNavigate,
+  onOpenProject,
+}: HomeWorkspaceProps) {
   const { orchestrator, conversations, activity } = useHelix();
 
   const [draft, setDraft] = useState('');
@@ -62,7 +69,9 @@ export function HomeWorkspace({ conversationId, ensureConversation, onNavigate }
     try {
       const id = await ensureConversation();
       const response = await orchestrator.submit({ text, conversationId: id });
-      if (response.navigateTo) onNavigate(response.navigateTo);
+      // A resolved project takes precedence over a plain workspace change.
+      if (response.openProjectId) onOpenProject(response.openProjectId);
+      else if (response.navigateTo) onNavigate(response.navigateTo);
     } finally {
       setBusy(false);
     }

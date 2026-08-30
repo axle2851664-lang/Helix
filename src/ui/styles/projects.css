@@ -1,0 +1,205 @@
+/* ===============================================================
+   Projects - import form, project list, asset list.
+   =============================================================== */
+
+.hx-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.hx-field__label {
+  font-size: 13px;
+  color: var(--hx-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hx-field__required {
+  font-family: var(--helix-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--hx-accent-line);
+  color: var(--hx-accent);
+}
+
+.hx-field__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.hx-field__error {
+  margin-top: 12px;
+}
+
+.hx-hidden-input {
+  display: none;
+}
+
+.hx-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.hx-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.hx-btn--danger {
+  border-color: var(--hx-accent-line);
+  color: var(--hx-accent);
+}
+
+.hx-btn--danger:hover {
+  background: var(--hx-accent);
+  color: #fff;
+  border-color: var(--hx-accent);
+}
+
+/* --------------------------- project list --------------------- */
+.hx-projlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hx-projlist__row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 13px 6px;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hx-projlist li:first-child .hx-projlist__row {
+  border-top: none;
+}
+
+.hx-projlist__name {
+  font-size: 14.5px;
+  color: var(--hx-text);
+}
+
+.hx-projlist__row:hover .hx-projlist__name {
+  color: var(--hx-accent);
+}
+
+.hx-projlist__meta {
+  font-size: 12px;
+  color: var(--hx-text-faint);
+}
+
+/* ---------------------------- detail -------------------------- */
+.hx-detailhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.hx-detailhead .hx-muted {
+  font-family: var(--helix-mono);
+  font-size: 11.5px;
+}
+
+/* --------------------------- asset list ----------------------- */
+.hx-assetlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hx-assetlist__row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.hx-assetlist__row:first-child {
+  border-top: none;
+}
+
+.hx-assetlist__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.hx-assetlist__name {
+  font-size: 13.5px;
+  color: var(--hx-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hx-assetlist__meta {
+  font-size: 11.5px;
+  color: var(--hx-text-faint);
+  margin-top: 2px;
+}
+
+.hx-assetthumb {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 9px;
+  border: 1px solid var(--hx-border);
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.hx-assetthumb--icon {
+  display: grid;
+  place-items: center;
+  color: var(--hx-text-faint);
+}
+
+/* Inputs in the hx- component family. Settings still uses the older
+   .helix-input from shell.css; both share the same visual language. */
+.hx-input,
+.hx-select {
+  font: inherit;
+  font-size: 13.5px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--hx-border);
+  background: var(--hx-bg-raised);
+  color: var(--hx-text);
+  width: 100%;
+  max-width: 420px;
+}
+
+.hx-input::placeholder {
+  color: var(--hx-text-faint);
+}
+
+.hx-input:focus-visible,
+.hx-select:focus-visible {
+  outline: none;
+  border-color: var(--hx-accent-line);
+}
+
+.hx-input:disabled,
+.hx-select:disabled {
+  opacity: 0.5;
+}

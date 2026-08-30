@@ -41,7 +41,13 @@ describe('workspace registry', () => {
 
   it('marks only genuinely working workspaces as implemented', () => {
     const implemented = WORKSPACE_LIST.filter((w) => w.implemented).map((w) => w.id).sort();
-    expect(implemented).toEqual(['conversations', 'home', 'settings', 'system']);
+    expect(implemented).toEqual([
+      'conversations',
+      'home',
+      'settings',
+      'system',
+      'upload-project',
+    ]);
   });
 
   it('identifies valid ids', () => {

@@ -60,6 +60,7 @@ function HelixWorkspaceShell() {
 
   const [workspace, setWorkspace] = useState<WorkspaceId>('home');
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [statusOpen, setStatusOpen] = useState(true);
   // Below this width the sidebar becomes an overlay, so it must start closed or
   // it covers the workspace on load.
@@ -115,6 +116,14 @@ function HelixWorkspaceShell() {
     setConversationId(null);
     navigate('home');
   }, [navigate]);
+
+  const openProject = useCallback(
+    (projectId: string) => {
+      setSelectedProjectId(projectId);
+      navigate('upload-project');
+    },
+    [navigate],
+  );
 
   const openConversation = useCallback(
     (id: string) => {
@@ -180,6 +189,9 @@ function HelixWorkspaceShell() {
             workspace={workspace}
             conversationId={conversationId}
             ensureConversation={ensureConversation}
+            selectedProjectId={selectedProjectId}
+            onSelectProject={setSelectedProjectId}
+            onOpenProject={openProject}
             onNavigate={navigate}
             onOpenConversation={openConversation}
           />

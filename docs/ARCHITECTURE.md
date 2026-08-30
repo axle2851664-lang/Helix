@@ -53,14 +53,13 @@ src/
 │   ├── HelixKernel.ts       ✅ DI container, startup and shutdown
 │   ├── Logger.ts            ✅ structured logging, redacts secrets on write
 │   ├── HelixError.ts        ✅ user-facing vs technical messages
-│   ├── HelixCore.ts         ▫ phase 3 — orchestration
-│   ├── IntentEngine.ts      ▫ phase 3
-│   ├── ContextManager.ts    ▫ phase 3
-│   ├── ToolRegistry.ts      ▫ phase 3 — schema-validated tools
-│   ├── ProviderManager.ts   ▫ phase 3 — local/cloud/hybrid selection
+│   ├── HelixOrchestrator.ts ✅ tool registry and routing
+│   ├── ActivityManager.ts   ✅ real activity tracking
+│   ├── HelixCore.ts         ▫ later — deeper orchestration
+│   ├── ContextManager.ts    ▫ phase 5 — context assembly
+│   ├── ProviderManager.ts   ▫ phase 5 — local/cloud/hybrid selection
 │   ├── MemoryManager.ts     ▫ phase 4
-│   ├── ProjectManager.ts    ▫ phase 4
-│   └── PermissionManager.ts ▫ phase 3
+│   └── PermissionManager.ts ▫ phase 7 — sensor and tool permissions
 ├── platform/
 │   ├── PlatformAdapter.ts   ✅ the host boundary
 │   ├── BrowserPlatform.ts   ✅ browser implementation
@@ -73,6 +72,12 @@ src/
 ├── settings/
 │   ├── schema.ts            ✅ typed, defaulted, validated schema
 │   └── SettingsManager.ts   ✅ load, validate, migrate, persist
+├── conversations/
+│   └── ConversationStore.ts ✅ short-term memory, privacy-gated
+├── projects/
+│   ├── ProjectManager.ts    ✅ projects, assets, search
+│   ├── validation.ts        ✅ upload allowlist and sanitising
+│   └── types.ts             ✅ stable ids, origin separation
 ├── ui/                      ✅ shell, Helix mark, design tokens
 └── types/                   ✅ shared types
 ```
@@ -129,14 +134,15 @@ Consequences carried into the roadmap:
 |---|---|---|
 | 1 | Repository analysis, architecture, build system | **Complete** |
 | 2 | Kernel, persistence, settings, workspace navigation | **Complete** |
-| 3 | Projects and file management | Next |
-| 3 | HelixCore, ToolRegistry, ProviderManager, permissions | Planned |
-| 4 | Memory, projects, knowledge | Planned |
-| 5 | Voice, vision, camera | Planned |
-| 6 | Hand tracking, Spatial Mode | Planned |
-| 7 | Helix 3D | Planned |
-| 8 | Helix Earth | Planned |
-| 9 | Model Manager, local AI | Planned |
-| 10 | Security hardening, testing, packaging, Tauri shell | Planned |
+| 3 | Reference interface, orchestrator, conversations, projects | **Complete** |
+| 4 | Memory and knowledge system | Next |
+| 5 | Voice pipeline and language providers | Planned |
+| 6 | Web research and coding | Planned |
+| 7 | Camera, vision, gestures | Planned |
+| 8 | Image generation | Planned |
+| 9 | Helix 3D and the 3D viewer | Planned |
+| 10 | Helix Earth | Planned |
+| 11 | StorageManager, portable packaging, Tauri shell | Planned |
+| 12 | Security review, testing, optimisation | Planned |
 
 A phase does not begin while the previous one is fundamentally broken.

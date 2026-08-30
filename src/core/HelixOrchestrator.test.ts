@@ -5,6 +5,8 @@ import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
+import { ProjectManager } from '../projects/ProjectManager.js';
+import { PathManager } from '../storage/PathManager.js';
 
 async function makeOrchestrator() {
   const kv = new MemoryKeyValueStore();
@@ -14,10 +16,18 @@ async function makeOrchestrator() {
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
   const activity = new ActivityManager();
-  const orchestrator = new HelixOrchestrator({ settings, conversations, activity, logger });
+  const paths = new PathManager({ root: 'E:/Helix' });
+  const projects = new ProjectManager({ store: kv, logger, paths });
+  const orchestrator = new HelixOrchestrator({
+    settings,
+    conversations,
+    activity,
+    projects,
+    logger,
+  });
   const conversation = await conversations.create();
 
-  return { orchestrator, conversations, settings, activity, conversation };
+  return { orchestrator, conversations, settings, activity, projects, conversation };
 }
 
 describe('HelixOrchestrator', () => {

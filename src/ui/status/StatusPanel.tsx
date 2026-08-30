@@ -30,7 +30,7 @@ interface StatusPanelProps {
 }
 
 export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
-  const { platform, store, activity, conversations } = useHelix();
+  const { platform, store, activity, conversations, projects } = useHelix();
   const settings = useSettings([
     'languageProvider',
     'speechToTextProvider',
@@ -43,6 +43,8 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
   const [online, setOnline] = useState(() => platform.isOnline());
   const [current, setCurrent] = useState<Activity>(() => activity.current);
   const [conversationCount, setConversationCount] = useState(0);
+  const [assetCount, setAssetCount] = useState(0);
+  const [projectCount, setProjectCount] = useState(0);
 
   useEffect(() => platform.onConnectivityChange(setOnline), [platform]);
   useEffect(() => activity.subscribe(setCurrent), [activity]);
@@ -54,6 +56,15 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
     refresh();
     return conversations.subscribe(refresh);
   }, [conversations]);
+
+  useEffect(() => {
+    const refresh = () => {
+      void projects.countAssets().then(setAssetCount);
+      void projects.listProjects().then((list) => setProjectCount(list.length));
+    };
+    refresh();
+    return projects.subscribe(refresh);
+  }, [projects]);
 
   const forcedOffline = settings.offlineMode === 'offline';
   const effectivelyOnline = online && !forcedOffline;
@@ -116,9 +127,12 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
       key: 'files',
       icon: 'folder',
       label: 'FILES',
-      value: '0 indexed',
-      tone: 'off',
-      detail: 'File indexing arrives in phase 4',
+      value: assetCount === 0 ? 'None yet' : `${assetCount} ${assetCount === 1 ? 'file' : 'files'}`,
+      tone: assetCount > 0 ? 'ok' : 'off',
+      detail:
+        projectCount === 0
+          ? 'No projects yet'
+          : `across ${projectCount} ${projectCount === 1 ? 'project' : 'projects'}`,
     },
     {
       key: 'conversations',
