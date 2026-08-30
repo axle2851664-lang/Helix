@@ -137,7 +137,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     subtitle: 'Camera, vision and hand tracking.',
     aliases: ['camera', 'camera mode', 'gestures', 'hands', 'vision', 'webcam'],
     phase: 7,
-    implemented: false,
+    implemented: true,
     inSidebar: true,
   },
   settings: {

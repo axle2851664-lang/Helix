@@ -66,3 +66,28 @@ The dependency tree is kept deliberately small (currently 54 packages,
 rooted in `esbuild <=0.24.2`; rather than suppress them, the toolchain was
 upgraded to Vite 8 — which resolved all five and halved the dependency count.
 Prefer removing a dependency over auditing around it.
+
+## Camera
+
+The camera is governed by the same rule as the microphone: the indicator must
+follow the device, never the UI's belief about the device.
+
+- **Never started implicitly.** `CameraManager.start()` is reached only from an
+  explicit button press. Nothing opens the device on load or on navigation, and
+  leaving the camera workspace releases it.
+- **`CAMERA_STARTED` is emitted only once a live `MediaStream` exists**, so the
+  indicator cannot appear before capture begins. A test asserts nothing is
+  emitted when the device fails to open.
+- **The indicator follows the device out of Helix's hands.** A track ending
+  outside the application - an unplugged webcam, a privacy shutter, another
+  application taking the device - runs the same teardown path, so the indicator
+  cannot keep claiming the camera is live after it has stopped.
+- **The active indicator is rendered in the top bar**, not on the camera screen,
+  so it stays visible on every workspace while the device is on. Clicking it
+  turns the camera off.
+- **Nothing is recorded.** There is no `MediaRecorder` and no frame buffer. A
+  still exists only when the user presses Capture, and it is handed to the caller
+  rather than retained; it reaches storage only if the user then saves it into a
+  project.
+- **Audio is never requested.** The camera workspace has no use for it, and
+  asking would widen the permission beyond what is needed.

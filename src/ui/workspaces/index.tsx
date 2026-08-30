@@ -7,6 +7,7 @@ import { HomeWorkspace } from '../chat/HomeWorkspace.js';
 import { ProjectsWorkspace } from '../projects/ProjectsWorkspace.js';
 import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
 import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
+import { CameraWorkspace } from '../camera/CameraWorkspace.js';
 import { WORKSPACES, type WorkspaceId } from './registry.js';
 
 /**
@@ -71,7 +72,7 @@ export function WorkspaceView({
         />
       );
     case 'gesture-control':
-      return <GestureControlPending />;
+      return <CameraWorkspace />;
     default: {
       const never: never = workspace;
       void never;
@@ -174,27 +175,3 @@ function StoragePending() {
   );
 }
 
-function GestureControlPending() {
-  const { platform } = useHelix();
-  return (
-    <PendingWorkspace
-      descriptor={WORKSPACES['gesture-control']}
-      planned={[
-        'Live camera preview with an always-visible active indicator.',
-        'Hand tracking: pinch to select, drag to move, two hands to scale and rotate.',
-        'Analyse a captured frame through a vision provider.',
-        'Mouse and keyboard fallback for every gesture.',
-      ]}
-      inPlace={[
-        'Camera permission is never requested implicitly.',
-        'CAMERA_STARTED and CAMERA_STOPPED events exist so the active indicator cannot drift out of sync with the device.',
-        'Nothing is recorded by default, and the log redactor refuses to serialise camera frames.',
-      ]}
-      requires={[
-        { label: 'Camera', status: platform.capabilities.camera },
-        { label: 'WebGL2', status: platform.capabilities.webgl2 },
-      ]}
-      blockedBy="Hand tracking needs MediaPipe, which is not bundled yet. Gestures will not be simulated with mouse events."
-    />
-  );
-}

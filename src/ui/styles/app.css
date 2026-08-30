@@ -1000,3 +1000,88 @@
 [data-reduce-motion='true'] .hx-iconbtn--live {
   animation: none !important;
 }
+
+/* ------------------------ camera indicator -------------------- */
+/* Mandatory while the device is live (spec 10). Rendered in the top bar so it
+   remains visible on every workspace, not only the camera screen. */
+.hx-camlive {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--hx-accent);
+  background: var(--hx-accent-soft);
+  font-family: var(--helix-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--hx-accent);
+  white-space: nowrap;
+}
+
+.hx-camlive--button {
+  cursor: pointer;
+  font: inherit;
+  font-family: var(--helix-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.hx-camlive__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--hx-accent);
+  animation: hx-listen 1.4s ease-in-out infinite;
+}
+
+[data-reduce-motion='true'] .hx-camlive__dot {
+  animation: none !important;
+}
+
+/* --------------------------- camera view ---------------------- */
+.hx-preview {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  border-radius: var(--hx-radius);
+  border: 1px solid var(--hx-border);
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.hx-preview--live {
+  border-color: var(--hx-accent-line);
+}
+
+.hx-preview__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hx-preview__idle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--hx-text-dim);
+  text-align: center;
+}
+
+.hx-preview__idle p {
+  margin: 0;
+  font-size: 13.5px;
+}
+
+.hx-capture {
+  max-width: 100%;
+  border-radius: var(--hx-radius);
+  border: 1px solid var(--hx-border);
+  display: block;
+}

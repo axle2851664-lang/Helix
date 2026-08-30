@@ -16,6 +16,7 @@ import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import { VoiceManager } from '../voice/VoiceManager.js';
 import { BrowserSpeechRecognition } from '../voice/BrowserSpeechRecognition.js';
 import { BrowserSpeechSynthesis } from '../voice/BrowserSpeechSynthesis.js';
+import { CameraManager } from '../camera/CameraManager.js';
 
 /**
  * The Helix service container (spec 19).
@@ -46,6 +47,7 @@ export interface KernelServices {
   readonly memory: MemoryManager;
   readonly knowledge: KnowledgeIndex;
   readonly voice: VoiceManager;
+  readonly camera: CameraManager;
   readonly orchestrator: HelixOrchestrator;
 }
 
@@ -164,6 +166,8 @@ export class HelixKernel {
     const memory = new MemoryManager({ store, settings, logger, bus });
     const knowledge = new KnowledgeIndex({ store, projects, logger, bus });
 
+    const camera = new CameraManager({ platform, settings, logger, bus });
+
     // Voice providers are constructed only where the platform supports them,
     // so VoiceManager reports 'not available in this build' rather than
     // failing at the moment the user presses the microphone.
@@ -216,6 +220,7 @@ export class HelixKernel {
       memory,
       knowledge,
       voice,
+      camera,
       orchestrator,
     };
   }
@@ -254,11 +259,12 @@ export class HelixKernel {
   /** Release resources. Flushes pending settings writes first (spec 28). */
   async shutdown(reason = 'user'): Promise<void> {
     if (!this.#services) return;
-    const { bus, settings, store, logger, activity, voice } = this.#services;
+    const { bus, settings, store, logger, activity, voice, camera } = this.#services;
 
     bus.emit('helix:shutdown', { reason });
     try {
       voice.shutdown();
+      camera.shutdown();
       activity.reset();
       await settings.flush();
       await store.close();

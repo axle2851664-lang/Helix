@@ -77,6 +77,12 @@ src/
 ├── memory/
 │   ├── MemoryManager.ts     ✅ long-term memory, credential refusal
 │   └── types.ts             ✅ record shape and categories
+├── camera/
+│   └── CameraManager.ts     ✅ device lifecycle, capture, indicator
+├── vision/
+│   └── types.ts             ✅ provider interface, null implementation
+├── gestures/
+│   └── types.ts             ✅ provider interface, deliberately unimplemented
 ├── voice/
 │   ├── VoiceManager.ts      ✅ pipeline, mic indicator, interruption
 │   ├── BrowserSpeechRecognition.ts ✅ Web Speech API input
@@ -152,8 +158,8 @@ Consequences carried into the roadmap:
 | 4b | File and knowledge indexing | **Complete** |
 | 5a | Voice pipeline (browser speech) | **Complete** |
 | 5b | Language provider connection | Blocked on the Tauri shell |
+| 7 | Camera, plus vision and gesture interfaces | **Complete** |
 | 6 | Web research and coding | Planned |
-| 7 | Camera, vision, gestures | Planned |
 | 8 | Image generation | Planned |
 | 9 | Helix 3D and the 3D viewer | Planned |
 | 10 | Helix Earth | Planned |
