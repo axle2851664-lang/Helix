@@ -23,6 +23,7 @@ const ICONS: Record<WorkspaceId, IconName> = {
   storage: 'drive',
   'upload-project': 'upload',
   'gesture-control': 'gesture',
+  spatial: 'image',
   settings: 'gear',
   system: 'activity',
 };

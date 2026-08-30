@@ -22,6 +22,7 @@ export const WORKSPACE_IDS = [
   'storage',
   'upload-project',
   'gesture-control',
+  'spatial',
   'settings',
   'system',
 ] as const;
@@ -136,6 +137,15 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     title: 'Gesture Control',
     subtitle: 'Camera, vision and hand tracking.',
     aliases: ['camera', 'camera mode', 'gestures', 'hands', 'vision', 'webcam'],
+    phase: 7,
+    implemented: true,
+    inSidebar: true,
+  },
+  spatial: {
+    id: 'spatial',
+    title: 'Spatial',
+    subtitle: 'Manipulate objects by hand over the camera view.',
+    aliases: ['spatial mode', 'objects', 'stage', 'hand control', 'manipulate'],
     phase: 7,
     implemented: true,
     inSidebar: true,

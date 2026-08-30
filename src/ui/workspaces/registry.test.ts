@@ -30,6 +30,7 @@ describe('workspace registry', () => {
       'storage',
       'upload-project',
       'gesture-control',
+      'spatial',
       'settings',
     ]);
   });
@@ -48,6 +49,7 @@ describe('workspace registry', () => {
       'home',
       'memory',
       'settings',
+      'spatial',
       'system',
       'upload-project',
     ]);

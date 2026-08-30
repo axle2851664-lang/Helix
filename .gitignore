@@ -56,3 +56,8 @@ desktop.ini
 *.swp
 *.log
 npm-debug.log*
+
+# Hand tracking assets, installed by `npm run fetch:models`.
+# Model weights and vendored WASM do not belong in version control.
+/public/models/
+/public/mediapipe/

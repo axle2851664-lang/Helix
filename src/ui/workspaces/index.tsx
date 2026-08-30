@@ -8,6 +8,7 @@ import { ProjectsWorkspace } from '../projects/ProjectsWorkspace.js';
 import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
 import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
 import { CameraWorkspace } from '../camera/CameraWorkspace.js';
+import { SpatialWorkspace } from '../spatial/SpatialWorkspace.js';
 import { WORKSPACES, type WorkspaceId } from './registry.js';
 
 /**
@@ -73,6 +74,8 @@ export function WorkspaceView({
       );
     case 'gesture-control':
       return <CameraWorkspace />;
+    case 'spatial':
+      return <SpatialWorkspace />;
     default: {
       const never: never = workspace;
       void never;

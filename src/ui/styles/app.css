@@ -1085,3 +1085,195 @@
   border: 1px solid var(--hx-border);
   display: block;
 }
+
+/* =========================== spatial stage ==================== */
+.hx-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  border-radius: var(--hx-radius);
+  border: 1px solid var(--hx-border);
+  background: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.hx-stage--camera {
+  border-color: var(--hx-accent-line);
+}
+
+.hx-stage__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Selfie view: the user's hand moves the way they expect on screen. */
+  transform: scaleX(-1);
+  transition: opacity 260ms ease;
+}
+
+.hx-stage__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--hx-text-dim);
+  text-align: center;
+  pointer-events: none;
+}
+
+.hx-stage__empty p {
+  margin: 0;
+  font-size: 13.5px;
+}
+
+/* ------------------------- spatial object --------------------- */
+.hx-obj {
+  position: absolute;
+  width: 128px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: grab;
+  transition: filter 160ms ease;
+}
+
+.hx-obj--dragging {
+  cursor: grabbing;
+  filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.6));
+  /* No transition while dragging: it would lag behind the hand. */
+  transition: none;
+}
+
+.hx-obj__image,
+.hx-obj__placeholder {
+  width: 128px;
+  height: 128px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  object-fit: cover;
+  background: linear-gradient(160deg, rgba(224, 36, 60, 0.22), rgba(224, 36, 60, 0.06));
+  pointer-events: none;
+}
+
+.hx-obj__placeholder {
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+  color: var(--hx-text);
+  text-align: center;
+  padding: 8px;
+  border-color: var(--hx-border);
+}
+
+.hx-obj--selected .hx-obj__image,
+.hx-obj--selected .hx-obj__placeholder {
+  border-color: var(--hx-accent);
+  box-shadow: 0 0 22px rgba(224, 36, 60, 0.32);
+}
+
+.hx-obj__label {
+  font-family: var(--helix-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--hx-text-dim);
+  max-width: 128px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Dwell ring: fills while an open palm rests over an object, so the wait is
+   visible rather than the menu appearing from nowhere. */
+.hx-obj__dwell {
+  position: absolute;
+  inset: -8px;
+  border-radius: 16px;
+  pointer-events: none;
+  background: conic-gradient(
+    var(--hx-accent) calc(var(--hx-dwell) * 360deg),
+    transparent 0
+  );
+  opacity: 0.5;
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0);
+}
+
+/* -------------------------- action menu ----------------------- */
+.hx-objmenu {
+  position: absolute;
+  transform: translate(-50%, calc(-50% - 108px));
+  min-width: 168px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--hx-accent-line);
+  background: rgba(16, 10, 12, 0.96);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6);
+  z-index: 10;
+}
+
+.hx-objmenu__title {
+  font-family: var(--helix-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hx-text-faint);
+  padding: 4px 8px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hx-objmenu__item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--hx-text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hx-objmenu__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hx-objmenu__item--danger {
+  color: var(--hx-accent);
+}
+
+.hx-objmenu__item--danger:hover {
+  background: var(--hx-accent-soft);
+}
+
+.hx-objmenu__item--quiet {
+  color: var(--hx-text-faint);
+  font-size: 12px;
+}
+
+/* ------------------------ tracking status --------------------- */
+.hx-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--hx-text-faint);
+}
+
+.hx-track--seen {
+  color: var(--hx-ok);
+}

@@ -38,7 +38,9 @@ geographic environment.
 | `KnowledgeIndex` - file text indexing and keyword search (spec 12) | Working |
 | `VoiceManager` + browser speech - listen, speak, interrupt (spec 9) | Working |
 | `CameraManager` - real device, capture, honest indicator (spec 10) | Working |
-| Vision and gesture provider interfaces | Interfaces only, no provider |
+| Hand tracking - pinch to move, palm to reveal actions (spec 11) | Working |
+| Spatial stage with full mouse fallback | Working |
+| Vision provider interface | Interface only, no provider |
 | Helix persona - one module owning every user-facing sentence | Working |
 | Claude model selection and switching by command | Working |
 | Reference three-column UI, 11 navigable workspaces | Working |
@@ -63,6 +65,13 @@ Install dependencies:
 
 ```bash
 npm install
+```
+
+Install the on-device hand tracking assets (model and WASM runtime, served
+locally, never committed):
+
+```bash
+npm run fetch:models
 ```
 
 Start the dev server:

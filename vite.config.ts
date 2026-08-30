@@ -21,6 +21,14 @@ export default defineConfig({
       '@types': fileURLToPath(new URL('./src/types', import.meta.url)),
     },
   },
+  server: {
+    watch: {
+      // Vendored hand-tracking assets: multi-megabyte, never edited, and
+      // watching them crashed the dev server with EBUSY while they were
+      // being written.
+      ignored: ['**/public/mediapipe/**', '**/public/models/**'],
+    },
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
