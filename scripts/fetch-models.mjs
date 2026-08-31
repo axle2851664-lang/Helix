@@ -32,6 +32,8 @@ const WASM_SRC = join(root, 'node_modules', '@mediapipe', 'tasks-vision', 'wasm'
 const ORT_SRC = join(root, 'node_modules', 'onnxruntime-web', 'dist');
 const ORT_DEST = join(root, 'public', 'onnx');
 const WASM_DEST = join(root, 'public', 'mediapipe', 'wasm');
+const CMAP_SRC = join(root, 'node_modules', 'pdfjs-dist', 'cmaps');
+const CMAP_DEST = join(root, 'public', 'pdfjs', 'cmaps');
 
 async function exists(path) {
   try {
@@ -101,6 +103,24 @@ async function fetchModel() {
   console.log(`Model installed: ${MODEL_DEST} (${humanBytes(info.size)})`);
 }
 
+/**
+ * Character maps for pdf.js.
+ *
+ * Only needed for documents using predefined CMaps - CJK text, mostly. Without
+ * them those PDFs extract as nothing useful, and pdf.js would otherwise fetch
+ * them from a CDN, which the content policy refuses. The standard font data is
+ * deliberately not copied: it exists to make a PDF look right, and Helix only
+ * reads their text.
+ */
+async function copyCmaps() {
+  if (!(await exists(CMAP_SRC))) {
+    throw new Error('pdfjs-dist not found in node_modules. Run "npm install" before this script.');
+  }
+  await mkdir(CMAP_DEST, { recursive: true });
+  await cp(CMAP_SRC, CMAP_DEST, { recursive: true });
+  console.log(`PDF character maps installed: ${CMAP_DEST}`);
+}
+
 async function copyWasm() {
   if (!(await exists(WASM_SRC))) {
     throw new Error(
@@ -164,6 +184,7 @@ async function fetchWhisper() {
 try {
   await copyWasm();
   await copyOnnxRuntime();
+  await copyCmaps();
   await fetchModel();
   console.log('\nDownloading speech model...');
   await fetchWhisper();

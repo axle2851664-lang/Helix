@@ -10,10 +10,15 @@ describe('canExtract', () => {
     }
   });
 
-  it('rejects images, 3D models and PDFs', () => {
+  it('rejects images and 3D models', () => {
     expect(canExtract('photo.png', 'image')).toBe(false);
     expect(canExtract('suit.glb', 'model3d')).toBe(false);
-    expect(canExtract('report.pdf', 'document')).toBe(false);
+  });
+
+  // PDFs used to be rejected here. They are read properly now, through the
+  // parser loaded on demand.
+  it('accepts a PDF', () => {
+    expect(canExtract('report.pdf', 'document')).toBe(true);
   });
 });
 
@@ -22,9 +27,13 @@ describe('extractionBlocker', () => {
     expect(extractionBlocker('notes.md', 'document')).toBeNull();
   });
 
+  it('no longer blocks a PDF', () => {
+    expect(extractionBlocker('report.pdf', 'document')).toBeNull();
+  });
+
   // The reason must name the missing dependency, not just say "unsupported".
-  it('names the missing dependency for a PDF', () => {
-    expect(extractionBlocker('report.pdf', 'document')).toContain('PDF parser');
+  it('names why a 3D model holds no text', () => {
+    expect(extractionBlocker('suit.glb', 'model3d')).toContain('geometry');
   });
 
   it('explains that images need OCR or vision', () => {
@@ -58,10 +67,20 @@ describe('extractText', () => {
   });
 
   it('reports an unsupported format rather than returning empty text', async () => {
-    const result = await extractText('report.pdf', 'document', encode('%PDF-1.4'));
+    const result = await extractText('suit.glb', 'model3d', encode('binary geometry'));
     expect(result.status).toBe('unsupported');
     expect(result.text).toBe('');
     expect(result.reason).toBeTruthy();
+  });
+
+  // A PDF now reaches the parser. This one is not a real document, so it
+  // fails as an unreadable file rather than as an unsupported format - a
+  // different answer, and the right one.
+  it('sends a PDF to the parser rather than refusing it outright', async () => {
+    const result = await extractText('report.pdf', 'document', encode('%PDF-1.4'));
+
+    expect(result.status).not.toBe('unsupported');
+    expect(result.reason ?? '').toContain('PDF');
   });
 
   it('reports an empty file', async () => {

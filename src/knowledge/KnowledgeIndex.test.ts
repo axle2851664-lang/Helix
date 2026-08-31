@@ -64,7 +64,12 @@ describe('KnowledgeIndex: indexing', () => {
     expect(await context.knowledge.get(asset.id)).toBeDefined();
   });
 
-  it('records a PDF as stored but not searchable', async () => {
+  /**
+   * A PDF that is not really a PDF. It is still recorded as stored and not
+   * searchable, but the reason is now about this file rather than about a
+   * parser Helix does not have - the parser exists.
+   */
+  it('records a broken PDF as stored but not searchable', async () => {
     const asset = await context.projects.addFileToProject({
       projectId: context.project.id,
       file: { name: 'report.pdf', size: 100, type: 'application/pdf' },
@@ -73,7 +78,8 @@ describe('KnowledgeIndex: indexing', () => {
 
     const document = await context.knowledge.indexAsset(asset.id);
     expect(document.indexed).toBe(false);
-    expect(document.reason).toContain('PDF parser');
+    expect(document.reason).toContain('PDF');
+    expect(document.reason).not.toContain('parser');
   });
 
   it('throws for an unknown asset', async () => {

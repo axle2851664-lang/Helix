@@ -23,10 +23,16 @@ export default defineConfig({
   },
   server: {
     watch: {
-      // Vendored hand-tracking assets: multi-megabyte, never edited, and
-      // watching them crashed the dev server with EBUSY while they were
-      // being written.
-      ignored: ['**/public/mediapipe/**', '**/public/models/**'],
+      // Vendored assets: multi-megabyte, never hand-edited, and watching them
+      // crashes the dev server with EBUSY while the fetch script writes them.
+      // Every vendored folder must be listed here - onnx was missed when it
+      // was added, and the server died the next time the script ran.
+      ignored: [
+        '**/public/mediapipe/**',
+        '**/public/models/**',
+        '**/public/onnx/**',
+        '**/public/pdfjs/**',
+      ],
     },
   },
   build: {

@@ -1,13 +1,18 @@
 import type { AssetKind } from '../projects/types.js';
+import { MAX_PAGES, PdfExtractionError, extractPdfText } from './pdf.js';
 
 /**
  * Text extraction from stored assets (spec 12: indexing, search, previews).
  *
- * Helix indexes what it can genuinely read, and says so for the rest. A PDF or
- * a photograph is stored perfectly well but cannot be turned into text without
- * a dependency Helix does not have - reporting that is the whole point of
- * `ExtractionResult.reason`, rather than indexing an empty string and leaving
- * the user to wonder why search never finds their document.
+ * Helix indexes what it can genuinely read, and says so for the rest. A
+ * photograph is stored perfectly well but cannot be turned into text without
+ * OCR - reporting that is the whole point of `ExtractionResult.reason`,
+ * rather than indexing an empty string and leaving the user to wonder why
+ * search never finds their document.
+ *
+ * PDFs are read properly now. The parser is loaded on demand rather than
+ * imported at the top, because it is a megabyte and a half and a user who only
+ * ever indexes text files should not pay for it.
  */
 
 export type ExtractionStatus = 'extracted' | 'unsupported' | 'empty' | 'not-text';
@@ -30,7 +35,6 @@ const TEXT_EXTENSIONS = new Set([
  * each would need. Being concrete here is what makes the limitation actionable.
  */
 const KNOWN_UNSUPPORTED: Record<string, string> = {
-  pdf: 'PDF text extraction needs a PDF parser, which Helix does not bundle yet.',
   glb: '3D models contain geometry, not text.',
   gltf: '3D models contain geometry, not text.',
   obj: '3D models contain geometry, not text.',
@@ -47,9 +51,15 @@ function extensionOf(fileName: string): string {
   return index <= 0 ? '' : fileName.slice(index + 1).toLowerCase();
 }
 
+/** Read with the on-demand parser rather than as plain text. */
+export function isPdf(fileName: string): boolean {
+  return extensionOf(fileName) === 'pdf';
+}
+
 /** Can this asset be indexed at all? Cheap check, no data required. */
 export function canExtract(fileName: string, kind: AssetKind): boolean {
   if (kind === 'image') return false;
+  if (isPdf(fileName)) return true;
   return TEXT_EXTENSIONS.has(extensionOf(fileName));
 }
 
@@ -102,6 +112,8 @@ export async function extractText(
     return { status: 'empty', text: '', reason: 'The file is empty.' };
   }
 
+  if (isPdf(fileName)) return extractFromPdf(buffer);
+
   if (looksBinary(buffer)) {
     return {
       status: 'not-text',
@@ -127,6 +139,57 @@ export async function extractText(
   }
 
   return { status: 'extracted', text: trimmed };
+}
+
+/**
+ * Read a PDF through the on-demand parser.
+ *
+ * The failures are separated because they need different answers from the
+ * user: a scan needs OCR, a protected file needs its password, and a truncated
+ * one is a fact about the document rather than a fault.
+ */
+async function extractFromPdf(buffer: ArrayBuffer): Promise<ExtractionResult> {
+  try {
+    const result = await extractPdfText(buffer);
+    const text = result.text.trim();
+
+    if (text === '') {
+      return { status: 'empty', text: '', reason: 'The PDF contained no readable text.' };
+    }
+
+    // Truncation is reported, never silent: a user searching a 400-page
+    // document must know that only the first 200 pages can be found.
+    const truncated = result.pages > MAX_PAGES;
+    const blankPages = result.emptyPages > 0 && result.emptyPages < result.pages;
+
+    const notes = [
+      truncated
+        ? `Only the first ${MAX_PAGES} of ${result.pages} pages were indexed.`
+        : null,
+      blankPages
+        ? `${result.emptyPages} of its pages have no text layer and are most likely images.`
+        : null,
+    ].filter((note): note is string => note !== null);
+
+    return {
+      status: 'extracted',
+      text,
+      ...(notes.length > 0 ? { reason: notes.join(' ') } : {}),
+    };
+  } catch (error) {
+    if (error instanceof PdfExtractionError) {
+      return {
+        status: error.noTextLayer ? 'empty' : 'not-text',
+        text: '',
+        reason: error.message,
+      };
+    }
+    return {
+      status: 'not-text',
+      text: '',
+      reason: 'This PDF could not be read.',
+    };
+  }
 }
 
 /**
