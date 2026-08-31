@@ -1296,3 +1296,51 @@
   transform-origin: center;
   transition: transform 60ms linear;
 }
+
+/* The centre core doubles as the call button: press to speak, press to stop. */
+.hx-core--button {
+  border: 1px solid var(--hx-accent-line);
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.hx-core--button:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 48px rgba(224, 36, 60, 0.32);
+}
+
+.hx-core--button:active {
+  transform: scale(0.98);
+}
+
+.hx-core--listening {
+  border-color: var(--hx-accent);
+  animation: hx-pulse 1.4s ease-in-out infinite;
+}
+
+/* Ring scales with the measured microphone level, so the core visibly
+   responds to the voice rather than animating regardless. */
+.hx-core__ring {
+  position: absolute;
+  inset: -14px;
+  border-radius: 32px;
+  border: 2px solid var(--hx-accent);
+  opacity: calc(0.25 + var(--hx-level) * 0.65);
+  transform: scale(calc(1 + var(--hx-level) * 0.12));
+  transition: transform 70ms linear, opacity 70ms linear;
+  pointer-events: none;
+}
+
+.hx-core__notice {
+  max-width: 46ch;
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--hx-warn);
+}
+
+[data-reduce-motion='true'] .hx-core--listening {
+  animation: none !important;
+}

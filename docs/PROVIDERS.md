@@ -168,3 +168,23 @@ tuning constants live at the top of `src/voice/silence.ts`. The level loop runs
 on `setInterval` rather than `requestAnimationFrame` - RAF is throttled to a
 standstill in a background tab, which would leave the microphone open and
 silently deaf.
+
+#### Weight format and size
+
+The fp32 export is used, not the smaller `_quantized` one. The current
+onnxruntime cannot consume that older quantisation and fails with
+"Missing required scale" - a message that reads like a corrupt download but
+is really a format mismatch. fp32 costs ~151 MB instead of ~42 MB; it is the
+variant that actually runs.
+
+The ONNX runtime itself is also served locally. Left alone, onnxruntime-web
+fetches its WASM backend from a jsdelivr CDN at load time, which the content
+security policy blocks; the failure then surfaces as "no available backend
+found", which sounds like a broken model rather than a blocked request.
+
+#### Speed
+
+On the development machine (i5-1235U, WASM, single-threaded) a two-second clip
+takes roughly 11 seconds to transcribe. That is usable for short commands but
+is not conversational latency. WebGPU would improve it substantially where the
+browser supports it.

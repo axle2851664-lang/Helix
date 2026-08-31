@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Composer } from './Composer.js';
 import { useHelix } from '../HelixProvider.js';
+import { toUserMessage } from '../../core/HelixError.js';
+import type { VoiceSnapshot } from '../../voice/VoiceManager.js';
 import type { Conversation, ConversationMessage } from '../../conversations/ConversationStore.js';
 import type { WorkspaceId } from '../workspaces/registry.js';
 
@@ -36,11 +38,13 @@ export function HomeWorkspace({
   onNavigate,
   onOpenProject,
 }: HomeWorkspaceProps) {
-  const { orchestrator, conversations, activity } = useHelix();
+  const { orchestrator, conversations, activity, voice } = useHelix();
 
   const [draft, setDraft] = useState('');
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [busy, setBusy] = useState(false);
+  const [voiceState, setVoiceState] = useState<VoiceSnapshot>(() => voice.snapshot);
+  const [coreNotice, setCoreNotice] = useState<string | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const reload = useCallback(async () => {
@@ -58,6 +62,8 @@ export function HomeWorkspace({
     void reload();
     return conversations.subscribe(() => void reload());
   }, [reload, conversations]);
+
+  useEffect(() => voice.subscribe(setVoiceState), [voice]);
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight });
@@ -77,6 +83,37 @@ export function HomeWorkspace({
     }
   };
 
+  /**
+   * Clicking the core starts or ends a voice turn - it is the most obvious
+   * thing on the screen, so it should be the call button. While listening it
+   * stops, which doubles as barge-in.
+   */
+  const toggleCall = async () => {
+    if (voiceState.state === 'listening') {
+      voice.stopListening();
+      return;
+    }
+    if (voiceState.state === 'speaking') {
+      voice.stopSpeaking();
+      return;
+    }
+
+    const blocker = voice.inputBlocker();
+    if (blocker !== null) {
+      setCoreNotice(blocker);
+      window.setTimeout(() => setCoreNotice(null), 7000);
+      return;
+    }
+
+    try {
+      const transcript = await voice.listen();
+      if (transcript.trim() !== '') await send(transcript);
+    } catch (error) {
+      setCoreNotice(toUserMessage(error));
+      window.setTimeout(() => setCoreNotice(null), 7000);
+    }
+  };
+
   const messages = conversation?.messages ?? [];
   const isEmpty = messages.length === 0;
 
@@ -84,11 +121,36 @@ export function HomeWorkspace({
     <div className="hx-home">
       {isEmpty ? (
         <div className="hx-home__hero">
-          <div className={`hx-core${busy ? ' hx-core--busy' : ''}`} aria-hidden="true">
+          <button
+            type="button"
+            className={`hx-core hx-core--button${busy ? ' hx-core--busy' : ''}${
+              voiceState.state === 'listening' ? ' hx-core--listening' : ''
+            }`}
+            onClick={() => void toggleCall()}
+            aria-label={
+              voiceState.state === 'listening' ? 'Stop listening' : 'Speak to Helix'
+            }
+          >
             <span className="hx-core__glyph">H</span>
-          </div>
+            {voiceState.state === 'listening' && (
+              <span
+                className="hx-core__ring"
+                style={{ ['--hx-level' as string]: String(Math.min(1, voiceState.level * 8)) }}
+                aria-hidden="true"
+              />
+            )}
+          </button>
           <h1 className="hx-home__title">How may I help?</h1>
-          <p className="hx-home__sub">Ask anything, sir, or try one of these:</p>
+          {coreNotice && (
+            <p className="hx-core__notice" role="status">
+              {coreNotice}
+            </p>
+          )}
+          <p className="hx-home__sub">
+            {voiceState.state === 'listening'
+              ? 'Listening, sir. Speak, and I will stop when you do.'
+              : 'Press the H to speak, sir, or try one of these:'}
+          </p>
 
           <div className="hx-suggestions">
             {SUGGESTIONS.map((suggestion) => (

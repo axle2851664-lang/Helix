@@ -18,7 +18,7 @@
  */
 
 import { createWriteStream } from 'node:fs';
-import { mkdir, cp, access, stat } from 'node:fs/promises';
+import { mkdir, cp, access, stat, readdir } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { dirname, join } from 'node:path';
@@ -29,6 +29,8 @@ const MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 const MODEL_DEST = join(root, 'public', 'models', 'hand_landmarker.task');
 const WASM_SRC = join(root, 'node_modules', '@mediapipe', 'tasks-vision', 'wasm');
+const ORT_SRC = join(root, 'node_modules', 'onnxruntime-web', 'dist');
+const ORT_DEST = join(root, 'public', 'onnx');
 const WASM_DEST = join(root, 'public', 'mediapipe', 'wasm');
 
 async function exists(path) {
@@ -50,6 +52,33 @@ function humanBytes(bytes) {
     unit += 1;
   }
   return `${value.toFixed(1)} ${units[unit]}`;
+}
+
+/**
+ * The ONNX runtime that Whisper executes on.
+ *
+ * Without this, onnxruntime-web fetches its WASM backend from a jsdelivr CDN
+ * at load time, which the content security policy blocks - and the failure
+ * surfaces as "no available backend found", which reads like a broken model
+ * rather than a blocked network request.
+ */
+async function copyOnnxRuntime() {
+  if (!(await exists(ORT_SRC))) {
+    throw new Error(
+      'onnxruntime-web not found in node_modules. Run "npm install" before this script.',
+    );
+  }
+  await mkdir(ORT_DEST, { recursive: true });
+
+  const entries = await readdir(ORT_SRC);
+  let copied = 0;
+  for (const entry of entries) {
+    // Only the runtime binaries and their loaders are needed in public/.
+    if (!/^ort-wasm.*.(wasm|mjs)$/.test(entry)) continue;
+    await cp(join(ORT_SRC, entry), join(ORT_DEST, entry));
+    copied += 1;
+  }
+  console.log(`ONNX runtime installed: ${ORT_DEST} (${copied} files)`);
 }
 
 async function fetchModel() {
@@ -97,8 +126,11 @@ const WHISPER_FILES = [
   'tokenizer_config.json',
   'preprocessor_config.json',
   'generation_config.json',
-  'onnx/encoder_model_quantized.onnx',
-  'onnx/decoder_model_merged_quantized.onnx',
+  // fp32, not the smaller _quantized export: this onnxruntime cannot consume
+  // that older quantisation and fails with "Missing required scale". Larger
+  // download, but it is the variant that actually runs.
+  'onnx/encoder_model.onnx',
+  'onnx/decoder_model_merged.onnx',
 ];
 
 async function fetchWhisper() {
@@ -131,6 +163,7 @@ async function fetchWhisper() {
 
 try {
   await copyWasm();
+  await copyOnnxRuntime();
   await fetchModel();
   console.log('\nDownloading speech model...');
   await fetchWhisper();

@@ -61,3 +61,4 @@ npm-debug.log*
 # Model weights and vendored WASM do not belong in version control.
 /public/models/
 /public/mediapipe/
+/public/onnx/

@@ -134,13 +134,28 @@ export class LocalWhisperProvider implements SpeechToTextProvider {
       // genuinely on-device.
       transformers.env.allowRemoteModels = false;
       transformers.env.allowLocalModels = true;
-      transformers.env.localModelPath = './models/';
+      // Resolved against the page, not the importing module: a relative path
+      // here resolves inside node_modules and 404s.
+      transformers.env.localModelPath = new URL('models/', document.baseURI).href;
+
+      // Without this, onnxruntime-web fetches its WASM backend from a CDN,
+      // which the content security policy blocks. The failure then reads as
+      // "no available backend found", which sounds like a broken model rather
+      // than a blocked request - so point it at the local copy explicitly.
+      const onnxWasm = transformers.env.backends.onnx.wasm;
+      if (onnxWasm) {
+        onnxWasm.wasmPaths = new URL('onnx/', document.baseURI).href;
+        // Single-threaded: cross-origin isolation is not enabled, so the
+        // threaded build cannot allocate its SharedArrayBuffer anyway.
+        onnxWasm.numThreads = 1;
+      }
 
       const pipe = await transformers.pipeline(
         'automatic-speech-recognition',
         MODEL_IDS[this.#size],
         {
-          dtype: 'q8',
+          // Matches the fp32 weights the fetch script installs.
+          dtype: 'fp32',
           // ProgressInfo is a union; only the 'progress' variant carries a
           // percentage, so read it defensively rather than asserting a shape.
           progress_callback: (info: unknown) => {
@@ -157,8 +172,14 @@ export class LocalWhisperProvider implements SpeechToTextProvider {
       await this.#loading;
     } catch (error) {
       this.#loading = null;
+      // Name the actual cause rather than blaming the weights for every
+       // failure - a missing runtime and missing weights need different fixes.
+      const detail = error instanceof Error ? error.message : String(error);
+      const runtimeMissing = /backend|wasm|dynamically imported module/i.test(detail);
       throw new Error(
-        'The speech model could not be loaded. Run "npm run fetch:models" to install it.',
+        runtimeMissing
+          ? 'The speech runtime could not start. Run "npm run fetch:models" to install the ONNX runtime, then reload.'
+          : 'The speech model could not be loaded. Run "npm run fetch:models" to install it, then reload.',
         { cause: error },
       );
     }
