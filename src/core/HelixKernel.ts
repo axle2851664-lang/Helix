@@ -15,6 +15,7 @@ import { MemoryManager } from '../memory/MemoryManager.js';
 import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import { StorageManager } from '../storage/StorageManager.js';
 import { BackupManager } from '../backup/BackupManager.js';
+import { OutboundManager } from '../outbound/OutboundManager.js';
 import { VoiceManager } from '../voice/VoiceManager.js';
 import { BrowserSpeechRecognition } from '../voice/BrowserSpeechRecognition.js';
 import { LocalWhisperProvider } from '../voice/LocalWhisperProvider.js';
@@ -51,6 +52,7 @@ export interface KernelServices {
   readonly knowledge: KnowledgeIndex;
   readonly storage: StorageManager;
   readonly backup: BackupManager;
+  readonly outbound: OutboundManager;
   readonly voice: VoiceManager;
   readonly camera: CameraManager;
   readonly orchestrator: HelixOrchestrator;
@@ -191,6 +193,11 @@ export class HelixKernel {
     const backup = new BackupManager({ store, settings, logger, budget: storage });
     storage.setBackups(backup);
 
+    // No transports are passed, because none exists. Drafts are held and
+    // every refusal is reported by name, so the gate is exercised long before
+    // anything can actually leave.
+    const outbound = new OutboundManager({ store, logger });
+
     const camera = new CameraManager({ platform, settings, logger, bus });
 
     // Voice providers are constructed only where the platform supports them,
@@ -250,6 +257,7 @@ export class HelixKernel {
       knowledge,
       storage,
       backup,
+      outbound,
       voice,
       camera,
       orchestrator,

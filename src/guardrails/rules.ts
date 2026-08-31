@@ -43,15 +43,24 @@ export interface Guardrail {
 
 export const GUARDRAILS: readonly Guardrail[] = [
   {
-    id: 'never-send',
-    title: 'Never send',
-    rule: 'No email, message or calendar invite leaves this machine. Helix drafts it and waits.',
-    why: 'A draft that turns out wrong costs a rewrite. A sent message cannot be recalled.',
-    enforcement: 'structure',
+    id: 'confirm-before-sending',
+    title: 'Ask before it leaves',
+    rule: 'Helix may send messages and place calls. Nothing leaves without you seeing it first and confirming that specific draft.',
+    why: 'A draft that turns out wrong costs a rewrite. A sent message cannot be recalled, and a call cannot be unmade.',
+    enforcement: 'code',
     evidence:
-      "There is no send capability of any kind, and connect-src 'self' means no outside origin is reachable to send to.",
+      'Every outbound action is drafted, shown in full and confirmed by id. There is no bulk confirm, no remembered approval and no trusted recipient - a standing permission is indistinguishable from none the first time it is wrong. Approvals go stale after five minutes, and a confirmed draft cannot be edited.',
     atRisk:
-      'The desktop shell removes that wall. Sending must then be refused in code, not by absence.',
+      'This is the rule that replaced "never send", at your instruction. It is the only thing now standing between a mistaken draft and a real recipient.',
+  },
+  {
+    id: 'account-of-what-was-sent',
+    title: 'A record of everything sent',
+    rule: 'Every message and call, and every one refused, is recorded with what it was and who it was for.',
+    why: 'Anything that can act on your behalf owes you an account of what it did.',
+    enforcement: 'code',
+    evidence:
+      'The outbox keeps every draft with its state - drafted, confirmed, sent, cancelled or failed - and the reason for each refusal.',
   },
   {
     id: 'read-only',
@@ -84,12 +93,13 @@ export const GUARDRAILS: readonly Guardrail[] = [
   {
     id: 'never-spend',
     title: 'Never spend',
-    rule: 'No paid API call and no purchase without asking first.',
-    why: 'Money spent on your behalf without your say-so is the fastest way to lose trust.',
-    enforcement: 'structure',
-    evidence: 'No provider is connected, no key is held, and there is no billing path to reach.',
+    rule: 'Helix may use an account you have already set up and funded. It may never buy, pay, top up, subscribe or upgrade.',
+    why: 'Sending on your behalf and spending on your behalf are different permissions, and only one of them was given. Money spent without your say-so is the fastest way to lose trust.',
+    enforcement: 'code',
+    evidence:
+      'A draft whose text reads as a purchase - buy, pay, order, top up, subscribe, transfer a sum - is refused outright rather than confirmed. The check errs towards refusing: a false positive costs one rephrase, a false negative costs money.',
     atRisk:
-      'The first working provider makes this real. It needs an explicit confirmation step before any billable call.',
+      'Placing a call is itself billable on every provider worth using. Helix will make the call you asked for on an account you have funded, and will not fund it.',
   },
   {
     id: 'no-invention',

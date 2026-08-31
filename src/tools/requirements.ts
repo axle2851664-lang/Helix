@@ -70,16 +70,25 @@ export function inboxRequirement(): ToolReply {
         heading: 'When it exists',
         items: [
           {
-            label: 'I will read and I will draft',
-            detail: 'Summaries, replies written out for you, nothing hidden',
+            label: 'I will read, draft, and send once you say so',
+            detail:
+              'Summaries and replies written out for you. Sending is permitted now, and every message is shown in full and confirmed before it goes',
             meta: 'planned',
             accent: 'good',
             source: 'Your standing instruction',
           },
           {
-            label: 'I will not send',
+            label: 'Nothing leaves unconfirmed',
             detail:
-              'No message, no reply, no calendar invite leaves this machine without you pressing send yourself',
+              'No bulk approval, no remembered permission, no trusted recipient. Each message is confirmed on its own, and an approval left sitting goes stale',
+            meta: 'permanent',
+            accent: 'good',
+            source: 'Your standing instruction',
+          },
+          {
+            label: 'I will still not spend',
+            detail:
+              'A message that is really a purchase - buy, pay, top up, subscribe - is refused rather than drafted',
             meta: 'permanent',
             accent: 'good',
             source: 'Your standing instruction',

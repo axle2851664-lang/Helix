@@ -39,18 +39,47 @@ outstanding may be the two that matter.
 
 ## The rules
 
-### Never send — *by absence*
+### Ask before it leaves — *enforced*
 
-> No email, message or calendar invite leaves this machine. Helix drafts it and
-> waits.
+> Helix may send messages and place calls. Nothing leaves without you seeing it
+> first and confirming that specific draft.
 
-A draft that turns out wrong costs a rewrite. A sent message cannot be recalled.
+**This rule replaced "never send", on your instruction.** The permission is now
+"ask, then send" rather than "never send", and the difference between those two
+is exactly one confirmation step — so that step is structural rather than
+conventional.
 
-**What holds it:** there is no send capability of any kind, and `connect-src
-'self'` means no outside origin is reachable to send to.
+A draft that turns out wrong costs a rewrite. A sent message cannot be recalled,
+and a call cannot be unmade.
 
-**What weakens it:** the desktop shell removes that wall. Sending must then be
-refused in code, not by absence.
+**What holds it:** [`src/outbound/outbound.ts`](../src/outbound/outbound.ts).
+Every outbound action is drafted, shown in full, and confirmed by id. Four
+properties, each because the obvious shortcut is worse:
+
+- **Confirmation is per draft.** No bulk approve, no remembered permission, no
+  trusted recipient. A standing permission is indistinguishable from no
+  permission the first time it is wrong.
+- **Confirmation goes stale** after five minutes, so an approval given and
+  forgotten cannot fire later against a draft you have stopped thinking about.
+- **A confirmed draft cannot be edited.** Otherwise the approval refers to
+  something that no longer exists, which is the whole trick behind confirming
+  one thing and sending another.
+- **Recipients are named in full, never counted.** "Send to 4 people" is exactly
+  the shape of confirmation someone approves without reading.
+
+**What weakens it:** this is now the only thing standing between a mistaken
+draft and a real recipient.
+
+### A record of everything sent — *enforced*
+
+> Every message and call, and every one refused, is recorded with what it was
+> and who it was for.
+
+Anything that can act on your behalf owes you an account of what it did.
+
+**What holds it:** the outbox keeps every draft with its state — drafted,
+confirmed, sent, cancelled or failed — and the reason for each refusal. A
+failure keeps the provider's own message rather than losing it.
 
 ### Read-only outside its own folders — *by absence*
 
@@ -86,17 +115,29 @@ A leaked key is a bill and a breach, and it leaks once for all time.
 redacts matches before a sink sees them; memory refuses to store them at all.
 The two consumers share the list so they cannot drift apart.
 
-### Never spend — *by absence*
+### Never spend — *enforced*
 
-> No paid API call and no purchase without asking first.
+> Helix may use an account you have already set up and funded. It may never buy,
+> pay, top up, subscribe or upgrade.
 
-Money spent on your behalf without your say-so is the fastest way to lose trust.
+Sending on your behalf and spending on your behalf are different permissions,
+and only one of them was given. Money spent without your say-so is the fastest
+way to lose trust.
 
-**What holds it:** no provider is connected, no key is held, and there is no
-billing path to reach.
+**Where the line falls.** Placing a call is itself billable on every provider
+worth using, so "may call" and "never spend" cannot both be absolute. The
+reading in force: Helix will make the call you asked for, on an account you have
+funded, and will not fund it.
 
-**What weakens it:** the first working provider makes this real. It needs an
-explicit confirmation step before any billable call.
+**What holds it:** a draft whose text reads as a purchase — buy, pay, order, top
+up, subscribe, transfer a sum — is refused outright rather than drafted, and
+never reaches the outbox at all. Subject and body are both checked. The test
+errs towards refusing: a false positive costs one rephrase, a false negative
+costs money.
+
+Cost is stated on every draft, and an unmeasured cost is `null` rather than
+zero. Reporting zero because nothing measured would turn this into a rule Helix
+breaks while believing it is keeping it.
 
 ### Never invent — *by absence*
 

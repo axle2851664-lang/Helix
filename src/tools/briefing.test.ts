@@ -236,12 +236,19 @@ describe('the tools that cannot run', () => {
     }
   });
 
-  it('keeps the never-send rule visible in the product', () => {
+  /**
+   * The permission changed: Helix may send now. What must stay visible is the
+   * gate that replaced the prohibition, and the fact that spending did not
+   * change with it.
+   */
+  it('keeps the confirmation gate and the spending rule visible in the product', () => {
     const labels = inboxRequirement()
       .card.sections.flatMap((section) => section.items)
       .map((item) => item.label);
 
-    expect(labels.some((label) => label.includes('will not send'))).toBe(true);
+    expect(labels.some((label) => label.includes('Nothing leaves unconfirmed'))).toBe(true);
+    expect(labels.some((label) => label.includes('not spend'))).toBe(true);
+    expect(labels.some((label) => label.includes('will not send'))).toBe(false);
   });
 
   it('names the content policy as the blocker, not a missing key', () => {

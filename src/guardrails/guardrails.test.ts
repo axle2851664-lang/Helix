@@ -148,9 +148,9 @@ describe('the guardrails themselves', () => {
       expect(rule.evidence, rule.id).toMatch(/no |never |nothing |not /i);
     }
 
-    // Never send, never spend and never invent are all currently held up by
-    // things the desktop shell removes. Each must say so.
-    for (const id of ['never-send', 'never-spend', 'no-invention', 'read-only']) {
+    // Anything currently held up by something the desktop shell removes must
+    // say so, and so must the rule that replaced "never send".
+    for (const id of ['no-invention', 'read-only', 'confirm-before-sending', 'never-spend']) {
       expect(guardrail(id)?.atRisk, id).toBeTruthy();
     }
   });
@@ -158,8 +158,35 @@ describe('the guardrails themselves', () => {
   it('names the rules the shell weakens', () => {
     const ids = weakenedByShell().map((rule) => rule.id);
 
-    expect(ids).toContain('never-send');
+    expect(ids).toContain('read-only');
     expect(ids).toContain('no-invention');
+  });
+
+  /**
+   * The permission changed on the user's instruction: Helix may send and may
+   * call. "Never send" is gone, and something stricter has to stand in its
+   * place - the rule that nothing leaves unconfirmed.
+   */
+  it('no longer forbids sending, and gates it instead', () => {
+    expect(guardrail('never-send')).toBeUndefined();
+
+    const gate = guardrail('confirm-before-sending');
+    expect(gate?.enforcement).toBe('code');
+    expect(gate?.rule).toContain('confirming that specific draft');
+  });
+
+  // Sending and spending are separate permissions and only one was given.
+  it('keeps spending refused even though sending is allowed', () => {
+    const spend = guardrail('never-spend');
+
+    expect(spend?.rule).toContain('never buy');
+    expect(spend?.enforcement).toBe('code');
+  });
+
+  // A call is billable. The rule has to say where the line falls, or it reads
+  // as forbidding the thing the user just asked for.
+  it('says where the line falls between calling and paying', () => {
+    expect(guardrail('never-spend')?.atRisk).toContain('will not fund it');
   });
 
   it('counts by enforcement without reducing it to a score', () => {
@@ -170,7 +197,7 @@ describe('the guardrails themselves', () => {
   });
 
   it('finds a rule by id, and admits when it does not exist', () => {
-    expect(guardrail('never-send')?.title).toBe('Never send');
+    expect(guardrail('never-spend')?.title).toBe('Never spend');
     expect(guardrail('nonexistent')).toBeUndefined();
   });
 });
