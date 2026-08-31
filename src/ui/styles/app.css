@@ -1344,3 +1344,240 @@
 [data-reduce-motion='true'] .hx-core--listening {
   animation: none !important;
 }
+
+/* ============================ vault graph ===================== */
+.hx-graph {
+  display: grid;
+  grid-template-columns: minmax(210px, 260px) 1fr minmax(180px, 220px);
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+}
+
+.hx-graph__side {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.hx-graph__stage {
+  position: relative;
+  border-radius: var(--hx-radius);
+  border: 1px solid var(--hx-border);
+  background:
+    radial-gradient(800px 500px at 50% 40%, rgba(224, 36, 60, 0.05), transparent 70%),
+    rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+  min-height: 340px;
+}
+
+.hx-graph__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.hx-graph__canvas:active {
+  cursor: grabbing;
+}
+
+.hx-graph__path-banner,
+.hx-graph__hint {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--hx-border);
+  background: rgba(16, 10, 12, 0.92);
+  backdrop-filter: blur(10px);
+  font-size: 12.5px;
+  color: var(--hx-text-dim);
+}
+
+.hx-graph__path-banner {
+  border-color: var(--hx-accent-line);
+  color: var(--hx-text);
+}
+
+.hx-graph__path-banner .hx-btn {
+  margin-left: auto;
+  flex: none;
+}
+
+/* ---------------------------- inspector ----------------------- */
+.hx-graph__title {
+  font-size: 16px;
+  color: var(--hx-text);
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.hx-graph__meta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--hx-text-faint);
+  margin-bottom: 10px;
+}
+
+.hx-graph__path {
+  font-family: var(--helix-mono);
+  font-size: 11px;
+  color: var(--hx-text-faint);
+  margin: 0 0 8px;
+  word-break: break-all;
+}
+
+.hx-graph__content {
+  max-height: 180px;
+  overflow: auto;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--hx-border);
+  background: rgba(0, 0, 0, 0.3);
+  font-family: var(--helix-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--hx-text-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ------------------------ hub and link lists ------------------ */
+.hx-hublist,
+.hx-linklist {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.hx-hublist__row,
+.hx-linklist__row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 6px 4px;
+  border: none;
+  background: transparent;
+  color: var(--hx-text-dim);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.hx-hublist__row:hover,
+.hx-linklist__row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--hx-text);
+}
+
+.hx-hublist__dot,
+.hx-linklist__dot,
+.hx-filter__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.hx-hublist__name,
+.hx-linklist__row {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hx-hublist__name {
+  flex: 1;
+}
+
+.hx-hublist__count {
+  font-family: var(--helix-mono);
+  font-size: 10.5px;
+  color: var(--hx-text-faint);
+}
+
+/* ----------------------------- filters ------------------------ */
+.hx-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 3px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--hx-text-faint);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 150ms ease, background 150ms ease;
+}
+
+.hx-filter--on {
+  opacity: 1;
+  color: var(--hx-text-dim);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.hx-filter:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hx-filter__name {
+  flex: 1;
+  text-align: left;
+}
+
+.hx-filter__count {
+  font-family: var(--helix-mono);
+  font-size: 10.5px;
+}
+
+/* The status panel already claims 350px, so the graph's own right-hand
+   column has to go well before the viewport looks narrow. */
+@media (max-width: 1560px) {
+  .hx-graph {
+    grid-template-columns: minmax(210px, 250px) 1fr;
+  }
+  .hx-graph__side--right {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .hx-graph {
+    grid-template-columns: 1fr;
+  }
+  .hx-graph__side {
+    display: none;
+  }
+}
+
+/* The graph fills its pane rather than scrolling inside it. */
+.hx-main__body--graph {
+  overflow: hidden;
+  display: flex;
+}
+
+.hx-main__body--graph > * {
+  flex: 1;
+  min-height: 0;
+}

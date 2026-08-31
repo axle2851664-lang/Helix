@@ -9,6 +9,7 @@ import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
 import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
 import { CameraWorkspace } from '../camera/CameraWorkspace.js';
 import { SpatialWorkspace } from '../spatial/SpatialWorkspace.js';
+import { GraphWorkspace } from '../graph/GraphWorkspace.js';
 import { WORKSPACES, type WorkspaceId } from './registry.js';
 
 /**
@@ -76,6 +77,8 @@ export function WorkspaceView({
       return <CameraWorkspace />;
     case 'spatial':
       return <SpatialWorkspace />;
+    case 'graph':
+      return <GraphWorkspace />;
     default: {
       const never: never = workspace;
       void never;

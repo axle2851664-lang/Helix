@@ -184,7 +184,11 @@ function HelixWorkspaceShell() {
           </div>
         )}
 
-        <div className={`hx-main__body${workspace === 'home' ? ' hx-main__body--home' : ''}`}>
+        <div
+          className={`hx-main__body${workspace === 'home' ? ' hx-main__body--home' : ''}${
+            workspace === 'graph' ? ' hx-main__body--graph' : ''
+          }`}
+        >
           <WorkspaceView
             workspace={workspace}
             conversationId={conversationId}

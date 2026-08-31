@@ -36,6 +36,7 @@ geographic environment.
 | `ProjectManager` - projects, assets, validation, search (spec 7) | Working |
 | `MemoryManager` - long-term memory, refuses credentials (spec 6) | Working |
 | `KnowledgeIndex` - file text indexing and keyword search (spec 12) | Working |
+| Vault graph - canvas, force-directed, hubs, shortest path | Working |
 | `VoiceManager` + browser speech - listen, speak, interrupt (spec 9) | Working |
 | `CameraManager` - real device, capture, honest indicator (spec 10) | Working |
 | Hand tracking - pinch to move, palm to reveal actions (spec 11) | Working |

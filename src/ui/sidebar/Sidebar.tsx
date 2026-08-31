@@ -24,6 +24,7 @@ const ICONS: Record<WorkspaceId, IconName> = {
   'upload-project': 'upload',
   'gesture-control': 'gesture',
   spatial: 'image',
+  graph: 'activity',
   settings: 'gear',
   system: 'activity',
 };

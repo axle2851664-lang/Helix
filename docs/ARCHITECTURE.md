@@ -97,6 +97,12 @@ src/
 │   └── selectVoice.ts       ✅ British voice preference
 ├── persona/
 │   └── voice.ts             ✅ the Helix character, in one place
+├── vault/
+│   ├── VaultGraph.ts        ✅ notes and wikilink edges
+│   ├── layout.ts            ✅ force layout, spatial grid
+│   ├── wikilinks.ts         ✅ link parsing
+│   ├── demoVault.ts         ✅ seeded fixtures
+│   └── config.ts            ✅ the only demo/real switch
 ├── knowledge/
 │   ├── KnowledgeIndex.ts    ✅ file text index and keyword search
 │   └── extract.ts           ✅ text extraction, honest about limits

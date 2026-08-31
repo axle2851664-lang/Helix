@@ -23,6 +23,7 @@ export const WORKSPACE_IDS = [
   'upload-project',
   'gesture-control',
   'spatial',
+  'graph',
   'settings',
   'system',
 ] as const;
@@ -147,6 +148,15 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     subtitle: 'Manipulate objects by hand over the camera view.',
     aliases: ['spatial mode', 'objects', 'stage', 'hand control', 'manipulate'],
     phase: 7,
+    implemented: true,
+    inSidebar: true,
+  },
+  graph: {
+    id: 'graph',
+    title: 'Graph',
+    subtitle: 'Your notes and the links between them.',
+    aliases: ['vault', 'notes graph', 'links', 'map of notes', 'knowledge graph'],
+    phase: 4,
     implemented: true,
     inSidebar: true,
   },

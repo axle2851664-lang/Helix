@@ -31,6 +31,7 @@ describe('workspace registry', () => {
       'upload-project',
       'gesture-control',
       'spatial',
+      'graph',
       'settings',
     ]);
   });
@@ -46,6 +47,7 @@ describe('workspace registry', () => {
       'conversations',
       'files',
       'gesture-control',
+      'graph',
       'home',
       'memory',
       'settings',
