@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { GraphCanvas } from './GraphCanvas.js';
+import { GalaxyCanvas } from './GalaxyCanvas.js';
 import { Icon } from '../components/Icon.js';
 import { VaultGraph, type NoteType, type VaultNode } from '../../vault/VaultGraph.js';
 import { generateDemoVault } from '../../vault/demoVault.js';
@@ -37,6 +38,11 @@ export function GraphWorkspace() {
   // Built once: rebuilding on every render would restart the layout.
   const graph = useMemo(() => VaultGraph.build(generateDemoVault()), []);
 
+  // The flat graph is kept, not replaced. It is better for tracing a path
+  // and reading many labels at once; the galaxy is better for finding your
+  // way around and for watching the view travel to a note.
+  const [view, setView] = useState<'flat' | 'galaxy'>('flat');
+  const [flyToId, setFlyToId] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<NoteType>>(new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [pathIds, setPathIds] = useState<string[]>([]);
@@ -75,6 +81,10 @@ export function GraphWorkspace() {
   const focus = (id: string | null) => {
     setFocusedId(id);
     setPathIds([]);
+    // In the galaxy, selecting a note is also an instruction to go and look at
+    // it. A new object each time, so choosing the same note twice flies again
+    // rather than being swallowed as an unchanged value.
+    if (id && view === 'galaxy') setFlyToId(id);
   };
 
   return (
@@ -147,14 +157,46 @@ export function GraphWorkspace() {
 
       {/* ---------------- centre: the graph ---------------- */}
       <div className="hx-graph__stage">
-        <GraphCanvas
-          nodes={visible.nodes}
-          edges={visible.edges}
-          focusedId={focusedId}
-          pathIds={pathIds}
-          onFocus={focus}
-          onTrace={trace}
-        />
+        <div className="hx-graph__views" role="group" aria-label="Graph view">
+          <button
+            type="button"
+            className={`hx-chip${view === 'flat' ? ' hx-chip--on' : ''}`}
+            aria-pressed={view === 'flat'}
+            onClick={() => setView('flat')}
+          >
+            Flat
+          </button>
+          <button
+            type="button"
+            className={`hx-chip${view === 'galaxy' ? ' hx-chip--on' : ''}`}
+            aria-pressed={view === 'galaxy'}
+            onClick={() => {
+              setView('galaxy');
+              if (focusedId) setFlyToId(focusedId);
+            }}
+          >
+            Galaxy
+          </button>
+        </div>
+
+        {view === 'flat' ? (
+          <GraphCanvas
+            nodes={visible.nodes}
+            edges={visible.edges}
+            focusedId={focusedId}
+            pathIds={pathIds}
+            onFocus={focus}
+            onTrace={trace}
+          />
+        ) : (
+          <GalaxyCanvas
+            nodes={visible.nodes}
+            edges={visible.edges}
+            focusedId={focusedId}
+            flyToId={flyToId}
+            onFocus={focus}
+          />
+        )}
 
         {pathIds.length > 0 && (
           <div className="hx-graph__path-banner">
@@ -169,8 +211,13 @@ export function GraphWorkspace() {
           </div>
         )}
 
-        {pathIds.length === 0 && focusedId && (
+        {pathIds.length === 0 && focusedId && view === 'flat' && (
           <div className="hx-graph__hint">Shift-click another node to trace a path.</div>
+        )}
+        {view === 'galaxy' && (
+          <div className="hx-graph__hint">
+            Drag to orbit, scroll to zoom. Choosing a note flies you to it.
+          </div>
         )}
       </div>
 
@@ -223,11 +270,19 @@ export function GraphWorkspace() {
 
         <section className="hx-panel">
           <h2 className="hx-panel__title">Controls</h2>
-          <ul className="hx-list">
-            <li>Drag the background to pan, scroll to zoom.</li>
-            <li>Drag a node to move it; it settles back in.</li>
-            <li>Click to inspect, shift-click to trace a path.</li>
-          </ul>
+          {view === 'flat' ? (
+            <ul className="hx-list">
+              <li>Drag the background to pan, scroll to zoom.</li>
+              <li>Drag a node to move it; it settles back in.</li>
+              <li>Click to inspect, shift-click to trace a path.</li>
+            </ul>
+          ) : (
+            <ul className="hx-list">
+              <li>Drag to orbit the galaxy, scroll to move in and out.</li>
+              <li>Click a note, or one in the lists here, to fly to it.</li>
+              <li>Path tracing is on the flat view, which is better at it.</li>
+            </ul>
+          )}
         </section>
       </aside>
     </div>

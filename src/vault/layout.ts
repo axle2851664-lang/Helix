@@ -54,7 +54,7 @@ export function radiusForDegree(degree: number): number {
 }
 
 /** Deterministic 0..1 from a string, so layouts are reproducible. */
-function hashUnit(text: string, salt: number): number {
+export function hashUnit(text: string, salt: number): number {
   let hash = 2166136261 ^ salt;
   for (let i = 0; i < text.length; i += 1) {
     hash ^= text.charCodeAt(i);
