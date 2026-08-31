@@ -28,6 +28,8 @@ export type IconName =
   | 'activity'
   | 'chip'
   | 'close'
+  | 'check'
+  | 'alert'
   | 'menu';
 
 const PATHS: Record<IconName, string> = {
@@ -55,6 +57,8 @@ const PATHS: Record<IconName, string> = {
   activity: 'M4 12h3l2.5-7 5 14 2.5-7h3',
   chip: 'M8 8h8v8H8zM4 10h4M4 14h4M16 10h4M16 14h4M10 4v4M14 4v4M10 16v4M14 16v4',
   close: 'M6 6l12 12M18 6L6 18',
+  check: 'M4 12.5l5 5L20 6.5',
+  alert: 'M12 3 2 20h20L12 3zM12 10v5M12 18h.01',
   menu: 'M4 7h16M4 12h16M4 17h16',
 };
 

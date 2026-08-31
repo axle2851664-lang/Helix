@@ -1581,3 +1581,179 @@
   flex: 1;
   min-height: 0;
 }
+
+/* ------------------------- tool cards ------------------------- */
+/* The on-screen half of a two-part reply. It sits inside the message body,
+   which sets `white-space: pre-wrap` for plain text, so the card resets it -
+   otherwise every newline in the source markup would become a visible gap. */
+.hx-card {
+  white-space: normal;
+  margin-top: 14px;
+  border: 1px solid var(--hx-border);
+  border-radius: var(--hx-radius);
+  background: var(--hx-panel);
+  overflow: hidden;
+}
+
+.hx-card--requirement {
+  border-color: rgba(210, 160, 34, 0.26);
+}
+
+.hx-card__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--hx-border);
+  color: var(--hx-text-dim);
+}
+
+.hx-card--brief .hx-card__head,
+.hx-card--plan .hx-card__head {
+  color: var(--hx-accent);
+}
+
+.hx-card--requirement .hx-card__head {
+  color: var(--hx-warn);
+}
+
+.hx-card__title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--hx-text);
+}
+
+.hx-card__subtitle {
+  margin-left: auto;
+  font-family: var(--helix-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  color: var(--hx-text-faint);
+}
+
+.hx-card__section + .hx-card__section {
+  border-top: 1px solid var(--hx-border);
+}
+
+.hx-card__heading {
+  margin: 0;
+  padding: 11px 16px 3px;
+  font-family: var(--helix-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--hx-text-faint);
+}
+
+.hx-card__items {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 10px;
+}
+
+.hx-card__empty {
+  margin: 0;
+  padding: 4px 16px 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--hx-text-dim);
+}
+
+.hx-card__row {
+  position: relative;
+  padding: 8px 16px 8px 26px;
+}
+
+/* The accent bar carries the row's status. Colour is never the only signal -
+   the meta text says the same thing in words, for anyone who cannot see it. */
+.hx-card__row::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 13px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--hx-text-faint);
+}
+
+.hx-card__row--warn::before {
+  background: var(--hx-warn);
+}
+
+.hx-card__row--good::before {
+  background: var(--hx-ok);
+}
+
+.hx-card__row--quiet::before {
+  background: var(--hx-off);
+}
+
+.hx-card__row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.hx-card__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--hx-text);
+}
+
+.hx-card__meta {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--helix-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  color: var(--hx-text-faint);
+  text-align: right;
+}
+
+.hx-card__row--warn .hx-card__meta {
+  color: var(--hx-warn);
+}
+
+.hx-card__detail {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--hx-text-dim);
+}
+
+/* Provenance on every row. Quiet, but never absent. */
+.hx-card__source {
+  display: inline-block;
+  margin-top: 5px;
+  font-family: var(--helix-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hx-text-faint);
+  opacity: 0.7;
+}
+
+.hx-card__caveat {
+  padding: 11px 16px 13px;
+  border-top: 1px solid var(--hx-border);
+  background: rgba(255, 255, 255, 0.014);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--hx-text-faint);
+}
+
+@media (max-width: 720px) {
+  .hx-card__row-head {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .hx-card__meta {
+    margin-left: 0;
+    text-align: left;
+  }
+}

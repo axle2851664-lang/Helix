@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Composer } from './Composer.js';
+import { ToolCardView } from './ToolCardView.js';
 import { useHelix } from '../HelixProvider.js';
 import { toUserMessage } from '../../core/HelixError.js';
 import type { VoiceSnapshot } from '../../voice/VoiceManager.js';
@@ -17,10 +18,10 @@ import type { WorkspaceId } from '../workspaces/registry.js';
  */
 
 const SUGGESTIONS = [
-  'Open my settings',
+  'Brief me',
+  'Plan my day',
+  'Read my inbox',
   'What do you remember?',
-  'Show me system diagnostics',
-  'Which model are you using?',
 ] as const;
 
 interface HomeWorkspaceProps {
@@ -69,7 +70,7 @@ export function HomeWorkspace({
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight });
   }, [conversation?.messages.length]);
 
-  const send = async (text: string) => {
+  const send = async (text: string, options: { speak?: boolean } = {}) => {
     setDraft('');
     setBusy(true);
     try {
@@ -78,6 +79,12 @@ export function HomeWorkspace({
       // A resolved project takes precedence over a plain workspace change.
       if (response.openProjectId) onOpenProject(response.openProjectId);
       else if (response.navigateTo) onNavigate(response.navigateTo);
+
+      // Only the short line is ever spoken. The card is deliberately left on
+      // screen unread - it exists precisely so Helix does not recite a list.
+      if (options.speak === true && voice.outputBlocker() === null) {
+        await voice.speak(response.text);
+      }
     } finally {
       setBusy(false);
     }
@@ -107,7 +114,7 @@ export function HomeWorkspace({
 
     try {
       const transcript = await voice.listen();
-      if (transcript.trim() !== '') await send(transcript);
+      if (transcript.trim() !== '') await send(transcript, { speak: true });
     } catch (error) {
       setCoreNotice(toUserMessage(error));
       window.setTimeout(() => setCoreNotice(null), 7000);
@@ -200,6 +207,7 @@ function MessageBubble({ message }: { message: ConversationMessage }) {
             Not completed &middot; {message.failure}
           </div>
         )}
+        {message.card && <ToolCardView card={message.card} />}
       </div>
     </div>
   );

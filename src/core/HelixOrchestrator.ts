@@ -17,6 +17,14 @@ import {
   uncertain,
   unavailable,
 } from '../persona/voice.js';
+import type { ToolCard } from '../tools/cards.js';
+import {
+  buildBrief,
+  buildPlan,
+  type BriefProject,
+  type BriefingInput,
+} from '../tools/briefing.js';
+import { inboxRequirement, researchRequirement } from '../tools/requirements.js';
 
 /**
  * The Helix orchestration seam (spec: UI -> ORCHESTRATOR -> TOOLS).
@@ -55,6 +63,12 @@ export interface HelixResponse {
   navigateTo?: WorkspaceId;
   /** Set when a tool resolved a project the UI should open. */
   openProjectId?: string;
+  /**
+   * The structured half of a two-part reply. The text above is what Helix says
+   * out loud; this is what it puts on screen. They are never the same content -
+   * reading a card aloud is not conversation.
+   */
+  card?: ToolCard;
 }
 
 /** A capability the orchestrator can route to. */
@@ -120,6 +134,13 @@ export class HelixOrchestrator {
     // Projects outrank navigation: "open my Iron Man project" names a project,
     // and the word "project" alone must not send the user to a workspace.
     this.registerTool(this.#projectTool());
+    // The briefing tools sit below the explicit instructions above and above
+    // navigation, so that "brief me" is never read as "open the briefing".
+    this.registerTool(this.#indexTool());
+    this.registerTool(this.#briefingTool());
+    this.registerTool(this.#planTool());
+    this.registerTool(this.#inboxTool());
+    this.registerTool(this.#researchTool());
     this.registerTool(this.#navigationTool());
   }
 
@@ -151,6 +172,7 @@ export class HelixOrchestrator {
       role: 'helix',
       text: response.text,
       ...(response.failure !== undefined ? { failure: response.failure } : {}),
+      ...(response.card !== undefined ? { card: response.card } : {}),
     });
 
     return response;
@@ -640,6 +662,244 @@ ${lines}`,
           handled: true,
           openProjectId: summary.id,
           navigateTo: 'upload-project',
+        };
+      },
+    };
+  }
+
+  /**
+   * Gather the one snapshot both briefing tools read.
+   *
+   * Everything here is measured, never estimated. Two separate counts come out
+   * of the knowledge index: how many files it has a record for, and how many
+   * of those records actually produced text. A scanned PDF is indexed and
+   * unsearchable at the same time, and collapsing those into one number would
+   * have Helix tell a user to index a file that is already indexed.
+   */
+  async #briefingInput(): Promise<BriefingInput> {
+    const [summaries, documents, memoryCount] = await Promise.all([
+      this.#projects.listProjects(),
+      this.#knowledge.list(),
+      this.#memory.count(),
+    ]);
+
+    const attempted = new Map<string, number>();
+    const readable = new Map<string, number>();
+    for (const document of documents) {
+      attempted.set(document.projectId, (attempted.get(document.projectId) ?? 0) + 1);
+      if (document.indexed) {
+        readable.set(document.projectId, (readable.get(document.projectId) ?? 0) + 1);
+      }
+    }
+
+    const projects: BriefProject[] = summaries.map((summary) => ({
+      id: summary.id,
+      name: summary.name,
+      description: summary.description,
+      assetCount: summary.assetCount,
+      indexedCount: attempted.get(summary.id) ?? 0,
+      searchableCount: readable.get(summary.id) ?? 0,
+      updatedAt: summary.updatedAt,
+    }));
+
+    return {
+      now: Date.now(),
+      projects,
+      memoryCount,
+      memoryEnabled: this.#memory.enabled,
+      knowledge: {
+        documents: documents.length,
+        searchable: documents.filter((document) => document.indexed).length,
+      },
+    };
+  }
+
+  /**
+   * "Brief me".
+   *
+   * Reads only what Helix itself holds. It deliberately does not reach for the
+   * demo vault, which is invented fixtures - a briefing that mixed real
+   * projects with fictional clients would be indistinguishable from one that
+   * made them all up, and the entire value of a briefing is that you can act
+   * on it without checking it first.
+   */
+  #briefingTool(): HelixTool {
+    const phrases = [
+      'brief me',
+      'briefing',
+      'catch me up',
+      'where do things stand',
+      'status report',
+      'bring me up to speed',
+    ];
+
+    return {
+      name: 'briefMe',
+      description: 'Summarise what Helix holds, most-neglected first.',
+      priority: 250,
+      matches: (request) => {
+        const lower = request.text.toLowerCase();
+        return phrases.some((phrase) => lower.includes(phrase));
+      },
+      unavailableReason: () => null,
+      execute: async () => {
+        const reply = buildBrief(await this.#briefingInput());
+        return { text: reply.spoken, handled: true, card: reply.card };
+      },
+    };
+  }
+
+  /** "Plan my day": the same state, as things that can actually be done. */
+  #planTool(): HelixTool {
+    const phrases = [
+      'plan my day',
+      'plan the day',
+      'plan today',
+      'what should i do',
+      'what should i work on',
+      'what is on today',
+      'whats on today',
+    ];
+
+    return {
+      name: 'planDay',
+      description: 'Turn what Helix holds into an ordered, actionable list.',
+      priority: 250,
+      matches: (request) => {
+        const lower = request.text.toLowerCase();
+        return phrases.some((phrase) => lower.includes(phrase));
+      },
+      unavailableReason: () => null,
+      execute: async () => {
+        const reply = buildPlan(await this.#briefingInput());
+        return { text: reply.spoken, handled: true, card: reply.card };
+      },
+    };
+  }
+
+  /**
+   * Indexing, so that the plan's "I can do this" is a promise Helix can keep.
+   *
+   * A plan line claiming Helix can act, with no way to ask it to, is a lie
+   * with a pleasant tone of voice.
+   */
+  #indexTool(): HelixTool {
+    const phrases = ['index my files', 'index my projects', 'index everything', 'index the files'];
+
+    return {
+      name: 'indexFiles',
+      description: 'Extract searchable text from project files.',
+      priority: 260,
+      matches: (request) => {
+        const lower = request.text.toLowerCase();
+        return phrases.some((phrase) => lower.includes(phrase));
+      },
+      unavailableReason: () => null,
+      execute: async () => {
+        const projects = await this.#projects.listProjects();
+        if (projects.length === 0) {
+          return {
+            text: observe('There are no projects to index'),
+            handled: false,
+            failure: 'NOT_FOUND',
+          };
+        }
+
+        let indexed = 0;
+        let skipped = 0;
+        for (const project of projects) {
+          const result = await this.#knowledge.indexProject(project.id);
+          indexed += result.indexed;
+          skipped += result.skipped;
+        }
+
+        // Both numbers, always. Reporting only the successes would let a run
+        // that skipped everything read as a run that worked.
+        const detail =
+          skipped === 0
+            ? indexed + ' files are now searchable'
+            : indexed +
+              ' files are now searchable, and ' +
+              skipped +
+              ' yielded no readable text';
+        return { text: confirm(detail), handled: true };
+      },
+    };
+  }
+
+  /**
+   * "Read my inbox": not built, and it says exactly what is missing.
+   *
+   * There is no mail provider, and no way to reach one from a page whose
+   * content policy forbids every outside origin. The only alternative to this
+   * card is a plausible fake inbox, which is the one failure a user has no way
+   * of detecting.
+   */
+  #inboxTool(): HelixTool {
+    const phrases = [
+      'read my inbox',
+      'check my inbox',
+      'my inbox',
+      'my email',
+      'my emails',
+      'read my mail',
+      'check my mail',
+      'any new mail',
+    ];
+
+    return {
+      name: 'readInbox',
+      description: 'Read the inbox. Not built - reports what it would require.',
+      priority: 250,
+      matches: (request) => {
+        const lower = request.text.toLowerCase();
+        return phrases.some((phrase) => lower.includes(phrase));
+      },
+      unavailableReason: () => null,
+      execute: async () => {
+        const reply = inboxRequirement();
+        return {
+          text: reply.spoken,
+          handled: false,
+          failure: 'PROVIDER_NOT_CONFIGURED',
+          card: reply.card,
+        };
+      },
+    };
+  }
+
+  /** "Look this up": the same shape, the same wall, with the query echoed back. */
+  #researchTool(): HelixTool {
+    const prefixes = [
+      'research ',
+      'look up ',
+      'search the web for ',
+      'search the web ',
+      'search online for ',
+      'find out about ',
+      'what is the latest on ',
+    ];
+
+    return {
+      name: 'researchWeb',
+      description: 'Search the web. Not built - reports what it would require.',
+      priority: 250,
+      matches: (request) => {
+        const lower = request.text.toLowerCase();
+        return prefixes.some((prefix) => lower.startsWith(prefix.trim()));
+      },
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const lower = request.text.toLowerCase();
+        const prefix = prefixes.find((candidate) => lower.startsWith(candidate.trim()));
+        const query = prefix === undefined ? '' : request.text.slice(prefix.trim().length).trim();
+
+        const reply = researchRequirement(query);
+        return {
+          text: reply.spoken,
+          handled: false,
+          failure: 'PROVIDER_NOT_CONFIGURED',
+          card: reply.card,
         };
       },
     };

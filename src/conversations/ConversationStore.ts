@@ -3,6 +3,7 @@ import { HelixError } from '../core/HelixError.js';
 import type { Logger } from '../core/Logger.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
+import type { ToolCard } from '../tools/cards.js';
 
 /**
  * Conversation storage (spec 10: short-term conversation memory).
@@ -28,6 +29,12 @@ export interface ConversationMessage {
    * the failure rather than showing an answer that never happened.
    */
   failure?: string;
+  /**
+   * The structured half of a two-part reply, kept with the message so a
+   * reloaded transcript still shows the detail. Plain data, so it survives the
+   * round trip through storage unchanged.
+   */
+  card?: ToolCard;
 }
 
 export interface Conversation {
