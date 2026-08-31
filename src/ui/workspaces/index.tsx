@@ -8,6 +8,7 @@ import { ProjectsWorkspace } from '../projects/ProjectsWorkspace.js';
 import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
 import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
 import { StorageWorkspace } from '../storage/StorageWorkspace.js';
+import { EarthWorkspace } from '../earth/EarthWorkspace.js';
 import { CameraWorkspace } from '../camera/CameraWorkspace.js';
 import { SpatialWorkspace } from '../spatial/SpatialWorkspace.js';
 import { GraphWorkspace } from '../graph/GraphWorkspace.js';
@@ -64,7 +65,7 @@ export function WorkspaceView({
     case 'image-generation':
       return <ImageGenerationPending />;
     case 'earth':
-      return <EarthPending />;
+      return <EarthWorkspace />;
     case 'storage':
       return <StorageWorkspace />;
     case 'upload-project':
@@ -138,23 +139,6 @@ function ImageGenerationPending() {
       inPlace={['Generated assets have a reserved storage location, separate from originals.']}
       requires={[{ label: 'GPU acceleration', status: platform.capabilities.webgl2 }]}
       blockedBy="No image provider is configured. Local image generation is additionally not viable on this machine's integrated GPU, which has no dedicated VRAM - a cloud provider is the realistic route here."
-    />
-  );
-}
-
-function EarthPending() {
-  const { platform } = useHelix();
-  return (
-    <PendingWorkspace
-      descriptor={WORKSPACES.earth}
-      planned={[
-        'Interactive 3D globe with search by place name.',
-        'Coordinates, markers, distance and area measurement.',
-        'Map and terrain layers from licensed or open data.',
-      ]}
-      inPlace={['GeographicDataProvider is designed as a replaceable interface.']}
-      requires={[{ label: 'WebGL2', status: platform.capabilities.webgl2 }]}
-      blockedBy="Requires a map data provider and a 3D renderer, neither of which is bundled. Helix will use properly licensed sources and will say when imagery for a location does not exist rather than substituting something else."
     />
   );
 }

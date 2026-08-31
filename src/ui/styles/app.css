@@ -2196,3 +2196,143 @@
   font-size: 11.5px;
   color: var(--hx-text-dim);
 }
+
+/* =========================== helix earth ======================= */
+.hx-earth__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 130px;
+}
+
+.hx-earth__field > span {
+  font-family: var(--helix-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hx-text-faint);
+}
+
+.hx-provider {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 11px;
+}
+
+.hx-provider__item {
+  padding: 12px 14px;
+  border: 1px solid var(--hx-border);
+  border-left: 2px solid var(--hx-off);
+  border-radius: 10px;
+  background: var(--hx-panel);
+}
+
+/* Nothing in this stack is reachable, so the accent is uniform by design -
+   a green edge anywhere here would be a claim that something works. */
+.hx-provider__item--blocked {
+  border-left-color: var(--hx-warn);
+}
+
+.hx-provider__item--needs-decision {
+  border-left-color: var(--hx-accent);
+}
+
+.hx-provider__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hx-provider__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hx-text);
+}
+
+.hx-provider__role {
+  font-family: var(--helix-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hx-text-faint);
+}
+
+.hx-provider__state {
+  margin-left: auto;
+  font-family: var(--helix-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hx-provider__state--blocked {
+  color: var(--hx-warn);
+}
+
+.hx-provider__state--needs-decision {
+  color: var(--hx-accent);
+}
+
+.hx-provider__purpose {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--hx-text);
+}
+
+.hx-provider__licence {
+  margin: 5px 0 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--hx-text-dim);
+}
+
+.hx-provider__blockers {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.hx-provider__blockers li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--hx-text-faint);
+}
+
+.hx-provider__blockers svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--hx-warn);
+}
+
+.hx-questions {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.hx-questions li {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--hx-text-dim);
+}
+
+.hx-questions__who {
+  display: inline-block;
+  margin-right: 9px;
+  font-family: var(--helix-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hx-text-faint);
+}
