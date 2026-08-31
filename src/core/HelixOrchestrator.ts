@@ -24,7 +24,12 @@ import {
   type BriefProject,
   type BriefingInput,
 } from '../tools/briefing.js';
-import { inboxRequirement, researchRequirement } from '../tools/requirements.js';
+import {
+  inboxRequirement,
+  researchRequirement,
+  sendingRequirement,
+} from '../tools/requirements.js';
+import type { OutboundKind } from '../outbound/outbound.js';
 import { scanForInjection } from '../guardrails/untrusted.js';
 
 /**
@@ -141,6 +146,7 @@ export class HelixOrchestrator {
     this.registerTool(this.#briefingTool());
     this.registerTool(this.#planTool());
     this.registerTool(this.#inboxTool());
+    this.registerTool(this.#sendingTool());
     this.registerTool(this.#researchTool());
     this.registerTool(this.#navigationTool());
   }
@@ -901,6 +907,66 @@ ${lines}`,
     };
   }
 
+  /**
+   * "Email Marlow", "text her", "call the supplier".
+   *
+   * Helix is permitted to do all three now and can do none of them, so the
+   * reply says what it would take and what it would cost. The cost half is the
+   * point: a message can be genuinely free and a telephone call cannot, and
+   * someone deciding what to set up needs that difference stated rather than
+   * discovered on a bill.
+   */
+  #sendingTool(): HelixTool {
+    /**
+     * Anchored at the start, on whole words.
+     *
+     * A substring match is far too eager here: "ring" sits inside "bring up
+     * the settings", so a looser test quietly stole every navigation request
+     * that began with "bring". The verb has to be the first thing asked for,
+     * after any politeness.
+     */
+    const LEAD_IN = /^(?:can you |could you |would you |please |helix,? )+/;
+
+    const patterns: ReadonlyArray<{ kind: OutboundKind; pattern: RegExp }> = [
+      { kind: 'call', pattern: /^(?:call|ring|phone)\b/ },
+      { kind: 'sms', pattern: /^(?:text|sms)\b|^send (?:a |an )?(?:text|sms)\b/ },
+      { kind: 'email', pattern: /^(?:email|e-mail)\b|^(?:send|draft|write|reply)\b[^.]{0,20}\bemail\b|^reply to\b/ },
+      { kind: 'message', pattern: /^(?:message|dm|telegram)\b|^send (?:a |an )?(?:message|dm)\b/ },
+    ];
+
+    const classify = (text: string): OutboundKind | null => {
+      let lower = text.toLowerCase().trim();
+      // Strip repeated politeness, so "could you please call them" still reads
+      // as a request to call.
+      while (LEAD_IN.test(lower)) lower = lower.replace(LEAD_IN, '');
+
+      for (const { kind, pattern } of patterns) {
+        if (pattern.test(lower)) return kind;
+      }
+      return null;
+    };
+
+    return {
+      name: 'sendSomething',
+      description: 'Send a message or place a call. Reports what it would take and cost.',
+      priority: 240,
+      matches: (request) => classify(request.text) !== null,
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const kind = classify(request.text);
+        if (kind === null) return null;
+
+        const reply = sendingRequirement(kind);
+        return {
+          text: reply.spoken,
+          handled: false,
+          failure: 'PROVIDER_NOT_CONFIGURED',
+          card: reply.card,
+        };
+      },
+    };
+  }
+
   /** "Look this up": the same shape, the same wall, with the query echoed back. */
   #researchTool(): HelixTool {
     const prefixes = [
@@ -990,7 +1056,7 @@ function extractRecallSubject(lower: string, phrases: readonly string[]): string
     const index = lower.indexOf(phrase);
     if (index === -1) continue;
     let rest = lower.slice(index + phrase.length);
-    rest = rest.replace(/^(?:about|of|regarding)/, '');
+    rest = rest.replace(/^(?:about|of|regarding)\b/, '');
     return rest.replace(/[?!.]+$/, '').trim();
   }
   return '';

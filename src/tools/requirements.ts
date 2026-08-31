@@ -1,5 +1,12 @@
-import type { ToolCard, ToolReply } from './cards.js';
+import type { CardItem, CardSection, ToolCard, ToolReply } from './cards.js';
 import { unavailable } from '../persona/voice.js';
+import {
+  PSTN_TRUTH,
+  freeOptionsFor,
+  optionsFor,
+  requiresPayment,
+} from '../outbound/transports.js';
+import type { OutboundKind } from '../outbound/outbound.js';
 
 /**
  * The two tools that cannot run, and exactly why.
@@ -113,6 +120,99 @@ export function inboxRequirement(): ToolReply {
       'I have no way to reach your mail, and I would rather show you why than invent a message',
     ),
     card,
+  };
+}
+
+/**
+ * What it would take to send this kind of thing, and what it would cost.
+ *
+ * Built from the transport list rather than written out, so the card and the
+ * code cannot come to disagree about the one question people most want a
+ * different answer to.
+ */
+export function sendingRequirement(kind: OutboundKind): ToolReply {
+  const free = freeOptionsFor(kind);
+  const all = optionsFor(kind);
+  const paidOnly = requiresPayment(kind);
+
+  const toItem = (optionId: string): CardItem => {
+    const option = all.find((entry) => entry.id === optionId);
+    if (!option) throw new Error('unknown transport ' + optionId);
+
+    return {
+      label: option.name,
+      detail: option.summary + ' ' + option.limits[0],
+      meta:
+        option.cost === 'free'
+          ? 'free'
+          : option.cost === 'free-within-your-account'
+            ? 'free on your own account'
+            : option.cost === 'trial-then-paid'
+              ? 'trial credit, then billed'
+              : 'billed per use',
+      accent: option.cost === 'free' || option.cost === 'free-within-your-account' ? 'good' : 'warn',
+      source: 'Transport options',
+    };
+  };
+
+  const sections: CardSection[] = [
+    {
+      heading: free.length > 0 ? 'Free, once set up' : 'Nothing free does this',
+      items: free.map((option) => toItem(option.id)),
+      empty: paidOnly
+        ? 'Every option for this is billed. There is no free route to it.'
+        : 'No option is listed for this yet.',
+    },
+    {
+      heading: 'Costs money',
+      items: all
+        .filter((option) => option.cost === 'trial-then-paid' || option.cost === 'always-paid')
+        .map((option) => toItem(option.id)),
+      empty: 'None needed.',
+    },
+    {
+      heading: 'True of all of them',
+      items: [
+        {
+          label: 'Nothing can reach anything from this build',
+          detail: CSP_BLOCKER + ' ' + SHELL_REMEDY,
+          meta: 'blocked by design',
+          accent: 'warn',
+          source: 'index.html CSP',
+        },
+        {
+          label: 'Nothing leaves unconfirmed',
+          detail:
+            'Every message is drafted, shown in full and confirmed on its own. An approval left sitting goes stale',
+          meta: 'permanent',
+          accent: 'good',
+          source: 'Your standing instruction',
+        },
+        {
+          label: 'Helix will use an account, never fund one',
+          detail:
+            'Buying a number, topping up credit or taking out a subscription is yours. Helix refuses a draft that reads as a purchase',
+          meta: 'permanent',
+          accent: 'good',
+          source: 'Your standing instruction',
+        },
+      ],
+    },
+  ];
+
+  return {
+    spoken: unavailable(
+      kind === 'call' || kind === 'sms'
+        ? 'reaching a real telephone is never free, whatever the trial says, and I cannot reach one from this build regardless'
+        : 'I cannot send anything from this build yet, though there are free ways to do it once there is a shell',
+    ),
+    card: {
+      kind: 'requirement',
+      title: kind === 'call' ? 'Placing a call' : kind === 'sms' ? 'Sending a text' : 'Sending a message',
+      subtitle: free.length > 0 ? 'Free options exist' : 'No free option exists',
+      sections,
+      caveat: PSTN_TRUTH,
+    },
   };
 }
 

@@ -207,6 +207,39 @@ describe('orchestrator: the tools that cannot run', () => {
     expect(last?.failure).toBe('PROVIDER_NOT_CONFIGURED');
   });
 
+  /**
+   * Helix may send now, and can send nothing. The reply has to carry the cost
+   * answer, because a message can be free and a telephone call cannot, and
+   * that difference decides what someone goes and sets up.
+   */
+  it('answers a request to call with what it would cost', async () => {
+    const response = await ask('call the supplier about Tuesday');
+
+    expect(response.handled).toBe(false);
+    expect(response.card?.title).toBe('Placing a call');
+    expect(response.card?.caveat).toContain('always costs money');
+  });
+
+  it('offers the free routes for a message', async () => {
+    const response = await ask('message Marlow about the invoice');
+    const labels = (response.card?.sections[0]?.items ?? []).map((item) => item.label);
+
+    expect(response.card?.subtitle).toBe('Free options exist');
+    expect(labels.join(' ')).toContain('Telegram');
+  });
+
+  it('says plainly that nothing free sends a text to a phone', async () => {
+    const response = await ask('text her the address');
+
+    expect(response.card?.subtitle).toBe('No free option exists');
+    expect(response.text).toContain('never free');
+  });
+
+  // "bring up the settings" contains "ring". A looser matcher stole it.
+  it('does not steal a navigation request that merely contains a verb', async () => {
+    expect((await ask('bring up the settings')).navigateTo).toBe('settings');
+  });
+
   it('does not swallow an ordinary search of the user files', async () => {
     const response = await ask('search my files for invoices');
     expect(response.failure).not.toBe('PROVIDER_NOT_CONFIGURED');
