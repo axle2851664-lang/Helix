@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { GuardrailPanel } from '../system/GuardrailPanel.js';
 import { useHelix, useHelixState } from '../HelixProvider.js';
 import type { HardwareProfile, VolumeStats } from '../../platform/PlatformAdapter.js';
 import type { LogRecord } from '../../core/Logger.js';
@@ -168,6 +169,8 @@ export function SystemWorkspace() {
           </div>
         </div>
       </section>
+
+      <GuardrailPanel />
 
       <section className="helix-panel">
         <h2 className="helix-panel__title">Activity log</h2>

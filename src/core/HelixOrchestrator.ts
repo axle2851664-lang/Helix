@@ -25,6 +25,7 @@ import {
   type BriefingInput,
 } from '../tools/briefing.js';
 import { inboxRequirement, researchRequirement } from '../tools/requirements.js';
+import { scanForInjection } from '../guardrails/untrusted.js';
 
 /**
  * The Helix orchestration seam (spec: UI -> ORCHESTRATOR -> TOOLS).
@@ -326,13 +327,25 @@ export class HelixOrchestrator {
         }
 
         const lines = hits.map((hit) => `- ${hit.fileName}: ${hit.snippet}`).join('\n');
+
+        // A result that also contains text addressed to an assistant must say
+        // so here. Leaving it to be discovered later, in a workspace the user
+        // may never open, is too late to be of any use.
+        const flagged = await this.#flaggedFiles(hits.map((hit) => hit.assetId));
+        const notice =
+          flagged.length === 0
+            ? ''
+            : `
+
+${flagged.length === 1 ? 'One of those files' : `${flagged.length} of those files`} also contains text written as an instruction - ${flagged.join(', ')}. I have read it as content and nothing more. Files shows you the passages.`;
+
         return {
           text:
             confirm(
               `I've located ${hits.length === 1 ? 'a mention' : 'several mentions'} of "${query}"`,
             ) +
             `
-${lines}`,
+${lines}${notice}`,
           handled: true,
         };
       },
@@ -665,6 +678,26 @@ ${lines}`,
         };
       },
     };
+  }
+
+  /**
+   * Which of these files contain text shaped like an instruction.
+   *
+   * Scanned on read rather than stored at index time: a stored flag goes stale
+   * as soon as the patterns improve, and a file indexed before a pattern
+   * existed would report itself clean for ever.
+   */
+  async #flaggedFiles(assetIds: readonly string[]): Promise<string[]> {
+    const names: string[] = [];
+
+    for (const assetId of [...new Set(assetIds)]) {
+      const document = await this.#knowledge.get(assetId);
+      if (!document || !document.indexed) continue;
+      if (scanForInjection(document.chunks.join('\n'), { limit: 1 }).length > 0) {
+        names.push(document.fileName);
+      }
+    }
+    return names;
   }
 
   /**

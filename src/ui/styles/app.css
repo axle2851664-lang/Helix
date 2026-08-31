@@ -1850,3 +1850,166 @@
     transition: none;
   }
 }
+
+/* ======================= standing rules ======================== */
+/* Enforcement is the column that matters, so it carries the colour: green
+   only for rules something actively refuses to break. "By absence" is amber
+   on purpose - it is kept by a missing feature, not by a decision. */
+
+.hx-rules {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.hx-rules__item {
+  padding: 12px 14px;
+  border: 1px solid var(--hx-border);
+  border-left: 2px solid var(--hx-off);
+  border-radius: 10px;
+  background: var(--hx-panel);
+}
+
+.hx-rules__item--code {
+  border-left-color: var(--hx-ok);
+}
+
+.hx-rules__item--structure {
+  border-left-color: var(--hx-warn);
+}
+
+.hx-rules__item--promise {
+  border-left-color: var(--hx-accent);
+}
+
+.hx-rules__head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.hx-rules__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hx-text);
+}
+
+.hx-rules__tag {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--helix-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hx-rules__tag--code {
+  color: var(--hx-ok);
+}
+
+.hx-rules__tag--structure {
+  color: var(--hx-warn);
+}
+
+.hx-rules__tag--promise {
+  color: var(--hx-accent);
+}
+
+.hx-rules__rule {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--hx-text);
+}
+
+.hx-rules__why,
+.hx-rules__evidence,
+.hx-rules__risk {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--hx-text-dim);
+}
+
+.hx-rules__why {
+  color: var(--hx-text-faint);
+  font-style: italic;
+}
+
+.hx-rules__risk {
+  color: var(--hx-warn);
+}
+
+.hx-rules__evidence-label {
+  display: inline-block;
+  margin-right: 8px;
+  font-family: var(--helix-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hx-text-faint);
+}
+
+/* ------------------- instruction-shaped text ------------------- */
+.hx-panel--flagged {
+  border-color: rgba(210, 160, 34, 0.26);
+}
+
+.hx-filelist__flag {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--hx-warn);
+}
+
+.hx-findings {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.hx-findings__name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--hx-warn);
+}
+
+.hx-findings__item {
+  margin-top: 7px;
+  padding-left: 11px;
+  border-left: 1px solid var(--hx-border-strong);
+}
+
+.hx-findings__kind {
+  font-family: var(--helix-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hx-text-faint);
+}
+
+/* The excerpt is the user's own file, quoted. Set apart from Helix's own
+   voice so there is no chance of reading it as something Helix said. */
+.hx-findings__excerpt {
+  margin: 3px 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  font-family: var(--helix-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--hx-text-dim);
+  word-break: break-word;
+}
+
+.hx-findings__why {
+  font-size: 11.5px;
+  color: var(--hx-text-faint);
+}

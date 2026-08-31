@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useHelix } from '../HelixProvider.js';
 import { formatBytes } from '../../projects/validation.js';
 import type { IndexedDocument, KnowledgeHit } from '../../knowledge/KnowledgeIndex.js';
 import type { ProjectAsset } from '../../projects/types.js';
+import { scanForInjection, type InjectionFinding } from '../../guardrails/untrusted.js';
 
 /**
  * Indexed files and knowledge search (spec 12, 6D).
@@ -48,6 +49,24 @@ export function FilesWorkspace() {
   );
   const searchable = documents.filter((document) => document.indexed);
   const unreadable = documents.filter((document) => !document.indexed);
+
+  /**
+   * Files whose text contains passages shaped like instructions.
+   *
+   * Scanned here rather than stored at index time: a stored flag would go
+   * stale the moment the patterns improve, and a file indexed before a pattern
+   * existed would report itself clean for ever. A false negative is the one
+   * that matters, so the check runs on the text every time.
+   */
+  const flagged = useMemo(() => {
+    const found = new Map<string, InjectionFinding[]>();
+    for (const document of documents) {
+      if (!document.indexed) continue;
+      const findings = scanForInjection(document.chunks.join('\n'));
+      if (findings.length > 0) found.set(document.assetId, findings);
+    }
+    return found;
+  }, [documents]);
 
   const indexAll = async () => {
     setBusy(true);
@@ -135,6 +154,12 @@ export function FilesWorkspace() {
                       <div className="hx-hitlist__meta">
                         matched {hit.matched.join(', ')}
                       </div>
+                      {flagged.has(hit.assetId) && (
+                        <div className="hx-filelist__flag">
+                          This file contains text written as an instruction. Read as content,
+                          never obeyed.
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -193,12 +218,56 @@ export function FilesWorkspace() {
                       {state === 'unreadable' && document?.reason && (
                         <div className="hx-filelist__reason">{document.reason}</div>
                       )}
+                      {flagged.has(asset.id) && (
+                        <div className="hx-filelist__flag">
+                          Contains text shaped like an instruction. Read as content, never obeyed.
+                        </div>
+                      )}
                     </div>
                   </li>
                 );
               })}
             </ul>
           </section>
+
+          {flagged.size > 0 && (
+            <section className="hx-panel hx-panel--flagged">
+              <h2 className="hx-panel__title">
+                Text that reads like an instruction
+              </h2>
+              <p className="hx-settings__note">
+                Found in {flagged.size} {flagged.size === 1 ? 'file' : 'files'}. This is very
+                often innocent - notes about this subject trip it, sir, as they should. It is
+                shown because anything Helix reads could have been written by someone else for
+                Helix to read, and you should be the one who decides what it means. Helix treats
+                every passage below as content, never as an instruction.
+              </p>
+              <ul className="hx-findings">
+                {[...flagged.entries()].map(([assetId, findings]) => {
+                  const asset = assets.find((entry) => entry.id === assetId);
+                  return (
+                    <li className="hx-findings__file" key={assetId}>
+                      <div className="hx-findings__name">
+                        <Icon name="alert" size={13} /> {asset?.fileName ?? assetId}
+                      </div>
+                      {findings.slice(0, 4).map((finding) => (
+                        <div className="hx-findings__item" key={`${finding.kind}-${finding.index}`}>
+                          <span className="hx-findings__kind">{finding.kind}</span>
+                          <p className="hx-findings__excerpt">{finding.matched}</p>
+                          <span className="hx-findings__why">{finding.description}</span>
+                        </div>
+                      ))}
+                      {findings.length > 4 && (
+                        <p className="hx-muted">
+                          and {findings.length - 4} more in this file.
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
 
           {unreadable.length > 0 && (
             <section className="hx-panel">
