@@ -2013,3 +2013,186 @@
   font-size: 11.5px;
   color: var(--hx-text-faint);
 }
+
+/* ========================== storage ============================ */
+.hx-storage__total {
+  margin-left: auto;
+  font-family: var(--helix-mono);
+  font-size: 15px;
+  color: var(--hx-text);
+}
+
+.hx-storage__bar {
+  height: 8px;
+  margin: 12px 0 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.hx-storage__fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 240ms ease;
+}
+
+.hx-storage__fill--ok {
+  background: var(--hx-ok);
+}
+
+.hx-storage__fill--warn {
+  background: var(--hx-warn);
+}
+
+/* The bar is meaningless without this sentence, so it is never styled away
+   or truncated: it says what the bar is measured against. */
+.hx-storage__basis {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--hx-text-dim);
+}
+
+.hx-usage {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 13px;
+}
+
+.hx-usage__head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.hx-usage__label {
+  font-size: 13px;
+  color: var(--hx-text);
+}
+
+.hx-usage__bytes {
+  margin-left: auto;
+  font-family: var(--helix-mono);
+  font-size: 11.5px;
+  color: var(--hx-text-dim);
+}
+
+/* Never the same weight as a measured figure. */
+.hx-usage__basis {
+  color: var(--hx-text-faint);
+}
+
+.hx-usage__track {
+  height: 4px;
+  margin: 5px 0 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.hx-usage__fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--hx-accent);
+  opacity: 0.55;
+}
+
+.hx-usage__detail {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--hx-text-faint);
+}
+
+.hx-reclaim {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 11px;
+}
+
+.hx-reclaim__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 11px 13px;
+  border: 1px solid var(--hx-border);
+  border-radius: 10px;
+  background: var(--hx-panel);
+}
+
+.hx-reclaim__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.hx-reclaim__label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--hx-text);
+}
+
+.hx-reclaim__bytes {
+  font-family: var(--helix-mono);
+  font-size: 11.5px;
+  color: var(--hx-warn);
+}
+
+/* What is lost, always beside what is gained. */
+.hx-reclaim__detail {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--hx-text-dim);
+}
+
+@media (max-width: 720px) {
+  .hx-reclaim__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* --------------------------- label rows ------------------------ */
+/* Used by the graph, storage and status panels. Defined once here: the
+   markup existed before the styles did, so these rows were rendering with
+   their label and value run together. */
+.hx-row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 5px 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.hx-row + .hx-row {
+  border-top: 1px solid var(--hx-border);
+}
+
+.hx-row__label {
+  flex: none;
+  font-family: var(--helix-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hx-text-faint);
+}
+
+.hx-row__value {
+  margin-left: auto;
+  text-align: right;
+  color: var(--hx-text);
+  word-break: break-word;
+}
+
+.hx-row__value--mono {
+  font-family: var(--helix-mono);
+  font-size: 11.5px;
+  color: var(--hx-text-dim);
+}

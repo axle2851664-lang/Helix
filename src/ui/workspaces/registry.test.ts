@@ -52,6 +52,7 @@ describe('workspace registry', () => {
       'memory',
       'settings',
       'spatial',
+      'storage',
       'system',
       'upload-project',
     ]);

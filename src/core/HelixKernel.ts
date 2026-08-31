@@ -13,6 +13,7 @@ import { ConversationStore } from '../conversations/ConversationStore.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { MemoryManager } from '../memory/MemoryManager.js';
 import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
+import { StorageManager } from '../storage/StorageManager.js';
 import { VoiceManager } from '../voice/VoiceManager.js';
 import { BrowserSpeechRecognition } from '../voice/BrowserSpeechRecognition.js';
 import { LocalWhisperProvider } from '../voice/LocalWhisperProvider.js';
@@ -47,6 +48,7 @@ export interface KernelServices {
   readonly projects: ProjectManager;
   readonly memory: MemoryManager;
   readonly knowledge: KnowledgeIndex;
+  readonly storage: StorageManager;
   readonly voice: VoiceManager;
   readonly camera: CameraManager;
   readonly orchestrator: HelixOrchestrator;
@@ -167,6 +169,21 @@ export class HelixKernel {
     const memory = new MemoryManager({ store, settings, logger, bus });
     const knowledge = new KnowledgeIndex({ store, projects, logger, bus });
 
+    // Built after the subsystems it measures, then attached to the import
+    // path. Attached here rather than left to a screen, so the ceiling holds
+    // for every caller including ones written later.
+    const storage = new StorageManager({
+      store,
+      platform,
+      settings,
+      projects,
+      knowledge,
+      conversations,
+      memory,
+      logger,
+    });
+    projects.setBudget(storage);
+
     const camera = new CameraManager({ platform, settings, logger, bus });
 
     // Voice providers are constructed only where the platform supports them,
@@ -224,6 +241,7 @@ export class HelixKernel {
       projects,
       memory,
       knowledge,
+      storage,
       voice,
       camera,
       orchestrator,

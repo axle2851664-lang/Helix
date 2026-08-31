@@ -56,6 +56,17 @@ export interface ProjectManagerOptions {
   maxFileBytes?: number;
 }
 
+/**
+ * The storage budget, as this module needs to see it.
+ *
+ * A narrow callback rather than the StorageManager itself, because the manager
+ * has to read projects to work out what is being held - taking the whole thing
+ * would be a cycle. This is the one question the import path needs answered.
+ */
+export interface StorageBudget {
+  requireRoom(bytes: number): Promise<void>;
+}
+
 export interface ImportRequest {
   projectId: string;
   file: FileCandidate;
@@ -73,6 +84,8 @@ export class ProjectManager {
   readonly #bus: EventBus | undefined;
   readonly #maxFileBytes: number;
   readonly #listeners = new Set<() => void>();
+  /** Set by the kernel once StorageManager exists. Null until then. */
+  #budget: StorageBudget | null = null;
 
   constructor(options: ProjectManagerOptions) {
     this.#store = options.store;
@@ -80,6 +93,18 @@ export class ProjectManager {
     this.#paths = options.paths;
     this.#bus = options.bus;
     this.#maxFileBytes = options.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES;
+  }
+
+  /**
+   * Attach the storage budget.
+   *
+   * Wired after construction because the budget has to read projects to know
+   * what is held, and the two cannot each be built from the other. Until it is
+   * attached, imports are limited only by the per-file ceiling - which is why
+   * the kernel attaches it before anything can be imported.
+   */
+  setBudget(budget: StorageBudget): void {
+    this.#budget = budget;
   }
 
   subscribe(listener: () => void): () => void {
@@ -343,6 +368,10 @@ export class ProjectManager {
     await this.#requireProject(request.projectId);
 
     const validated = validateUpload(request.file, { maxBytes: this.#maxFileBytes });
+
+    // Before anything is written. A refusal here carries the reason and the
+    // constraint that bound it, so the user is never told a bare "no".
+    await this.#budget?.requireRoom(validated.sizeBytes);
 
     const asset: ProjectAsset = {
       id: newId('asset'),

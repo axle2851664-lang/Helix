@@ -7,6 +7,7 @@ import { HomeWorkspace } from '../chat/HomeWorkspace.js';
 import { ProjectsWorkspace } from '../projects/ProjectsWorkspace.js';
 import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
 import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
+import { StorageWorkspace } from '../storage/StorageWorkspace.js';
 import { CameraWorkspace } from '../camera/CameraWorkspace.js';
 import { SpatialWorkspace } from '../spatial/SpatialWorkspace.js';
 import { GraphWorkspace } from '../graph/GraphWorkspace.js';
@@ -65,7 +66,7 @@ export function WorkspaceView({
     case 'earth':
       return <EarthPending />;
     case 'storage':
-      return <StoragePending />;
+      return <StorageWorkspace />;
     case 'upload-project':
       return (
         <ProjectsWorkspace
@@ -154,29 +155,6 @@ function EarthPending() {
       inPlace={['GeographicDataProvider is designed as a replaceable interface.']}
       requires={[{ label: 'WebGL2', status: platform.capabilities.webgl2 }]}
       blockedBy="Requires a map data provider and a 3D renderer, neither of which is bundled. Helix will use properly licensed sources and will say when imagery for a location does not exist rather than substituting something else."
-    />
-  );
-}
-
-function StoragePending() {
-  const { store, paths } = useHelix();
-  const durable = (store as { durable?: boolean }).durable ?? false;
-  return (
-    <PendingWorkspace
-      descriptor={WORKSPACES.storage}
-      planned={[
-        'Break usage down by core, models, projects, generated assets, cache and logs.',
-        'Warn at 75, 85, 95 and 99 percent of the configured ceiling.',
-        'Clean cache and temporary files, never user data.',
-        'Block an install that would exceed the limit, before it starts.',
-      ]}
-      inPlace={[
-        `Data root resolves to ${paths.dataRoot} and moves with the drive.`,
-        `Durable storage is ${durable ? 'active' : 'unavailable'}.`,
-        'The storage ceiling is stored in Settings and defaults to 500 GB.',
-        'STORAGE_WARNING is declared with severity levels.',
-      ]}
-      blockedBy="Real disk figures need the Tauri shell. A browser reports only an origin quota, which is not free space, so Helix will not present one as the other."
     />
   );
 }

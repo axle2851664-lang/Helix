@@ -121,7 +121,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     subtitle: 'Space used by Helix and its data.',
     aliases: ['disk', 'space', 'usage', 'capacity'],
     phase: 11,
-    implemented: false,
+    implemented: true,
     inSidebar: true,
   },
   'upload-project': {
