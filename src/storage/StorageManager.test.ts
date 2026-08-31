@@ -82,6 +82,7 @@ describe('StorageManager: accounting', () => {
       'knowledge',
       'conversations',
       'memory',
+      'snapshots',
       'settings',
     ]);
   });

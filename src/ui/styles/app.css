@@ -2336,3 +2336,108 @@
   text-transform: uppercase;
   color: var(--hx-text-faint);
 }
+
+/* ============================ backup =========================== */
+.hx-notice--warn {
+  border-color: rgba(210, 160, 34, 0.3);
+  color: var(--hx-warn);
+}
+
+.hx-restore__source {
+  margin: 4px 0 12px;
+  font-size: 12.5px;
+  color: var(--hx-text-dim);
+}
+
+.hx-restore__plan {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.hx-restore__row {
+  padding: 9px 12px;
+  border: 1px solid var(--hx-border);
+  border-left: 2px solid var(--hx-off);
+  border-radius: 9px;
+}
+
+/* Anything that would be destroyed is marked, not merely listed. */
+.hx-restore__row--loss {
+  border-left-color: var(--hx-warn);
+}
+
+.hx-restore__head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.hx-restore__label {
+  font-size: 12.5px;
+  color: var(--hx-text);
+}
+
+.hx-restore__counts {
+  margin-left: auto;
+  font-family: var(--helix-mono);
+  font-size: 11px;
+  color: var(--hx-text-dim);
+}
+
+.hx-restore__loss {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 5px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--hx-warn);
+}
+
+.hx-restore__loss svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.hx-snapshots {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.hx-snapshots__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--hx-border);
+  border-radius: 9px;
+  background: var(--hx-panel);
+}
+
+.hx-snapshots__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.hx-snapshots__when {
+  font-size: 12.5px;
+  color: var(--hx-text);
+}
+
+.hx-snapshots__meta {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--hx-text-faint);
+}
+
+@media (max-width: 720px) {
+  .hx-snapshots__row {
+    flex-wrap: wrap;
+  }
+}

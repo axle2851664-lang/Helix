@@ -37,7 +37,8 @@ export type StorageCategory =
   | 'knowledge'
   | 'conversations'
   | 'memory'
-  | 'settings';
+  | 'settings'
+  | 'snapshots';
 
 export interface CategoryUsage {
   category: StorageCategory;
@@ -61,7 +62,7 @@ export interface CategoryUsage {
  * recover; deleting is a decision, and a storage figure is not consent.
  */
 export interface Reclaimable {
-  id: 'orphan-index' | 'generated-assets' | 'stored-conversations';
+  id: 'orphan-index' | 'generated-assets' | 'stored-conversations' | 'old-snapshots';
   label: string;
   /** Why this is safe to remove, and what is lost if it goes. */
   detail: string;
@@ -81,6 +82,20 @@ export interface StorageReport {
    * sum of the categories, which misses backend overhead.
    */
   backendReportedBytes: number | null;
+}
+
+/**
+ * What the storage report needs from BackupManager.
+ *
+ * A narrow interface rather than the class, because taking the whole thing
+ * would close a cycle: snapshots are measured here, and taking one asks the
+ * budget for room.
+ */
+export interface BackupAccounting {
+  list(): Promise<Array<{ bytes: number }>>;
+  totalBytes(): Promise<number>;
+  prune(): Promise<number>;
+  keepCount: number;
 }
 
 export interface StorageManagerOptions {
@@ -112,6 +127,12 @@ export class StorageManager {
   readonly #conversations: ConversationStore;
   readonly #memory: MemoryManager;
   readonly #logger: Logger;
+  /**
+   * Attached after construction: BackupManager checks the budget, and the
+   * budget counts what BackupManager holds, so neither can be built from the
+   * other.
+   */
+  #backups: BackupAccounting | null = null;
 
   constructor(options: StorageManagerOptions) {
     this.#store = options.store;
@@ -122,6 +143,10 @@ export class StorageManager {
     this.#conversations = options.conversations;
     this.#memory = options.memory;
     this.#logger = options.logger.child('storage');
+  }
+
+  setBackups(backups: BackupAccounting): void {
+    this.#backups = backups;
   }
 
   get ceilingBytes(): number {
@@ -245,6 +270,16 @@ export class StorageManager {
         description: 'Only what you asked Helix to keep.',
       },
       {
+        category: 'snapshots',
+        label: 'Snapshots',
+        bytes: await (this.#backups?.totalBytes() ?? Promise.resolve(0)),
+        items: (await (this.#backups?.list() ?? Promise.resolve([]))).length,
+        // Exact: each snapshot recorded its own serialised length when written.
+        basis: 'measured',
+        description:
+          'Copies of everything Helix holds, kept on this machine. They guard against a mistake in Helix, not against losing the machine.',
+      },
+      {
         category: 'settings',
         label: 'Settings',
         bytes: settingsEntries.reduce((total, [, value]) => total + estimateBytes(value), 0),
@@ -298,6 +333,22 @@ export class StorageManager {
       });
     }
 
+    if (this.#backups) {
+      const snapshots = await this.#backups.list();
+      const excess = snapshots.slice(this.#backups.keepCount);
+
+      if (excess.length > 0) {
+        items.push({
+          id: 'old-snapshots',
+          label: 'Snapshots beyond the number you keep',
+          detail:
+            'You have asked Helix to keep fewer than it holds. These are the oldest, and the ones within your limit are untouched.',
+          bytes: excess.reduce((total, snapshot) => total + snapshot.bytes, 0),
+          items: excess.length,
+        });
+      }
+    }
+
     if (!this.#conversations.persisting) {
       const stored = await this.#store.entries<unknown>('conversations');
       if (stored.length > 0) {
@@ -346,6 +397,11 @@ export class StorageManager {
           removed += await this.#projects.deleteGeneratedAssets(project.id);
         }
         this.#logger.info('Removed generated assets.', { removed });
+        return { items: removed };
+      }
+      case 'old-snapshots': {
+        const removed = (await this.#backups?.prune()) ?? 0;
+        this.#logger.info('Pruned snapshots beyond the configured count.', { removed });
         return { items: removed };
       }
       case 'stored-conversations': {

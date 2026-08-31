@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
+import { BackupPanel } from './BackupPanel.js';
 import { useHelix, useSettings } from '../HelixProvider.js';
 import { formatBytes, pressure, pressureNotice } from '../../storage/budget.js';
 import type { Reclaimable, StorageReport } from '../../storage/StorageManager.js';
@@ -27,7 +28,7 @@ const PRESSURE_TONE = {
 } as const;
 
 export function StorageWorkspace() {
-  const { storage, paths, store } = useHelix();
+  const { storage, paths, store, backup, projects, knowledge, memory } = useHelix();
   // The ceiling is a setting, so the report has to follow it changing.
   const config = useSettings(['storageLimitGb']);
 
@@ -41,9 +42,24 @@ export function StorageWorkspace() {
     setNotice(pressureNotice(state));
   }, [storage]);
 
+  /**
+   * Re-measure whenever anything it counts changes.
+   *
+   * Without this the figures are whatever they were when the screen opened:
+   * taking a snapshot showed it in the snapshot list and left the storage
+   * breakdown reading zero, which is worse than showing nothing at all.
+   */
   useEffect(() => {
     void refresh();
-  }, [refresh, config.storageLimitGb]);
+
+    const stops = [
+      backup.subscribe(() => void refresh()),
+      projects.subscribe(() => void refresh()),
+      knowledge.subscribe(() => void refresh()),
+      memory.subscribe(() => void refresh()),
+    ];
+    return () => stops.forEach((stop) => stop());
+  }, [refresh, config.storageLimitGb, backup, projects, knowledge, memory]);
 
   const reclaim = async (item: Reclaimable) => {
     setBusy(item.id);
@@ -192,6 +208,8 @@ export function StorageWorkspace() {
           list. Each entry says what goes with it.
         </p>
       </section>
+
+      <BackupPanel />
 
       <section className="hx-panel">
         <h2 className="hx-panel__title">What this build cannot see</h2>

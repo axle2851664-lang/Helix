@@ -14,6 +14,7 @@ import { ProjectManager } from '../projects/ProjectManager.js';
 import { MemoryManager } from '../memory/MemoryManager.js';
 import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import { StorageManager } from '../storage/StorageManager.js';
+import { BackupManager } from '../backup/BackupManager.js';
 import { VoiceManager } from '../voice/VoiceManager.js';
 import { BrowserSpeechRecognition } from '../voice/BrowserSpeechRecognition.js';
 import { LocalWhisperProvider } from '../voice/LocalWhisperProvider.js';
@@ -49,6 +50,7 @@ export interface KernelServices {
   readonly memory: MemoryManager;
   readonly knowledge: KnowledgeIndex;
   readonly storage: StorageManager;
+  readonly backup: BackupManager;
   readonly voice: VoiceManager;
   readonly camera: CameraManager;
   readonly orchestrator: HelixOrchestrator;
@@ -184,6 +186,11 @@ export class HelixKernel {
     });
     projects.setBudget(storage);
 
+    // A snapshot costs real storage, so it goes through the same ceiling as
+    // an imported file rather than being exempt for being Helix's own.
+    const backup = new BackupManager({ store, settings, logger, budget: storage });
+    storage.setBackups(backup);
+
     const camera = new CameraManager({ platform, settings, logger, bus });
 
     // Voice providers are constructed only where the platform supports them,
@@ -242,6 +249,7 @@ export class HelixKernel {
       memory,
       knowledge,
       storage,
+      backup,
       voice,
       camera,
       orchestrator,
