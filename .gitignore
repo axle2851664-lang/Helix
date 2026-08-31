@@ -63,3 +63,7 @@ npm-debug.log*
 /public/mediapipe/
 /public/onnx/
 /public/pdfjs/
+
+# Tauri build output
+/src-tauri/target/
+/src-tauri/gen/

@@ -6,6 +6,7 @@ import { MemoryKeyValueStore, type KeyValueStore } from '../storage/KeyValueStor
 import { PathManager } from '../storage/PathManager.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { BrowserPlatform } from '../platform/BrowserPlatform.js';
+import { TauriPlatform, detectTauri } from '../platform/TauriPlatform.js';
 import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
 import { ActivityManager } from './ActivityManager.js';
 import { HelixOrchestrator } from './HelixOrchestrator.js';
@@ -137,12 +138,23 @@ export class HelixKernel {
 
     // A bus handler that throws must not be lost; route it into the log.
     const busLogger = logger.child('bus');
-    const platform = this.#options.platform ?? new BrowserPlatform();
+    // The shell when it is there, the browser when it is not. Detected rather
+    // than configured, so one build runs in both and reports honestly about
+    // which it is in.
+    //
+    // The order here is awkward and deliberate: the shell needs the data root
+    // to know which volume to measure, and the root depends on which host this
+    // is. Resolved in two steps rather than by guessing either one.
+    const inShell = this.#options.platform?.kind === 'tauri' || detectTauri();
 
     // The browser host has no installation path. A virtual root keeps path
     // arithmetic honest and testable without implying a real filesystem.
-    const root = this.#options.root ?? (platform.kind === 'browser' ? '/helix' : '');
+    const root = this.#options.root ?? (inShell ? '' : '/helix');
     const paths = new PathManager({ root, portable: true });
+
+    const platform =
+      this.#options.platform ??
+      (inShell ? new TauriPlatform({ dataRoot: paths.dataRoot }) : new BrowserPlatform());
 
     const store = await this.#resolveStore(logger);
 
