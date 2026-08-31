@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Composer } from './Composer.js';
 import { ToolCardView } from './ToolCardView.js';
-import { useHelix } from '../HelixProvider.js';
+import { useHelix, useSettings } from '../HelixProvider.js';
+import { Reactor } from '../hero/Reactor.js';
+import { reactorSegments } from '../hero/capabilities.js';
+import { rotateWindow, suggestedPrompts } from '../hero/prompts.js';
 import { toUserMessage } from '../../core/HelixError.js';
 import type { VoiceSnapshot } from '../../voice/VoiceManager.js';
 import type { Conversation, ConversationMessage } from '../../conversations/ConversationStore.js';
@@ -17,12 +20,9 @@ import type { WorkspaceId } from '../workspaces/registry.js';
  * produce.
  */
 
-const SUGGESTIONS = [
-  'Brief me',
-  'Plan my day',
-  'Read my inbox',
-  'What do you remember?',
-] as const;
+/** How many examples are on screen at once, and how often the window moves. */
+const VISIBLE_PROMPTS = 4;
+const ROTATE_MS = 6000;
 
 interface HomeWorkspaceProps {
   conversationId: string | null;
@@ -39,13 +39,31 @@ export function HomeWorkspace({
   onNavigate,
   onOpenProject,
 }: HomeWorkspaceProps) {
-  const { orchestrator, conversations, activity, voice } = useHelix();
+  const { orchestrator, conversations, activity, voice, platform, store, projects, memory, knowledge } =
+    useHelix();
+  const config = useSettings([
+    'languageProvider',
+    'speechToTextProvider',
+    'textToSpeechProvider',
+    'visionProvider',
+    'gestureProvider',
+    'allowLongTermMemory',
+    'reduceMotion',
+  ]);
 
   const [draft, setDraft] = useState('');
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [busy, setBusy] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceSnapshot>(() => voice.snapshot);
   const [coreNotice, setCoreNotice] = useState<string | null>(null);
+  const [online, setOnline] = useState(() => platform.isOnline());
+  const [counts, setCounts] = useState({
+    projects: 0,
+    memories: 0,
+    unindexed: 0,
+    searchable: 0,
+  });
+  const [rotation, setRotation] = useState(0);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const reload = useCallback(async () => {
@@ -65,6 +83,41 @@ export function HomeWorkspace({
   }, [reload, conversations]);
 
   useEffect(() => voice.subscribe(setVoiceState), [voice]);
+
+  useEffect(() => platform.onConnectivityChange(setOnline), [platform]);
+
+
+  /**
+   * The counts behind the ring and the examples.
+   *
+   * Resolved together and set in one update: separately, the ring would light
+   * a segment on one round trip and the matching example would appear on the
+   * next, which reads as a glitch rather than as state arriving.
+   */
+  useEffect(() => {
+    const refresh = () => {
+      void Promise.all([
+        projects.listProjects(),
+        projects.countAssets(),
+        memory.count(),
+        knowledge.list(),
+      ]).then(([list, assets, memories, documents]) => {
+        const searchable = documents.filter((document) => document.indexed).length;
+        setCounts({
+          projects: list.length,
+          memories,
+          // Files with no index record at all. Files that were indexed and
+          // yielded nothing are a missing parser, not work anyone can do.
+          unindexed: Math.max(0, assets - documents.length),
+          searchable,
+        });
+      });
+    };
+    refresh();
+
+    const unsubscribes = [projects.subscribe(refresh), memory.subscribe(refresh), knowledge.subscribe(refresh)];
+    return () => unsubscribes.forEach((stop) => stop());
+  }, [projects, memory, knowledge]);
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight });
@@ -124,29 +177,58 @@ export function HomeWorkspace({
   const messages = conversation?.messages ?? [];
   const isEmpty = messages.length === 0;
 
+  // Read from the voice manager rather than from settings: it knows what this
+  // build can actually load, which is not the same as what is selected.
+  const hearingBlocker = voice.inputBlocker();
+
+  const segments = reactorSegments({
+    online,
+    languageProvider: config.languageProvider,
+    hearingBlocker,
+    hearingProvider: config.speechToTextProvider,
+    speechBlocker: voice.outputBlocker(),
+    visionProvider: config.visionProvider,
+    gestureProvider: config.gestureProvider,
+    memoryAllowed: config.allowLongTermMemory,
+    durableStorage: (store as { durable?: boolean }).durable ?? false,
+    projectCount: counts.projects,
+    searchableFiles: counts.searchable,
+  });
+
+  const prompts = suggestedPrompts({
+    memoryAllowed: config.allowLongTermMemory,
+    memoryCount: counts.memories,
+    projectCount: counts.projects,
+    unindexedFiles: counts.unindexed,
+    searchableFiles: counts.searchable,
+    hearingBlocker,
+  });
+
+  const visible = rotateWindow(prompts, rotation, VISIBLE_PROMPTS);
+
+  // Examples rotate only on the empty home screen, and never when the user has
+  // asked for less motion - a moving list is hard to read for exactly the
+  // people that setting exists for.
+  useEffect(() => {
+    if (!isEmpty || config.reduceMotion) return;
+    const timer = window.setInterval(() => setRotation((current) => current + 1), ROTATE_MS);
+    return () => window.clearInterval(timer);
+  }, [isEmpty, config.reduceMotion]);
+
+
   return (
     <div className="hx-home">
       {isEmpty ? (
         <div className="hx-home__hero">
-          <button
-            type="button"
-            className={`hx-core hx-core--button${busy ? ' hx-core--busy' : ''}${
-              voiceState.state === 'listening' ? ' hx-core--listening' : ''
-            }`}
-            onClick={() => void toggleCall()}
-            aria-label={
-              voiceState.state === 'listening' ? 'Stop listening' : 'Speak to Helix'
-            }
-          >
-            <span className="hx-core__glyph">H</span>
-            {voiceState.state === 'listening' && (
-              <span
-                className="hx-core__ring"
-                style={{ ['--hx-level' as string]: String(Math.min(1, voiceState.level * 8)) }}
-                aria-hidden="true"
-              />
-            )}
-          </button>
+          <Reactor
+            segments={segments}
+            status={voiceState.state === 'listening' ? 'LISTENING' : 'IDLE'}
+            level={voiceState.level}
+            busy={busy}
+            onActivate={() => void toggleCall()}
+            label={voiceState.state === 'listening' ? 'Stop listening' : 'Speak to Helix'}
+          />
+
           <h1 className="hx-home__title">How may I help?</h1>
           {coreNotice && (
             <p className="hx-core__notice" role="status">
@@ -159,17 +241,20 @@ export function HomeWorkspace({
               : 'Press the H to speak, sir, or try one of these:'}
           </p>
 
+          {/* Only things that will genuinely work are offered here. Everything
+              else stays reachable by typing it, but is not advertised. */}
           <div className="hx-suggestions">
-            {SUGGESTIONS.map((suggestion) => (
+            {visible.map((prompt) => (
               <button
-                key={suggestion}
+                key={prompt.text}
                 type="button"
                 className="hx-chip"
+                title={prompt.outcome}
                 // Fills the composer rather than firing immediately, so the
                 // user can edit before sending.
-                onClick={() => setDraft(suggestion)}
+                onClick={() => setDraft(prompt.text)}
               >
-                {suggestion}
+                {prompt.text}
               </button>
             ))}
           </div>

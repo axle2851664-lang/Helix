@@ -359,40 +359,6 @@
   text-align: center;
 }
 
-.hx-core {
-  width: 100px;
-  height: 100px;
-  display: grid;
-  place-items: center;
-  border-radius: 26px;
-  border: 1px solid var(--hx-accent-line);
-  background: linear-gradient(160deg, rgba(224, 36, 60, 0.26), rgba(224, 36, 60, 0.08));
-  box-shadow: 0 0 36px rgba(224, 36, 60, 0.18);
-  margin-bottom: 26px;
-  animation: hx-breathe 5s ease-in-out infinite;
-}
-
-.hx-core__glyph {
-  font-size: 44px;
-  font-weight: 600;
-  color: #fff;
-  line-height: 1;
-}
-
-.hx-core--busy {
-  animation: hx-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes hx-breathe {
-  0%, 100% { box-shadow: 0 0 30px rgba(224, 36, 60, 0.15); }
-  50%      { box-shadow: 0 0 44px rgba(224, 36, 60, 0.24); }
-}
-
-@keyframes hx-pulse {
-  0%, 100% { box-shadow: 0 0 26px rgba(224, 36, 60, 0.2); }
-  50%      { box-shadow: 0 0 52px rgba(224, 36, 60, 0.42); }
-}
-
 .hx-home__title {
   margin: 0;
   font-size: 33px;
@@ -939,13 +905,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hx-core,
   .hx-operation__ring {
     animation: none !important;
   }
 }
 
-[data-reduce-motion='true'] .hx-core,
 [data-reduce-motion='true'] .hx-operation__ring {
   animation: none !important;
 }
@@ -1298,51 +1262,12 @@
 }
 
 /* The centre core doubles as the call button: press to speak, press to stop. */
-.hx-core--button {
-  border: 1px solid var(--hx-accent-line);
-  cursor: pointer;
-  position: relative;
-  padding: 0;
-  transition: transform 180ms ease, box-shadow 180ms ease;
-}
-
-.hx-core--button:hover {
-  transform: scale(1.04);
-  box-shadow: 0 0 48px rgba(224, 36, 60, 0.32);
-}
-
-.hx-core--button:active {
-  transform: scale(0.98);
-}
-
-.hx-core--listening {
-  border-color: var(--hx-accent);
-  animation: hx-pulse 1.4s ease-in-out infinite;
-}
-
-/* Ring scales with the measured microphone level, so the core visibly
-   responds to the voice rather than animating regardless. */
-.hx-core__ring {
-  position: absolute;
-  inset: -14px;
-  border-radius: 32px;
-  border: 2px solid var(--hx-accent);
-  opacity: calc(0.25 + var(--hx-level) * 0.65);
-  transform: scale(calc(1 + var(--hx-level) * 0.12));
-  transition: transform 70ms linear, opacity 70ms linear;
-  pointer-events: none;
-}
-
 .hx-core__notice {
   max-width: 46ch;
   margin: 0 0 8px;
   font-size: 13px;
   line-height: 1.55;
   color: var(--hx-warn);
-}
-
-[data-reduce-motion='true'] .hx-core--listening {
-  animation: none !important;
 }
 
 /* ============================ vault graph ===================== */
@@ -1755,5 +1680,173 @@
   .hx-card__meta {
     margin-left: 0;
     text-align: left;
+  }
+}
+
+/* ========================= the reactor ========================= */
+/* The capability ring and call button on the home screen. Every colour here
+   is a state that is measured elsewhere; nothing animates for effect. */
+
+.hx-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hx-reactor-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.hx-reactor {
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+  border-radius: 50%;
+  transition: transform 180ms ease;
+}
+
+.hx-reactor:hover {
+  transform: scale(1.02);
+}
+
+.hx-reactor:active {
+  transform: scale(0.99);
+}
+
+.hx-reactor:focus-visible {
+  outline: 2px solid var(--hx-accent);
+  outline-offset: 6px;
+}
+
+.hx-reactor__svg {
+  overflow: visible;
+}
+
+.hx-reactor__track {
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 9;
+}
+
+.hx-reactor__segment {
+  stroke-width: 9;
+  stroke-linecap: butt;
+  cursor: pointer;
+  transition: stroke 200ms ease, opacity 200ms ease;
+}
+
+.hx-reactor__segment--ready {
+  stroke: var(--hx-ok);
+  opacity: 0.85;
+}
+
+.hx-reactor__segment--caveat {
+  stroke: var(--hx-warn);
+  opacity: 0.85;
+}
+
+.hx-reactor__segment--unavailable {
+  stroke: var(--hx-off);
+  opacity: 0.55;
+}
+
+.hx-reactor__segment:hover {
+  opacity: 1;
+  stroke-width: 11;
+}
+
+/* Microphone level. Radius is driven from measured amplitude in the
+   component, so this only carries the look, never the motion. */
+.hx-reactor__level {
+  stroke: var(--hx-accent);
+  stroke-width: 2;
+  transition: r 70ms linear, opacity 70ms linear;
+}
+
+.hx-reactor__core {
+  fill: url(#hx-reactor-core);
+  stroke: var(--hx-accent-line);
+  stroke-width: 1;
+  filter: drop-shadow(0 0 24px rgba(224, 36, 60, 0.35));
+}
+
+.hx-reactor:not(.hx-reactor--listening) .hx-reactor__core {
+  animation: hx-breathe-core 5s ease-in-out infinite;
+}
+
+.hx-reactor--listening .hx-reactor__core {
+  animation: hx-pulse-core 1.4s ease-in-out infinite;
+}
+
+.hx-reactor--busy .hx-reactor__core {
+  animation: hx-pulse-core 1.5s ease-in-out infinite;
+}
+
+@keyframes hx-breathe-core {
+  0%, 100% { filter: drop-shadow(0 0 20px rgba(224, 36, 60, 0.28)); }
+  50%      { filter: drop-shadow(0 0 34px rgba(224, 36, 60, 0.42)); }
+}
+
+@keyframes hx-pulse-core {
+  0%, 100% { filter: drop-shadow(0 0 18px rgba(224, 36, 60, 0.32)); }
+  50%      { filter: drop-shadow(0 0 46px rgba(224, 36, 60, 0.6)); }
+}
+
+.hx-reactor__glyph {
+  fill: #fff;
+  font-family: var(--helix-display, inherit);
+  font-size: 46px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Fixed height: the readout changes as the pointer crosses the ring, and the
+   title below it must not move when it does. */
+.hx-reactor__readout {
+  margin: 0;
+  min-height: 34px;
+  max-width: 52ch;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--hx-text-dim);
+}
+
+.hx-reactor__readout-label {
+  display: inline-block;
+  margin-right: 7px;
+  font-family: var(--helix-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--hx-accent);
+}
+
+.hx-reactor__readout-idle {
+  color: var(--hx-text-faint);
+}
+
+[data-reduce-motion='true'] .hx-reactor__core {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-reactor__core {
+    animation: none !important;
+  }
+
+  .hx-reactor__level {
+    transition: none;
   }
 }
