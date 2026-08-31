@@ -15,6 +15,7 @@ import { MemoryManager } from '../memory/MemoryManager.js';
 import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import { VoiceManager } from '../voice/VoiceManager.js';
 import { BrowserSpeechRecognition } from '../voice/BrowserSpeechRecognition.js';
+import { LocalWhisperProvider } from '../voice/LocalWhisperProvider.js';
 import { BrowserSpeechSynthesis } from '../voice/BrowserSpeechSynthesis.js';
 import { CameraManager } from '../camera/CameraManager.js';
 
@@ -177,9 +178,13 @@ export class HelixKernel {
       activity,
       bus,
       isOnline: () => platform.isOnline(),
-      ...(BrowserSpeechRecognition.isSupported()
-        ? { stt: new BrowserSpeechRecognition() }
-        : {}),
+      // 'local' keeps audio on the machine; 'browser' streams it to Google.
+      // The default is local, so privacy is not something to opt into.
+      ...(settings.get('speechToTextProvider') === 'browser'
+        ? BrowserSpeechRecognition.isSupported()
+          ? { stt: new BrowserSpeechRecognition() }
+          : {}
+        : { stt: new LocalWhisperProvider() }),
       ...(BrowserSpeechSynthesis.isSupported()
         ? { tts: new BrowserSpeechSynthesis() }
         : {}),

@@ -19,6 +19,7 @@
     "fetch:models": "node scripts/fetch-models.mjs"
   },
   "dependencies": {
+    "@huggingface/transformers": "4.2.0",
     "@mediapipe/tasks-vision": "1.0.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"

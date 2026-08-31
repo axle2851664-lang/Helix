@@ -90,7 +90,9 @@ src/
 │   └── GestureController.ts ✅ gestures mapped to scene actions
 ├── voice/
 │   ├── VoiceManager.ts      ✅ pipeline, mic indicator, interruption
-│   ├── BrowserSpeechRecognition.ts ✅ Web Speech API input
+│   ├── LocalWhisperProvider.ts ✅ on-device Whisper, no audio leaves
+│   ├── silence.ts           ✅ turn-taking from measured mic level
+│   ├── BrowserSpeechRecognition.ts ✅ Web Speech API (sends audio to Google)
 │   ├── BrowserSpeechSynthesis.ts   ✅ speech output
 │   └── selectVoice.ts       ✅ British voice preference
 ├── persona/
@@ -161,7 +163,7 @@ Consequences carried into the roadmap:
 | 3 | Reference interface, orchestrator, conversations, projects | **Complete** |
 | 4 | Memory system | **Complete** |
 | 4b | File and knowledge indexing | **Complete** |
-| 5a | Voice pipeline (browser speech) | **Complete** |
+| 5a | Voice pipeline, on-device Whisper speech input | **Complete** |
 | 5b | Language provider connection | Blocked on the Tauri shell |
 | 7 | Camera, hand tracking and spatial manipulation | **Complete** |
 | 6 | Web research and coding | Planned |

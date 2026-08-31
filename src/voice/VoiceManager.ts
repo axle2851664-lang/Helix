@@ -47,6 +47,8 @@ export interface VoiceSnapshot {
   /** Last error, cleared when listening starts again. */
   error: string | null;
   micLive: boolean;
+  /** Live microphone level 0..1, when the provider measures it. */
+  level: number;
 }
 
 export type VoiceListener = (snapshot: VoiceSnapshot) => void;
@@ -65,6 +67,8 @@ export class VoiceManager {
   #transcript = '';
   #error: string | null = null;
   #activityToken: ActivityToken | null = null;
+  #level = 0;
+  #offLevel: (() => void) | null = null;
   /** Resolves with the final transcript when listening ends. */
   #pending: ((transcript: string) => void) | null = null;
 
@@ -84,6 +88,7 @@ export class VoiceManager {
       transcript: this.#transcript,
       error: this.#error,
       micLive: this.#stt?.listening ?? false,
+      level: this.#level,
     };
   }
 
@@ -179,6 +184,16 @@ export class VoiceManager {
     // Interrupting Helix by starting to speak is the natural gesture (spec 9).
     this.stopSpeaking();
 
+    // Providers that measure microphone level drive the on-screen meter, so
+    // the user can see the microphone is genuinely hearing something.
+    const metered = this.#stt as { onLevel?: (h: (l: number) => void) => () => void };
+    if (typeof metered.onLevel === 'function') {
+      this.#offLevel = metered.onLevel((level) => {
+        this.#level = level;
+        this.#emit();
+      });
+    }
+
     const stt = this.#stt as SpeechToTextProvider;
     this.#transcript = '';
     this.#error = null;
@@ -202,6 +217,9 @@ export class VoiceManager {
           this.#setState('error');
         },
         onEnd: () => {
+          this.#offLevel?.();
+          this.#offLevel = null;
+          this.#level = 0;
           this.#endActivity();
           this.#bus?.emit('MICROPHONE_STOPPED', { reason: 'recognition-ended' });
           if (this.#state !== 'error') this.#setState('idle');

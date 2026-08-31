@@ -83,12 +83,60 @@ async function copyWasm() {
   console.log(`WASM runtime installed: ${WASM_DEST}`);
 }
 
+
+/**
+ * Whisper weights for on-device speech recognition.
+ *
+ * transformers.js expects a HuggingFace-style layout under localModelPath, so
+ * the files keep their original names and folder shape.
+ */
+const WHISPER_REPO = 'Xenova/whisper-tiny.en';
+const WHISPER_FILES = [
+  'config.json',
+  'tokenizer.json',
+  'tokenizer_config.json',
+  'preprocessor_config.json',
+  'generation_config.json',
+  'onnx/encoder_model_quantized.onnx',
+  'onnx/decoder_model_merged_quantized.onnx',
+];
+
+async function fetchWhisper() {
+  const base = join(root, 'public', 'models', WHISPER_REPO);
+  let downloaded = 0;
+
+  for (const file of WHISPER_FILES) {
+    const dest = join(base, ...file.split('/'));
+    if (await exists(dest)) continue;
+
+    const url = `https://huggingface.co/${WHISPER_REPO}/resolve/main/${file}`;
+    const response = await fetch(url);
+    if (!response.ok || !response.body) {
+      throw new Error(`Whisper file failed: ${file} (HTTP ${response.status})`);
+    }
+
+    await mkdir(dirname(dest), { recursive: true });
+    await pipeline(Readable.fromWeb(response.body), createWriteStream(dest));
+    const info = await stat(dest);
+    console.log(`  ${file} (${humanBytes(info.size)})`);
+    downloaded += 1;
+  }
+
+  console.log(
+    downloaded === 0
+      ? 'Speech model already present. Skipping.'
+      : `Speech model installed: ${base}`,
+  );
+}
+
 try {
   await copyWasm();
   await fetchModel();
-  console.log('\nHand tracking assets are ready. Everything is served locally.');
+  console.log('\nDownloading speech model...');
+  await fetchWhisper();
+  console.log('\nAll assets ready. Served locally - nothing calls out at runtime.');
 } catch (error) {
-  console.error(`\nCould not install hand tracking assets: ${error.message}`);
-  console.error('Hand tracking will report itself unavailable until this succeeds.');
+  console.error(`\nCould not install local model assets: ${error.message}`);
+  console.error('Hand tracking and speech will report themselves unavailable until this succeeds.');
   process.exitCode = 1;
 }

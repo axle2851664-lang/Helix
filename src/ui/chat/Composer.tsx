@@ -89,7 +89,22 @@ export function Composer({ value, onChange, onSubmit, busy, autoFocus }: Compose
 
       {listening && (
         <div className="hx-listening" role="status">
-          <span className="hx-listening__pulse" aria-hidden="true" />
+          {/* Bars are driven by the real measured level, so a dead
+              microphone is visibly dead rather than silently so. */}
+          <span className="hx-bars" aria-hidden="true">
+            {[0, 1, 2, 3, 4].map((bar) => (
+              <span
+                key={bar}
+                className="hx-bars__bar"
+                style={{
+                  transform: `scaleY(${Math.max(
+                    0.12,
+                    Math.min(1, voiceState.level * (6 + bar * 2)),
+                  )})`,
+                }}
+              />
+            ))}
+          </span>
           <span>Listening&hellip;</span>
           {voiceState.transcript && (
             <span className="hx-listening__text">{voiceState.transcript}</span>

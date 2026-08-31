@@ -124,14 +124,13 @@ export const SETTINGS_SCHEMA = {
     section: 'voice',
     label: 'Speech recognition',
     description: 'Provider used to turn speech into text.',
-    options: ['none', 'browser', 'local', 'cloud'],
+    options: ['none', 'local', 'browser'],
     optionLabels: {
       none: 'None',
-      browser: 'Browser (Web Speech API)',
-      local: 'Local model',
-      cloud: 'Cloud provider',
+      local: 'Whisper on this machine (private)',
+      browser: 'Browser speech (sends audio to Google)',
     },
-    default: 'none',
+    default: 'local',
   },
   textToSpeechProvider: {
     kind: 'enum',

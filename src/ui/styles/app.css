@@ -1277,3 +1277,22 @@
 .hx-track--seen {
   color: var(--hx-ok);
 }
+
+/* Live microphone level. Driven by measured RMS, not an animation - a dead
+   microphone must look dead rather than appear to be working. */
+.hx-bars {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  flex: none;
+}
+
+.hx-bars__bar {
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--hx-accent);
+  transform-origin: center;
+  transition: transform 60ms linear;
+}

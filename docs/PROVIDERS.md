@@ -150,3 +150,21 @@ Kingdom); Helix will pick it up automatically once installed.
 Speech synthesis voices are generally installed with the operating system and
 run locally, but the API does not reliably distinguish local from remote voices,
 so `processing` is reported as `'unknown'` rather than claiming on-device.
+
+### On-device speech recognition (default)
+
+Whisper (`whisper-tiny.en`) runs in WebAssembly via transformers.js, with its
+weights served from Helix's own origin. **No audio leaves the machine**, so this
+works offline and sends nothing to a third party - the opposite of the browser
+Web Speech API, which remains selectable but is labelled in Settings as sending
+audio to Google.
+
+`npm run fetch:models` installs the weights (~42 MB) alongside the hand-tracking
+model. Neither is committed.
+
+Turn-taking is driven by measured microphone level through an `AnalyserNode`,
+not a fixed timer: a turn ends after ~900ms below the speech floor, and the
+tuning constants live at the top of `src/voice/silence.ts`. The level loop runs
+on `setInterval` rather than `requestAnimationFrame` - RAF is throttled to a
+standstill in a background tab, which would leave the microphone open and
+silently deaf.
