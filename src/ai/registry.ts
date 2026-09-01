@@ -105,12 +105,16 @@ export const MODEL_REGISTRY: readonly ModelInfo[] = [
     name: 'Local model',
     family: 'Local',
     author: 'Whichever you install',
-    inferenceProvider: 'local',
+    inferenceProvider: 'ollama',
     capabilities: ['chat'],
     contextLength: 8_192,
     maxOutputTokens: null,
     status: 'unavailable',
-    note: 'No local inference runtime is installed. Helix runs Whisper locally for speech, which is a different thing from a local language model.',
+    // A placeholder, and it says so. The moment the runtime answers, this
+    // entry is replaced wholesale by whatever is genuinely installed -
+    // `OllamaProvider` is the only authority on that, and this exists purely
+    // so the settings screen has something to name before then.
+    note: 'A placeholder until the local runtime reports what is installed. Helix runs Whisper locally for speech, which is a different thing from a local language model.',
   },
 ];
 

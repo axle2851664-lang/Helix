@@ -14,14 +14,62 @@
  * theatrical flourish, exclamation marks, emoji, and cheerful apology
  * ("oops", "my bad"). Helix does not panic and does not grovel.
  *
- * On address: "sir" appears in most conversational replies, as requested. It is
- * omitted where it would read as parody rather than courtesy - inside list
- * items, on status labels such as "Online", and in log lines, which are
- * machine-facing text rather than speech.
+ * On address: "sir" appears in roughly a third of conversational replies.
+ *
+ * This is a deliberate change from the earlier instruction, which was to use
+ * it in almost every sentence. Doing that turned out to read as parody rather
+ * than courtesy - "Yes sir." / "Certainly sir." / "Of course sir." in
+ * succession sounds like a machine performing deference rather than a person
+ * being polite. A real assistant addresses you when it is natural to: opening
+ * a reply, confirming something, delivering news. Not four times a minute.
+ *
+ * The rate is enforced rather than left to chance, because a rule applied by
+ * feel drifts. `addressed()` consults a rolling window of recent replies and
+ * declines to add the address when the recent rate is already at target. It is
+ * still omitted entirely where it would be absurd - inside list items, on
+ * status labels such as "Online", and in log lines, which are machine-facing
+ * text rather than speech.
  */
 
 /** How Helix addresses the user. Kept in one place so it can be changed once. */
 export const ADDRESS = 'sir';
+
+/**
+ * Target share of conversational replies carrying the address.
+ *
+ * A third: frequent enough to be characteristic, sparse enough that it never
+ * lands twice in a row by default.
+ */
+export const ADDRESS_RATE = 0.33;
+
+/** How many recent replies the rate is measured over. */
+const ADDRESS_WINDOW = 12;
+
+/** true where the address was used, newest last. */
+let addressHistory: boolean[] = [];
+
+/** Share of the recent window that carried the address. */
+export function recentAddressRate(): number {
+  if (addressHistory.length === 0) return 0;
+  const used = addressHistory.filter(Boolean).length;
+  return used / addressHistory.length;
+}
+
+function recordAddress(used: boolean): void {
+  addressHistory.push(used);
+  if (addressHistory.length > ADDRESS_WINDOW) addressHistory.shift();
+}
+
+/**
+ * Should this reply carry the address?
+ *
+ * Rate-based rather than random: randomness produces runs, and a run of four
+ * is exactly the effect being avoided. Never twice in immediate succession.
+ */
+function shouldAddress(): boolean {
+  if (addressHistory.at(-1) === true) return false;
+  return recentAddressRate() < ADDRESS_RATE;
+}
 
 /** Acknowledgements for a request Helix is about to carry out. */
 const ACKNOWLEDGEMENTS = [
@@ -54,10 +102,21 @@ function nextTurn(): number {
 }
 
 /** Append the form of address, unless the sentence already carries one. */
-export function addressed(sentence: string): string {
+export function addressed(sentence: string, options: { force?: boolean } = {}): string {
   const trimmed = sentence.trim();
   if (trimmed === '') return trimmed;
-  if (new RegExp(`\\b${ADDRESS}\\b`, 'i').test(trimmed)) return trimmed;
+
+  // Already addressed: count it, and leave it alone.
+  if (new RegExp(`\\b${ADDRESS}\\b`, 'i').test(trimmed)) {
+    recordAddress(true);
+    return trimmed;
+  }
+
+  if (!options.force && !shouldAddress()) {
+    recordAddress(false);
+    return trimmed;
+  }
+  recordAddress(true);
 
   // Insert before the terminal punctuation so it reads as speech, not a suffix.
   const match = /^(.*?)([.?!]+)$/s.exec(trimmed);
@@ -137,4 +196,5 @@ export function enquire(question: string, options: { address?: boolean } = {}): 
  */
 export function resetVoice(): void {
   turn = 0;
+  addressHistory = [];
 }

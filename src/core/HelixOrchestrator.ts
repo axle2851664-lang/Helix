@@ -31,6 +31,9 @@ import {
 } from '../tools/requirements.js';
 import type { OutboundKind } from '../outbound/outbound.js';
 import { scanForInjection } from '../guardrails/untrusted.js';
+import type { AIRouter } from '../ai/AIRouter.js';
+import { classify } from '../ai/AIRouter.js';
+import { SYSTEM_PROMPT } from '../persona/systemPrompt.js';
 
 /**
  * The Helix orchestration seam (spec: UI -> ORCHESTRATOR -> TOOLS).
@@ -108,6 +111,8 @@ export interface OrchestratorOptions {
   knowledge: KnowledgeIndex;
   logger: Logger;
   bus?: EventBus;
+  /** The brain. Absent in tests that only exercise the tool routing. */
+  ai?: AIRouter;
 }
 
 export class HelixOrchestrator {
@@ -118,6 +123,7 @@ export class HelixOrchestrator {
   readonly #memory: MemoryManager;
   readonly #knowledge: KnowledgeIndex;
   readonly #logger: Logger;
+  readonly #ai: AIRouter | undefined;
   readonly #tools: HelixTool[] = [];
 
   constructor(options: OrchestratorOptions) {
@@ -128,6 +134,7 @@ export class HelixOrchestrator {
     this.#memory = options.memory;
     this.#knowledge = options.knowledge;
     this.#logger = options.logger.child('orchestrator');
+    this.#ai = options.ai;
 
     // File search sits just below memory: "search my files for X" is explicit.
     this.registerTool(this.#fileSearchTool());
@@ -214,13 +221,61 @@ export class HelixOrchestrator {
       }
     }
 
-    return this.#unhandled();
+    return this.#converse(request);
   }
 
   /**
    * No tool matched, so this needs a language model. Report the missing
    * dependency instead of inventing a reply.
    */
+  /**
+   * Nothing matched a tool, so this is conversation.
+   *
+   * Runs the local model where one is available, and says plainly what is
+   * missing where none is. The one thing it must never do is compose a reply
+   * itself: a fabricated answer from a model that is not running is the single
+   * worst failure this file could have, and it would be indistinguishable from
+   * a real one.
+   */
+  async #converse(request: HelixRequest): Promise<HelixResponse> {
+    if (!this.#ai) return this.#unhandled();
+
+    const requirement = classify(request.text);
+
+    try {
+      // Short-term context: the conversation so far, so "show me the model"
+      // knows which project was just opened.
+      const conversation = await this.#conversations.get(request.conversationId);
+      const history = (conversation?.messages ?? [])
+        .filter((message) => message.role === 'user' || message.role === 'helix')
+        .slice(-12)
+        .map((message) => ({
+          role: message.role === 'helix' ? ('assistant' as const) : ('user' as const),
+          content: message.text,
+        }));
+
+      const result = await this.#ai.generate(
+        [{ role: 'system', content: SYSTEM_PROMPT }, ...history],
+        requirement,
+      );
+
+      // A substitution is reported rather than hidden. The user asked one
+      // thing to answer and something else did.
+      const note = result.substituted
+        ? `\n\n(${result.model} answered rather than ${result.requestedModel}.${
+            result.capabilityLoss ? ` ${result.capabilityLoss}` : ''
+          })`
+        : '';
+
+      return { text: result.text.trim() + note, handled: true };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.#logger.info('Conversation could not be answered.', { reason });
+
+      return { text: reason, handled: false, failure: 'PROVIDER_NOT_CONFIGURED' };
+    }
+  }
+
   #unhandled(): HelixResponse {
     const provider = this.#settings.get('languageProvider');
 

@@ -21,6 +21,13 @@ import { VoiceManager } from '../voice/VoiceManager.js';
 import { BrowserSpeechRecognition } from '../voice/BrowserSpeechRecognition.js';
 import { LocalWhisperProvider } from '../voice/LocalWhisperProvider.js';
 import { SpeechChain } from '../voice/SpeechChain.js';
+import { AIRouter } from '../ai/AIRouter.js';
+import { OllamaProvider } from '../ai/OllamaProvider.js';
+import { CerebrasProvider } from '../ai/CerebrasProvider.js';
+import {
+  BrowserInferenceTransport,
+  TauriInferenceTransport,
+} from '../ai/transport.js';
 import { BrowserSpeechSynthesis } from '../voice/BrowserSpeechSynthesis.js';
 import { CameraManager } from '../camera/CameraManager.js';
 
@@ -54,6 +61,7 @@ export interface KernelServices {
   readonly knowledge: KnowledgeIndex;
   readonly storage: StorageManager;
   readonly backup: BackupManager;
+  readonly ai: AIRouter;
   readonly outbound: OutboundManager;
   readonly voice: VoiceManager;
   readonly camera: CameraManager;
@@ -260,6 +268,46 @@ export class HelixKernel {
         ? { tts: new BrowserSpeechSynthesis() }
         : {}),
     });
+    /**
+     * The brain.
+     *
+     * Local is primary and cloud is optional, which is the whole point: an
+     * ordinary conversation should not need a paid API, and what someone says
+     * to their own assistant should not have to leave the machine to get an
+     * answer.
+     *
+     * Both providers share one transport, and in a web build that transport
+     * refuses everything - a page cannot hold a credential and cannot reach an
+     * outside origin. Local inference therefore needs the desktop shell too,
+     * even though the model itself is on this machine.
+     */
+    const inferenceTransport =
+      platform.kind === 'tauri' && typeof window !== 'undefined'
+        ? new TauriInferenceTransport({
+            invoke: ((command: string, args?: Record<string, unknown>) => {
+              const global = (window as unknown as Record<string, unknown>)['__TAURI__'] as
+                | { core?: { invoke?: (c: string, a?: Record<string, unknown>) => Promise<unknown> } }
+                | undefined;
+              const invoke = global?.core?.invoke;
+              if (!invoke) return Promise.reject(new Error('The shell command bridge did not load.'));
+              return invoke(command, args);
+            }) as never,
+            // Ollama needs no key, so it counts as configured wherever the
+            // shell can reach it. The shell confirms the rest.
+            configuredProviders: ['ollama'],
+          })
+        : new BrowserInferenceTransport();
+
+    const ai = new AIRouter({
+      providers: [
+        new OllamaProvider({ transport: inferenceTransport }),
+        new CerebrasProvider({ transport: inferenceTransport }),
+      ],
+      preferLocal: settings.get('preferLocalInference'),
+      temperature: settings.get('temperature'),
+      maxOutputTokens: settings.get('maxOutputTokens'),
+    });
+
     const orchestrator = new HelixOrchestrator({
       settings,
       conversations,
@@ -296,6 +344,7 @@ export class HelixKernel {
       memory,
       knowledge,
       storage,
+      ai,
       backup,
       outbound,
       voice,

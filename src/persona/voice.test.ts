@@ -6,6 +6,7 @@ import {
   confirm,
   enquire,
   observe,
+  recentAddressRate,
   regret,
   resetVoice,
   uncertain,
@@ -18,21 +19,21 @@ beforeEach(() => {
 
 describe('addressed', () => {
   it('adds the form of address before terminal punctuation', () => {
-    expect(addressed('The project is open.')).toBe('The project is open, sir.');
-    expect(addressed('Shall I proceed?')).toBe('Shall I proceed, sir?');
+    expect(addressed('The project is open.', { force: true })).toBe('The project is open, sir.');
+    expect(addressed('Shall I proceed?', { force: true })).toBe('Shall I proceed, sir?');
   });
 
   it('does not double up when already addressed', () => {
-    expect(addressed('Very good, sir.')).toBe('Very good, sir.');
-    expect(addressed('Certainly, Sir.')).toBe('Certainly, Sir.');
+    expect(addressed('Very good, sir.', { force: true })).toBe('Very good, sir.');
+    expect(addressed('Certainly, Sir.', { force: true })).toBe('Certainly, Sir.');
   });
 
   it('handles a sentence with no terminal punctuation', () => {
-    expect(addressed('Opening the project')).toBe('Opening the project, sir.');
+    expect(addressed('Opening the project', { force: true })).toBe('Opening the project, sir.');
   });
 
   it('leaves empty input alone', () => {
-    expect(addressed('   ')).toBe('');
+    expect(addressed('   ', { force: true })).toBe('');
   });
 });
 
@@ -159,5 +160,45 @@ describe('tone rules', () => {
     for (const text of samples()) {
       expect(text.length, text).toBeLessThan(140);
     }
+  });
+});
+
+describe('how often Helix says "sir"', () => {
+  beforeEach(resetVoice);
+
+  /**
+   * The brief asks for roughly 20-40% of replies. Below that it stops being
+   * characteristic; above it, "Yes sir / Certainly sir / Of course sir" in
+   * succession reads as a machine performing deference.
+   */
+  it('lands inside the intended range over a long conversation', () => {
+    const lines = Array.from({ length: 60 }, (_, i) => addressed(`Reply number ${i}.`));
+    const withAddress = lines.filter((line) => /\bsir\b/i.test(line)).length;
+    const rate = withAddress / lines.length;
+
+    expect(rate).toBeGreaterThanOrEqual(0.2);
+    expect(rate).toBeLessThanOrEqual(0.4);
+  });
+
+  // The specific failure being designed out: a run of them.
+  it('never addresses twice in a row', () => {
+    const lines = Array.from({ length: 40 }, (_, i) => addressed(`Line ${i}.`));
+
+    for (let i = 1; i < lines.length; i += 1) {
+      const both =
+        /\bsir\b/i.test(lines[i] as string) && /\bsir\b/i.test(lines[i - 1] as string);
+      expect(both, `lines ${i - 1} and ${i}`).toBe(false);
+    }
+  });
+
+  it('does not add a second address to a sentence that already has one', () => {
+    const once = addressed('Very good, sir.', { force: true });
+    expect(once.match(/sir/gi)).toHaveLength(1);
+  });
+
+  it('reports its own recent rate', () => {
+    for (let i = 0; i < 12; i += 1) addressed(`Line ${i}.`);
+    expect(recentAddressRate()).toBeGreaterThan(0);
+    expect(recentAddressRate()).toBeLessThanOrEqual(0.4);
   });
 });

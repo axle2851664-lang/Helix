@@ -28,10 +28,20 @@ struct ProviderSpec {
 enum AuthStyle {
     Bearer,
     XApiKey,
+    /// A service on this machine. No credential exists and none is wanted.
+    None,
 }
 
 /// The providers, and where their credentials come from.
 const PROVIDERS: &[ProviderSpec] = &[
+    // Local first. This is the one that is meant to answer ordinary
+    // conversation, and it reaches nothing beyond this machine.
+    ProviderSpec {
+        id: "ollama",
+        base_url: "http://127.0.0.1:11434",
+        env_var: "",
+        auth: AuthStyle::None,
+    },
     ProviderSpec {
         id: "cerebras",
         base_url: "https://api.cerebras.ai",
@@ -51,6 +61,12 @@ fn spec(id: &str) -> Option<&'static ProviderSpec> {
 }
 
 fn key_for(provider: &ProviderSpec) -> Option<String> {
+    if matches!(provider.auth, AuthStyle::None) {
+        // Not a secret, and not absent either: there is simply nothing to
+        // present. Returning a placeholder keeps the "is this usable" check
+        // in one place rather than special-casing it at every call site.
+        return Some(String::new());
+    }
     std::env::var(provider.env_var).ok().filter(|value| !value.trim().is_empty())
 }
 
@@ -107,10 +123,18 @@ pub async fn inference_request(
         ))
     })?;
 
+    // A local runtime that is not running is the commonest failure here, and
+    // "connection refused" is not a sentence anyone can act on.
+    let local = matches!(provider.auth, AuthStyle::None);
+
     // Only paths Helix constructs are allowed through. Joining an arbitrary
     // caller-supplied path onto a base URL is how a request ends up somewhere
     // nobody intended.
-    if !request.path.starts_with("/v1/") || request.path.contains("..") {
+    let allowed_prefix = match provider.auth {
+        AuthStyle::None => "/api/",
+        _ => "/v1/",
+    };
+    if !request.path.starts_with(allowed_prefix) || request.path.contains("..") {
         return Err(InferenceError::from(format!(
             "Refused an unexpected inference path: {}",
             request.path
@@ -134,6 +158,10 @@ pub async fn inference_request(
             headers.insert("x-api-key", key.clone());
             headers.insert("anthropic-version", "2023-06-01".to_string());
         }
+        // Nothing to attach. A local service on the loopback interface is not
+        // authenticated and should not be handed a credential it never asked
+        // for.
+        AuthStyle::None => {}
     }
 
     let mut builder = builder;
@@ -144,7 +172,13 @@ pub async fn inference_request(
     let response = builder
         .send()
         .await
-        .map_err(|error| InferenceError::from(format!("Could not reach {}: {error}", provider.id)))?;
+        .map_err(|error| {
+            InferenceError::from(if local {
+                "The local AI service is not running. Start it and try again.".to_string()
+            } else {
+                format!("Could not reach {}: {error}", provider.id)
+            })
+        })?;
 
     let status = response.status();
     let text = response

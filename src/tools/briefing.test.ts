@@ -52,10 +52,17 @@ describe('the two halves of a reply', () => {
     }
   });
 
-  it('addresses the user, as asked', () => {
-    for (const reply of cards()) {
-      expect(reply.spoken.toLowerCase(), reply.spoken).toContain('sir');
-    }
+  /**
+   * The address is now deliberately intermittent. Requiring it on every reply
+   * is what made Helix read as a parody of a butler rather than as one, so the
+   * assertion is that it appears at all rather than that it appears always.
+   */
+  it('addresses the user sometimes, not relentlessly', () => {
+    const spoken = cards().map((reply) => reply.spoken.toLowerCase());
+    const withAddress = spoken.filter((line) => line.includes('sir')).length;
+
+    expect(withAddress).toBeGreaterThan(0);
+    expect(withAddress).toBeLessThan(spoken.length);
   });
 
   // A card that hides what it cannot tell you is worse than no card.
