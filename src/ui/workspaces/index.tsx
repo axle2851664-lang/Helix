@@ -9,6 +9,7 @@ import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
 import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
 import { StorageWorkspace } from '../storage/StorageWorkspace.js';
 import { EarthWorkspace } from '../earth/EarthWorkspace.js';
+import { ModelsWorkspace } from '../ai/ModelsWorkspace.js';
 import { CameraWorkspace } from '../camera/CameraWorkspace.js';
 import { SpatialWorkspace } from '../spatial/SpatialWorkspace.js';
 import { GraphWorkspace } from '../graph/GraphWorkspace.js';
@@ -79,6 +80,8 @@ export function WorkspaceView({
       return <CameraWorkspace />;
     case 'spatial':
       return <SpatialWorkspace />;
+    case 'models':
+      return <ModelsWorkspace />;
     case 'graph':
       return <GraphWorkspace />;
     default: {

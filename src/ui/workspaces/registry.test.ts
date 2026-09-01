@@ -32,6 +32,7 @@ describe('workspace registry', () => {
       'gesture-control',
       'spatial',
       'graph',
+      'models',
       'settings',
     ]);
   });
@@ -50,6 +51,7 @@ describe('workspace registry', () => {
       'graph',
       'home',
       'memory',
+      'models',
       'settings',
       'spatial',
       'storage',

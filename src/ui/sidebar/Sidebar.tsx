@@ -25,6 +25,7 @@ const ICONS: Record<WorkspaceId, IconName> = {
   'gesture-control': 'gesture',
   spatial: 'image',
   graph: 'activity',
+  models: 'chip',
   settings: 'gear',
   system: 'activity',
 };

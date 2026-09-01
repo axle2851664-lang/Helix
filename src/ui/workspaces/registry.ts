@@ -24,6 +24,7 @@ export const WORKSPACE_IDS = [
   'gesture-control',
   'spatial',
   'graph',
+  'models',
   'settings',
   'system',
 ] as const;
@@ -157,6 +158,15 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     subtitle: 'Your notes and the links between them.',
     aliases: ['vault', 'notes graph', 'links', 'map of notes', 'knowledge graph'],
     phase: 4,
+    implemented: true,
+    inSidebar: true,
+  },
+  models: {
+    id: 'models',
+    title: 'Local AI',
+    subtitle: 'Models on this machine, and what will fit.',
+    aliases: ['models', 'local ai', 'local model', 'ollama', 'brain', 'llm'],
+    phase: 6,
     implemented: true,
     inSidebar: true,
   },
