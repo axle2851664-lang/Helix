@@ -101,6 +101,30 @@ function nextTurn(): number {
   return turn;
 }
 
+/**
+ * May a reply Helix did not compose keep its form of address?
+ *
+ * The rate rule above governs Helix's own scripted sentences, and a language
+ * model's replies were outside it entirely - which showed. Measured on
+ * qwen2.5:3b with the full persona prompt, and with that prompt asking in
+ * plain words for roughly a third: "sir" appeared in five replies out of six.
+ *
+ * The same rolling window therefore governs both, so the two halves of Helix's
+ * voice cannot drift apart. The outcome is recorded either way, because a
+ * window that only counted the replies it approved would never fall back below
+ * target and would refuse the address forever after.
+ */
+export function allowAddressInReply(replyHasAddress: boolean): boolean {
+  if (!replyHasAddress) {
+    recordAddress(false);
+    return false;
+  }
+
+  const allowed = shouldAddress();
+  recordAddress(allowed);
+  return allowed;
+}
+
 /** Append the form of address, unless the sentence already carries one. */
 export function addressed(sentence: string, options: { force?: boolean } = {}): string {
   const trimmed = sentence.trim();

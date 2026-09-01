@@ -24,6 +24,7 @@ import { SpeechChain } from '../voice/SpeechChain.js';
 import { AIRouter } from '../ai/AIRouter.js';
 import { OllamaProvider } from '../ai/OllamaProvider.js';
 import { CerebrasProvider } from '../ai/CerebrasProvider.js';
+import { assessInstalledModels, preferredLocalModel } from '../ai/localModels.js';
 import {
   BrowserInferenceTransport,
   TauriInferenceTransport,
@@ -317,7 +318,40 @@ export class HelixKernel {
       knowledge,
       logger,
       bus,
+      // Without this the router was built, reported in the status panel, and
+      // never asked anything: every conversational message fell through to
+      // "no language provider is configured" while a model sat running on the
+      // machine. Wiring, not capability, was the whole of that fault.
+      ai,
     });
+
+    // Teach the registry what is actually installed.
+    //
+    // Backgrounded on purpose. Probing the runtime takes a round trip and
+    // sometimes a timeout, and startup must not wait on a service that may not
+    // be running - the seeded local entry is `unavailable`, so until this
+    // lands the router simply has no local model and says so.
+    void (async () => {
+      const local = ai.provider('ollama');
+      if (!local) return;
+
+      try {
+        const installed = await local.getAvailableModels();
+        if (installed.length === 0) return;
+
+        const hardware = await platform.getHardwareProfile();
+        const assessed = assessInstalledModels(installed, hardware);
+        ai.registry.replaceProviderModels('ollama', assessed);
+
+        logger.info('Local models registered.', {
+          installed: assessed.length,
+          usable: assessed.filter((model) => model.status !== 'unavailable').length,
+          chosen: preferredLocalModel(assessed)?.id ?? null,
+        });
+      } catch (error) {
+        logger.debug('Local model probe failed; the placeholder entry stands.', error);
+      }
+    })();
 
     // Newly imported files are indexed in the background. Indexing failures
     // are recorded on the document, not thrown at the import, so a file that

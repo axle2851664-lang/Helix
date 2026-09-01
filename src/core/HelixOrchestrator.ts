@@ -10,6 +10,7 @@ import { formatContext, getModelOrDefault, resolveModel } from '../models/catalo
 import type { MemoryManager } from '../memory/MemoryManager.js';
 import type { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import {
+  allowAddressInReply,
   confirm,
   enquire,
   observe,
@@ -34,6 +35,7 @@ import { scanForInjection } from '../guardrails/untrusted.js';
 import type { AIRouter } from '../ai/AIRouter.js';
 import { classify } from '../ai/AIRouter.js';
 import { SYSTEM_PROMPT } from '../persona/systemPrompt.js';
+import { repair } from '../persona/register.js';
 
 /**
  * The Helix orchestration seam (spec: UI -> ORCHESTRATOR -> TOOLS).
@@ -44,11 +46,20 @@ import { SYSTEM_PROMPT } from '../persona/systemPrompt.js';
  *   3. Executes the tool when one matches and is available.
  *   4. Reports the outcome, tracking it as a real activity.
  *
- * What it explicitly does NOT do: answer questions. Conversation requires a
- * language provider, and none is implemented yet. Rather than emit a canned
- * reply that looks like an answer, an unroutable request returns a failure
- * naming the missing dependency. This is the single most important behaviour in
- * the file - a plausible fake answer would be worse than no answer.
+ *   5. Sends anything no tool claimed to a language model, and puts the reply
+ *      through the register check in `persona/register.ts` before it is shown.
+ *
+ * Point 5 was written before there was a model to send it to, and said so.
+ * There is one now - it runs on this machine - but the rule it was protecting
+ * has not moved an inch: when no provider can answer, this returns a failure
+ * naming the missing dependency and never a canned reply that looks like an
+ * answer. A plausible fake is worse than no answer, and the register pass is
+ * held to the same line: it may delete a phrase from a fixed list, and it may
+ * never write a sentence of its own.
+ *
+ * Tools are tried first and the model only sees what none of them claimed.
+ * That ordering is what keeps "open my Iron Man project" a real action rather
+ * than a model saying it opened something.
  *
  * Tools are registered rather than hard-coded so later phases add capability
  * without editing this class (spec: "Do NOT hard-code every command").
@@ -267,7 +278,27 @@ export class HelixOrchestrator {
           })`
         : '';
 
-      return { text: result.text.trim() + note, handled: true };
+      // The persona prompt asks for Helix's register; this is what checks it
+      // arrived. A small local model answers "Affirmative, sir" however plainly
+      // the prompt forbids it, and `repair` removes that phrasing without ever
+      // writing a sentence of its own - so what the model actually said still
+      // reaches the user, in Helix's voice rather than a console's.
+      const raw = result.text.trim();
+      const spoken = repair(raw, {
+        // The same rolling window that governs Helix's own sentences, so a
+        // model that reaches for "sir" every time is brought back to the rate
+        // rather than left to set it.
+        allowAddress: allowAddressInReply(/\bsir\b/i.test(raw)),
+      });
+      if (spoken.findings.length > 0) {
+        this.#logger.debug('Register corrected on a model reply.', {
+          model: result.model,
+          faults: spoken.findings.map((finding) => finding.fault),
+          wholesale: spoken.wholesale,
+        });
+      }
+
+      return { text: spoken.text + note, handled: true };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       this.#logger.info('Conversation could not be answered.', { reason });

@@ -161,20 +161,50 @@ describe('assessFit', () => {
 
     const sevenB = assessFit(footprintFromName('qwen2.5:7b'), measured);
     expect(sevenB.verdict).toBe('will-not-fit');
-    expect(sevenB.message).toContain('free now');
 
     // The 3B that actually ran well is not refused.
     expect(assessFit(footprintFromName('qwen2.5:3b'), measured).verdict).not.toBe('will-not-fit');
   });
 
+  /**
+   * A refusal has to say which kind it is.
+   *
+   * These two assertions used to sit on the 7B above, back when there was only
+   * one way to fail. That conflated a machine that cannot run a model with a
+   * machine that cannot run it this minute, and the consequence was not
+   * cosmetic: marking every installed model unavailable during a momentary
+   * memory spike left Helix unable to speak for the rest of the session. The
+   * free-memory basis belongs on the temporary verdict, which is the one it
+   * actually governs; the permanent one is a fact about the hardware and
+   * quoting a passing reading in it would be misleading.
+   */
+  it('separates a machine that cannot from a moment that will not', () => {
+    const machine = { ...thisMachine, availableMemoryBytes: 1.1 * 1024 ** 3 };
+
+    // Needs more than this machine has spare at any time.
+    const sevenB = assessFit(footprintFromName('qwen2.5:7b'), machine);
+    expect(sevenB.verdict).toBe('will-not-fit');
+    expect(sevenB.message).toContain('whatever else is closed');
+
+    // Fits the machine; does not fit this instant. Measured on the day, with
+    // 1.1 GB free of 7.8.
+    const threeB = assessFit(footprintFromName('qwen2.5:3b'), machine);
+    expect(threeB.verdict).toBe('not-right-now');
+    expect(threeB.message).toContain('free now');
+    expect(threeB.message).toContain('once something else is closed');
+  });
+
   it('says whether the free figure was measured or assumed', () => {
-    const assumed = assessFit(footprintFromName('llama2:13b'), thisMachine);
-    const measured = assessFit(footprintFromName('llama2:13b'), {
+    const assumed = assessFit(footprintFromName('qwen2.5:3b'), {
       ...thisMachine,
-      availableMemoryBytes: 2.3 * 1024 ** 3,
+      availableMemoryBytes: null,
+    });
+    const measured = assessFit(footprintFromName('qwen2.5:3b'), {
+      ...thisMachine,
+      availableMemoryBytes: 1.1 * 1024 ** 3,
     });
 
-    expect(assumed.message).toContain('estimated free');
+    expect(assumed.message).not.toContain('free now');
     expect(measured.message).toContain('free now');
   });
 

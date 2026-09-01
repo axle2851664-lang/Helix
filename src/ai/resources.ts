@@ -25,7 +25,27 @@ export interface ModelFootprint {
   diskBytes: number | null;
 }
 
-export type FitVerdict = 'comfortable' | 'tight' | 'will-not-fit' | 'unknown';
+/**
+ * `not-right-now` is the distinction this type gained late, and it matters.
+ *
+ * Free memory is a reading, not a property. Taken at the wrong second on this
+ * machine it said 1.1 GB, and on that basis every installed model was marked
+ * unavailable - which would have left Helix unable to speak for the rest of
+ * the session because of a momentary spike, with two perfectly serviceable
+ * models sitting on the disk.
+ *
+ * So the two questions are asked separately. `will-not-fit` means the machine
+ * does not have the memory at all, and closing things will not help. It is a
+ * fact about the hardware and it does not change. `not-right-now` means the
+ * memory exists but is currently spoken for; it is a fact about this moment,
+ * it will be different in a minute, and it must never be treated as permanent.
+ */
+export type FitVerdict =
+  | 'comfortable'
+  | 'tight'
+  | 'not-right-now'
+  | 'will-not-fit'
+  | 'unknown';
 
 export interface FitAssessment {
   verdict: FitVerdict;
@@ -60,6 +80,23 @@ const BYTES_PER_PARAMETER: Record<Exclude<Quantisation, 'unknown'>, number> = {
  * cannot.
  */
 const ASSUMED_RESERVE_BYTES = 4.5 * 1024 ** 3;
+
+/**
+ * What this machine keeps for itself no matter what the user closes.
+ *
+ * The same figure as the reserve above, and deliberately so - it is one
+ * measurement answering two questions. Measured on the machine this was
+ * written for: at rest, with nothing the user would think of as open, between
+ * five and seven gigabytes of its 7.8 are already in use by Windows, its
+ * services and the browser. A model needing more than the remainder is not
+ * waiting for a good moment; there is no good moment.
+ *
+ * This is what separates a permanent refusal from a temporary one, and getting
+ * it wrong in either direction has a cost: too high and a usable model is
+ * rejected forever, too low and the 7B that ran at 0.2 tokens per second gets
+ * offered again.
+ */
+const HARD_FLOOR_BYTES = ASSUMED_RESERVE_BYTES;
 
 /**
  * Fraction of free memory a model may occupy before it is called tight.
@@ -173,11 +210,23 @@ export function assessFit(
   const basis = measured !== null ? 'free now' : 'estimated free';
   const approximate = hardware.memoryIsApproximate ? ' The memory figure is approximate.' : '';
 
-  if (needed > usable) {
+  // What the machine could ever offer, regardless of what is running. This is
+  // the question that decides whether a model is permanently out of reach.
+  const ceiling = total - HARD_FLOOR_BYTES;
+
+  if (needed > ceiling) {
     return {
       verdict: 'will-not-fit',
       estimatedBytes: needed,
-      message: `This needs roughly ${gigabytes(needed)}, and about ${gigabytes(Math.max(0, usable))} is ${basis} on a ${gigabytes(total)} machine. It would swap to disk and crawl rather than fail outright.${approximate}`,
+      message: `This needs roughly ${gigabytes(needed)}, and this ${gigabytes(total)} machine cannot spare that much whatever else is closed. It would swap to disk and crawl rather than fail outright.${approximate}`,
+    };
+  }
+
+  if (needed > usable) {
+    return {
+      verdict: 'not-right-now',
+      estimatedBytes: needed,
+      message: `This needs roughly ${gigabytes(needed)} and only about ${gigabytes(Math.max(0, usable))} is ${basis}. It will fit once something else is closed; it is the moment that is wrong, not the machine.${approximate}`,
     };
   }
 
