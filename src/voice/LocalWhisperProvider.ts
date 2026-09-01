@@ -135,9 +135,19 @@ export class LocalWhisperProvider implements SpeechToTextProvider {
       // genuinely on-device.
       transformers.env.allowRemoteModels = false;
       transformers.env.allowLocalModels = true;
-      // Resolved against the page, not the importing module: a relative path
-      // here resolves inside node_modules and 404s.
-      transformers.env.localModelPath = new URL('models/', document.baseURI).href;
+      // Resolved against the page, not the importing module: a bare relative
+      // path here resolves inside node_modules and 404s.
+      //
+      // `.pathname`, emphatically not `.href`. transformers.js only probes for
+      // a local file when the configured path is *not* an absolute http(s)
+      // URL - see `_get_file_metadata`, which guards the whole local branch
+      // with `if (!isURL)`. Given an absolute URL it skips the check, decides
+      // tokenizer_config.json does not exist, and returns an empty file list.
+      // The tokenizer and processor then come back undefined, and the failure
+      // finally surfaces much later as "Cannot read properties of null
+      // (reading 'feature_extractor')" the first time anything is transcribed.
+      // A root-relative path satisfies both constraints at once.
+      transformers.env.localModelPath = new URL('models/', document.baseURI).pathname;
 
       // Without this, onnxruntime-web fetches its WASM backend from a CDN,
       // which the content security policy blocks. The failure then reads as

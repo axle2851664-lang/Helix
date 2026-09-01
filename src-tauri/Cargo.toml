@@ -22,6 +22,11 @@ serde_json = "1"
 # tell the truth in a browser: an origin quota is not free disk space, and
 # nothing in a page can see the difference.
 sysinfo = "0.32"
+# Inference requests are made here rather than in the web view, because this
+# is the only side of the boundary where an API key can be held without being
+# readable by the page.
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+tokio = { version = "1", features = ["macros"] }
 
 [features]
 # Kept so a release build can be produced without the devtools payload.

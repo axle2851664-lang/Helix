@@ -20,6 +20,7 @@ import { OutboundManager } from '../outbound/OutboundManager.js';
 import { VoiceManager } from '../voice/VoiceManager.js';
 import { BrowserSpeechRecognition } from '../voice/BrowserSpeechRecognition.js';
 import { LocalWhisperProvider } from '../voice/LocalWhisperProvider.js';
+import { SpeechChain } from '../voice/SpeechChain.js';
 import { BrowserSpeechSynthesis } from '../voice/BrowserSpeechSynthesis.js';
 import { CameraManager } from '../camera/CameraManager.js';
 
@@ -223,11 +224,38 @@ export class HelixKernel {
       isOnline: () => platform.isOnline(),
       // 'local' keeps audio on the machine; 'browser' streams it to Google.
       // The default is local, so privacy is not something to opt into.
-      ...(settings.get('speechToTextProvider') === 'browser'
-        ? BrowserSpeechRecognition.isSupported()
-          ? { stt: new BrowserSpeechRecognition() }
-          : {}
-        : { stt: new LocalWhisperProvider() }),
+      //
+      // Local first, with the browser provider behind it as a fallback - and
+      // that fallback only runs when the user has explicitly chosen the
+      // browser provider. Falling back from Whisper to Google silently would
+      // move the user's voice off the machine because the local model had a
+      // bad moment, which is not a trade anything should make on their behalf.
+      ...(() => {
+        const wantsBrowser = settings.get('speechToTextProvider') === 'browser';
+        const browserUsable = BrowserSpeechRecognition.isSupported();
+
+        const providers = wantsBrowser && browserUsable
+          ? [new BrowserSpeechRecognition()]
+          : browserUsable
+            ? [new LocalWhisperProvider(), new BrowserSpeechRecognition()]
+            : [new LocalWhisperProvider()];
+
+        return {
+          stt: new SpeechChain({
+            providers,
+            // Never true by default. The setting is the user saying so.
+            allowRemoteFallback: wantsBrowser,
+            onProviderChange: (report) => {
+              if (report.fellBackBecause === null) return;
+              logger.warn('Speech fell back to another provider.', {
+                provider: report.provider.name,
+                because: report.fellBackBecause,
+                movesAudioOffDevice: report.escalatesPrivacy,
+              });
+            },
+          }),
+        };
+      })(),
       ...(BrowserSpeechSynthesis.isSupported()
         ? { tts: new BrowserSpeechSynthesis() }
         : {}),

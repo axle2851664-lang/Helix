@@ -3,6 +3,7 @@ import { Icon, type IconName } from '../components/Icon.js';
 import { useHelix, useSettings } from '../HelixProvider.js';
 import type { Activity } from '../../core/ActivityManager.js';
 import { formatContext, getModelOrDefault } from '../../models/catalog.js';
+import { ModelRegistry } from '../../ai/registry.js';
 
 /**
  * The Helix status panel.
@@ -35,6 +36,8 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
   const settings = useSettings([
     'languageProvider',
     'languageModel',
+    'inferenceProvider',
+    'preferLocalInference',
     'speechToTextProvider',
     'visionProvider',
     'offlineMode',
@@ -89,6 +92,31 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
   const durable = (store as { durable?: boolean }).durable ?? false;
   const model = getModelOrDefault(settings.languageModel);
 
+  // The registry knows which provider serves which model, so the two rows
+  // below cannot drift apart or be filled from the same value.
+  const registry = new ModelRegistry();
+  const selectedModel = registry.get(settings.languageModel);
+  const providerId = settings.inferenceProvider;
+
+  const inferenceLabel =
+    providerId === 'none'
+      ? 'Not configured'
+      : providerId === 'cerebras'
+        ? 'Cerebras'
+        : providerId === 'anthropic'
+          ? 'Anthropic'
+          : 'Local inference';
+
+  // Nothing can actually run yet in a web build, and the reason differs by
+  // provider. Saying "Connected" here would be the one claim this panel has
+  // spent every phase refusing to make.
+  const inferenceDetail =
+    providerId === 'none'
+      ? 'Choose an inference provider in Settings'
+      : providerId === 'local'
+        ? 'No local runtime installed'
+        : `${inferenceLabel} inference is not configured`;
+
   const rows: StatusRow[] = [
     {
       key: 'system',
@@ -102,12 +130,23 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
       key: 'model',
       icon: 'chip',
       label: 'AI MODEL',
-      // The selected model is real and persisted; the connection is not built.
-      // Showing the model name alongside "not connected" keeps both facts visible,
-      // so switching models never reads as having connected to one.
-      value: model.name,
+      // The model, and only the model. Cerebras is not a model and must never
+      // appear on this row - it runs models other people trained.
+      value: selectedModel?.name ?? model.name,
       tone: 'off',
-      detail: `${formatContext(model.contextTokens)} context - not connected, no API key`,
+      detail: selectedModel
+        ? `${selectedModel.family} by ${selectedModel.author} - ${formatContext(selectedModel.contextLength)} context`
+        : `${formatContext(model.contextTokens)} context`,
+    },
+    {
+      key: 'inference',
+      icon: 'activity',
+      label: 'INFERENCE',
+      // The infrastructure that would run it. A separate fact with a separate
+      // failure: a configured model with no provider is not a working setup.
+      value: inferenceLabel,
+      tone: 'off',
+      detail: inferenceDetail,
     },
     {
       key: 'memory',

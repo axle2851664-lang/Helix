@@ -222,13 +222,86 @@ export const SETTINGS_SCHEMA = {
     optionLabels: { none: 'None', local: 'Local model', cloud: 'Cloud provider' },
     default: 'none',
   },
+  /**
+   * Which infrastructure runs the model.
+   *
+   * Separate from the model itself, deliberately. Cerebras is not a model; it
+   * is a service that runs Llama, Qwen and gpt-oss. Collapsing these two
+   * settings into one is what produces a status panel reading
+   * "AI MODEL: Cerebras".
+   */
+  inferenceProvider: {
+    kind: 'enum',
+    section: 'providers',
+    label: 'Inference provider',
+    description: 'The infrastructure that runs the model. Not the model itself.',
+    options: ['none', 'local', 'cerebras', 'anthropic'],
+    optionLabels: {
+      none: 'None',
+      local: 'Local inference (on this machine)',
+      cerebras: 'Cerebras',
+      anthropic: 'Anthropic',
+    },
+    default: 'none',
+  },
+  /** Used when the chosen provider fails or is over its limit. */
+  fallbackInferenceProvider: {
+    kind: 'enum',
+    section: 'providers',
+    label: 'Fallback provider',
+    description: 'Used when the first choice fails. Helix always says when it falls back.',
+    options: ['none', 'local', 'cerebras', 'anthropic'],
+    optionLabels: {
+      none: 'None',
+      local: 'Local inference (on this machine)',
+      cerebras: 'Cerebras',
+      anthropic: 'Anthropic',
+    },
+    default: 'none',
+  },
+  preferLocalInference: {
+    kind: 'boolean',
+    section: 'providers',
+    label: 'Prefer local inference',
+    description:
+      'Use a local model when one is configured, whatever else is available. Your words stay on this machine.',
+    default: true,
+  },
+  temperature: {
+    kind: 'number',
+    section: 'providers',
+    label: 'Temperature',
+    description: 'Higher is more varied. Lower is more repeatable.',
+    min: 0,
+    max: 2,
+    step: 0.1,
+    default: 0.7,
+  },
+  maxOutputTokens: {
+    kind: 'number',
+    section: 'providers',
+    label: 'Maximum output tokens',
+    description: 'The longest reply Helix will ask for.',
+    min: 256,
+    max: 128_000,
+    step: 256,
+    default: 4096,
+  },
   languageModel: {
     kind: 'enum',
     section: 'providers',
     label: 'Claude model',
     description:
       'Which Claude model Helix uses. Switch it here, or say "switch to Sonnet" on the home screen.',
-    options: ['claude-opus-5', 'claude-sonnet-5', 'claude-haiku-4-5'],
+    options: [
+      'claude-opus-5',
+      'claude-sonnet-5',
+      'claude-haiku-4-5',
+      'gpt-oss-120b',
+      'llama-3.3-70b',
+      'qwen-3-32b',
+      'local-gguf',
+    ],
     optionLabels: {
       'claude-opus-5': 'Opus 5 - most capable',
       'claude-sonnet-5': 'Sonnet 5 - balanced',

@@ -22,6 +22,8 @@
 //! that Helix never writes outside its own folders survives the move only if
 //! this file refuses to offer the means.
 
+mod inference;
+
 use serde::Serialize;
 use sysinfo::Disks;
 
@@ -102,7 +104,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             volume_stats,
             total_memory,
-            shell_version
+            shell_version,
+            inference::configured_inference_providers,
+            inference::inference_request
         ])
         .run(tauri::generate_context!())
         .expect("error while running Helix");
