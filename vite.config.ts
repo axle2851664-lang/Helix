@@ -32,6 +32,12 @@ export default defineConfig({
         '**/public/models/**',
         '**/public/onnx/**',
         '**/public/pdfjs/**',
+        // The Rust tree, for the same reason and worse. `target` runs to
+        // several gigabytes, and cargo rewrites executables inside it while
+        // the dev server is running, so watching it fails with EBUSY and
+        // takes the server down in the middle of a build. Tauri watches
+        // src-tauri itself; Vite has no business in there at all.
+        '**/src-tauri/**',
       ],
     },
   },

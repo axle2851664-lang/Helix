@@ -30,6 +30,20 @@ export interface SpeechRecognitionResult {
   confidence: number | null;
 }
 
+/**
+ * A speech failure.
+ *
+ * `message` is for the user and must stay calm and actionable. `cause` is
+ * for the log and is never shown: it exists because this error was once
+ * reported with the reason discarded, which made it the one failure in the
+ * voice path that could not be diagnosed from a log.
+ */
+export interface SpeechRecognitionError {
+  code: string;
+  message: string;
+  cause?: string;
+}
+
 export interface SpeechToTextProvider {
   readonly id: string;
   readonly name: string;
@@ -51,7 +65,7 @@ export interface SpeechToTextProvider {
    */
   start(handlers: {
     onResult: (result: SpeechRecognitionResult) => void;
-    onError: (error: { code: string; message: string }) => void;
+    onError: (error: SpeechRecognitionError) => void;
     onEnd: () => void;
   }): Promise<void>;
 

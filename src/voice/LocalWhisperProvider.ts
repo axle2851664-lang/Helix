@@ -1,5 +1,6 @@
 import type {
   ProviderAvailability,
+  SpeechRecognitionError,
   SpeechRecognitionResult,
   SpeechToTextProvider,
 } from './types.js';
@@ -187,7 +188,7 @@ export class LocalWhisperProvider implements SpeechToTextProvider {
 
   async start(handlers: {
     onResult: (result: SpeechRecognitionResult) => void;
-    onError: (error: { code: string; message: string }) => void;
+    onError: (error: SpeechRecognitionError) => void;
     onEnd: () => void;
   }): Promise<void> {
     const availability = this.isAvailable();
@@ -264,7 +265,7 @@ export class LocalWhisperProvider implements SpeechToTextProvider {
   /** Transcribe the captured audio and report the result. */
   async #finish(handlers: {
     onResult: (result: SpeechRecognitionResult) => void;
-    onError: (error: { code: string; message: string }) => void;
+    onError: (error: SpeechRecognitionError) => void;
     onEnd: () => void;
   }): Promise<void> {
     const chunks = this.#chunks;
@@ -298,11 +299,18 @@ export class LocalWhisperProvider implements SpeechToTextProvider {
         });
       }
     } catch (error) {
+      // The cause used to be discarded here, which made this the one failure
+      // in the voice path that could not be diagnosed: the log said
+      // "transcription-failed" and nothing else, however many times it
+      // happened. The user-facing message stays calm and unchanged; the
+      // reason now travels with it.
+      const cause = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+
       handlers.onError({
         code: 'transcription-failed',
         message: 'The recording could not be transcribed.',
+        cause,
       });
-      void error;
     } finally {
       handlers.onEnd();
     }

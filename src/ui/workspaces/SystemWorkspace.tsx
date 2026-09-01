@@ -36,11 +36,22 @@ export function SystemWorkspace() {
   const [helixUsage, setHelixUsage] = useState<number | null>(null);
   const [logs, setLogs] = useState<readonly LogRecord[]>([]);
   const [previewStatus, setPreviewStatus] = useState<HelixStatus>('IDLE');
+  const [shellVersion, setShellVersion] = useState<string | null>(null);
 
   useEffect(() => {
     void platform.getHardwareProfile().then(setHardware);
     void platform.getVolumeStats().then(setVolume);
     void store.estimateSize().then(setHelixUsage);
+
+    // Asked of the shell rather than inferred from a global. Detection is a
+    // probe and a probe can be wrong; this is the shell stating its own
+    // version, so a window that merely looks like one cannot claim to be it.
+    const asShell = platform as { shellVersion?: () => Promise<string | null> };
+    if (typeof asShell.shellVersion === 'function') {
+      void asShell.shellVersion().then(setShellVersion);
+    } else {
+      setShellVersion(null);
+    }
   }, [platform, store]);
 
   // The log buffer is mutated in place, so poll a snapshot rather than
@@ -69,7 +80,16 @@ export function SystemWorkspace() {
 
       <section className="helix-panel">
         <h2 className="helix-panel__title">Host</h2>
-        <Row label="Shell" value={platform.kind === 'browser' ? 'Browser (Tauri shell pending)' : platform.kind} />
+        <Row
+          label="Shell"
+          value={
+            platform.kind === 'browser'
+              ? 'Browser (Tauri shell pending)'
+              : shellVersion
+                ? `Tauri desktop shell ${shellVersion}`
+                : 'Tauri window, but its command bridge did not answer'
+          }
+        />
         <Row label="Portable mode" value={paths.isPortable ? 'On' : 'Off'} />
         <Row label="Data root" value={paths.dataRoot} mono />
         <Row

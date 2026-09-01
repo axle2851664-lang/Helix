@@ -212,7 +212,7 @@ export class VoiceManager {
           // "no-speech" is an ordinary outcome, not a failure to report loudly.
           if (error.code !== 'no-speech' && error.code !== 'aborted') {
             this.#error = error.message;
-            this.#logger.warn('Speech recognition error.', { code: error.code });
+            this.#logger.warn('Speech recognition error.', { code: error.code, cause: error.cause });
           }
           this.#setState('error');
         },
