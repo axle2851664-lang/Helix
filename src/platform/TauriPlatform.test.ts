@@ -103,7 +103,7 @@ describe('volume statistics', () => {
 
 describe('hardware profile', () => {
   it('takes memory from the shell and stops calling it approximate', async () => {
-    const profile = await shell({ total_memory: 8_000_000_000 }).getHardwareProfile();
+    const profile = await shell({ total_memory: 8_000_000_000, available_memory: 3_000_000_000 }).getHardwareProfile();
 
     expect(profile.totalMemoryBytes).toBe(8_000_000_000);
     expect(profile.memoryIsApproximate).toBe(false);
@@ -112,7 +112,7 @@ describe('hardware profile', () => {
   // The shell could read it with another dependency. Until it does, null is
   // the honest answer and an invented figure would be worse than none.
   it('still reports VRAM as unknown', async () => {
-    expect((await shell({ total_memory: 8e9 }).getHardwareProfile()).vramBytes).toBeNull();
+    expect((await shell({ total_memory: 8e9, available_memory: 3e9 }).getHardwareProfile()).vramBytes).toBeNull();
   });
 
   it('keeps the browser reading when the command fails', async () => {

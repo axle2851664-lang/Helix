@@ -180,12 +180,17 @@ export class TauriPlatform implements PlatformAdapter {
     if (!this.#invoke) return base;
 
     try {
-      const totalMemoryBytes = await this.#invoke<number>('total_memory');
+      const [totalMemoryBytes, availableMemoryBytes] = await Promise.all([
+        this.#invoke<number>('total_memory'),
+        this.#invoke<number>('available_memory'),
+      ]);
       return {
         ...base,
         totalMemoryBytes,
         // No longer a capped browser hint.
         memoryIsApproximate: false,
+        // The figure that decides whether a model runs or swaps.
+        availableMemoryBytes,
       };
     } catch {
       return base;

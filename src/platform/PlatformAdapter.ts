@@ -56,6 +56,13 @@ export interface HardwareProfile {
   totalMemoryBytes: number | null;
   /** True when `totalMemoryBytes` is an approximation rather than a real reading. */
   memoryIsApproximate: boolean;
+  /**
+   * Memory free right now. Null where the host cannot measure it.
+   *
+   * Kept separate from the total because they answer different questions, and
+   * only this one decides whether a model will actually run rather than swap.
+   */
+  availableMemoryBytes: number | null;
   gpuRenderer: string | null;
   gpuVendor: string | null;
   /** Dedicated VRAM in bytes. Not measurable from a browser; expect null. */

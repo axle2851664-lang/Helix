@@ -59,8 +59,12 @@ export function ModelsWorkspace() {
   }, [refresh, platform]);
 
   const memory = hardware
-    ? { totalMemoryBytes: hardware.totalMemoryBytes, memoryIsApproximate: hardware.memoryIsApproximate }
-    : { totalMemoryBytes: null, memoryIsApproximate: false };
+    ? {
+        totalMemoryBytes: hardware.totalMemoryBytes,
+        memoryIsApproximate: hardware.memoryIsApproximate,
+        availableMemoryBytes: hardware.availableMemoryBytes,
+      }
+    : { totalMemoryBytes: null, memoryIsApproximate: false, availableMemoryBytes: null };
 
   const recommended = largestComfortableModel(memory);
 

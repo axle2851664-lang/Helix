@@ -88,6 +88,21 @@ fn total_memory() -> u64 {
     system.total_memory()
 }
 
+/// Memory actually free right now, in bytes.
+///
+/// This is the figure that decides whether a model will run, and it is not the
+/// same question as how much the machine has. A 7B needing five gigabytes on a
+/// machine with under three free does not fail - it swaps, and appears to have
+/// hung. Measured here rather than assumed from a fixed reserve, because the
+/// reserve was wrong: on this machine it guessed 4.8 GB usable where 2.3 GB
+/// was actually free.
+#[tauri::command]
+fn available_memory() -> u64 {
+    let mut system = sysinfo::System::new();
+    system.refresh_memory();
+    system.available_memory()
+}
+
 /// Confirms to the front end that it is genuinely running inside the shell.
 ///
 /// The web build detects Tauri by probing for its globals, and a probe can be
@@ -104,6 +119,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             volume_stats,
             total_memory,
+            available_memory,
             shell_version,
             inference::configured_inference_providers,
             inference::inference_request

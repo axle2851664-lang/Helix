@@ -50,13 +50,25 @@ const BYTES_PER_PARAMETER: Record<Exclude<Quantisation, 'unknown'>, number> = {
 };
 
 /**
- * Headroom the rest of the system needs.
+ * Headroom assumed when free memory cannot be measured.
  *
- * A desktop with a browser, an editor and Helix itself is already using
- * several gigabytes before a model loads. Assessing a model against total RAM
- * rather than free RAM is how something is declared to fit and then does not.
+ * A fallback, and a poor one - it was set to 3 GB and proved far too
+ * optimistic in practice. On a 7.8 GB machine it implied 4.8 GB usable while
+ * 2.3 GB was actually free, and a 7B model assessed as "tight" on that basis
+ * ran at 0.2 tokens per second because it was swapping. Measured free memory
+ * is used wherever the host can report it, and this only applies when it
+ * cannot.
  */
-const SYSTEM_RESERVE_BYTES = 3.0 * 1024 ** 3;
+const ASSUMED_RESERVE_BYTES = 4.5 * 1024 ** 3;
+
+/**
+ * Fraction of free memory a model may occupy before it is called tight.
+ *
+ * Deliberately well under one: the model is not the only thing that will want
+ * memory while it runs, and the failure mode is not a clean refusal but a
+ * machine that slows to a crawl.
+ */
+const COMFORTABLE_SHARE = 0.7;
 
 /** Runtime overhead beyond the weights: context, activations, the server. */
 const RUNTIME_OVERHEAD = 1.25;
@@ -127,7 +139,10 @@ function gigabytes(bytes: number): string {
  */
 export function assessFit(
   footprint: ModelFootprint,
-  hardware: Pick<HardwareProfile, 'totalMemoryBytes' | 'memoryIsApproximate'>,
+  hardware: Pick<
+    HardwareProfile,
+    'totalMemoryBytes' | 'memoryIsApproximate' | 'availableMemoryBytes'
+  >,
 ): FitAssessment {
   const needed = estimateResidentBytes(footprint);
   const total = hardware.totalMemoryBytes;
@@ -149,22 +164,28 @@ export function assessFit(
     };
   }
 
-  const usable = total - SYSTEM_RESERVE_BYTES;
+  // Measured free memory wherever the host can report it. This is the figure
+  // that actually decides whether a model runs or swaps, and assuming it from
+  // the total is what produced a wrong answer here once already.
+  const measured = hardware.availableMemoryBytes;
+  const usable = measured !== null ? measured : total - ASSUMED_RESERVE_BYTES;
+
+  const basis = measured !== null ? 'free now' : 'estimated free';
   const approximate = hardware.memoryIsApproximate ? ' The memory figure is approximate.' : '';
 
   if (needed > usable) {
     return {
       verdict: 'will-not-fit',
       estimatedBytes: needed,
-      message: `This needs roughly ${gigabytes(needed)}, and only about ${gigabytes(Math.max(0, usable))} is realistically free on a ${gigabytes(total)} machine. It would swap to disk and appear to have hung.${approximate}`,
+      message: `This needs roughly ${gigabytes(needed)}, and about ${gigabytes(Math.max(0, usable))} is ${basis} on a ${gigabytes(total)} machine. It would swap to disk and crawl rather than fail outright.${approximate}`,
     };
   }
 
-  if (needed > usable * 0.75) {
+  if (needed > usable * COMFORTABLE_SHARE) {
     return {
       verdict: 'tight',
       estimatedBytes: needed,
-      message: `This needs roughly ${gigabytes(needed)} of about ${gigabytes(usable)} available. It should run, though little else will run comfortably beside it.${approximate}`,
+      message: `This needs roughly ${gigabytes(needed)} of about ${gigabytes(usable)} ${basis}. It will run, slowly, and little else will run comfortably beside it.${approximate}`,
     };
   }
 
@@ -177,11 +198,18 @@ export function assessFit(
 
 /** The largest parameter count that fits comfortably, for a recommendation. */
 export function largestComfortableModel(
-  hardware: Pick<HardwareProfile, 'totalMemoryBytes' | 'memoryIsApproximate'>,
+  hardware: Pick<
+    HardwareProfile,
+    'totalMemoryBytes' | 'memoryIsApproximate' | 'availableMemoryBytes'
+  >,
 ): number | null {
   if (hardware.totalMemoryBytes === null) return null;
 
-  const usable = (hardware.totalMemoryBytes - SYSTEM_RESERVE_BYTES) * 0.75;
+  const free =
+    hardware.availableMemoryBytes !== null
+      ? hardware.availableMemoryBytes
+      : hardware.totalMemoryBytes - ASSUMED_RESERVE_BYTES;
+  const usable = free * COMFORTABLE_SHARE;
   if (usable <= 0) return null;
 
   const billions = usable / (1e9 * BYTES_PER_PARAMETER.q4 * RUNTIME_OVERHEAD);

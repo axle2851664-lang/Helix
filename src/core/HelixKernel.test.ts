@@ -20,6 +20,7 @@ function stubPlatform(overrides: Partial<PlatformAdapter> = {}): PlatformAdapter
       logicalCores: 8,
       totalMemoryBytes: null,
       memoryIsApproximate: false,
+    availableMemoryBytes: null,
       gpuRenderer: null,
       gpuVendor: null,
       vramBytes: null,

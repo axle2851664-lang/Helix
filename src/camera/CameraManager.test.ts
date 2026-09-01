@@ -61,7 +61,7 @@ function platformWith(camera: { available: boolean; reason?: string }): Platform
     getHardwareProfile: async () => ({
       logicalCores: null,
       totalMemoryBytes: null,
-      memoryIsApproximate: false,
+      memoryIsApproximate: false, availableMemoryBytes: null,
       gpuRenderer: null,
       gpuVendor: null,
       vramBytes: null,

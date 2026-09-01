@@ -93,6 +93,9 @@ export class BrowserPlatform implements PlatformAdapter {
       logicalCores: cores,
       totalMemoryBytes,
       memoryIsApproximate: totalMemoryBytes !== null,
+      // A page cannot see how much memory the machine has free. Null, rather
+      // than a fraction of the total dressed up as a measurement.
+      availableMemoryBytes: null,
       gpuRenderer: renderer,
       gpuVendor: vendor,
       // Not exposed to web content by any browser. Reported honestly as unknown

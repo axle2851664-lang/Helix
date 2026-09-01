@@ -7,8 +7,8 @@ import {
 } from './resources.js';
 
 /** The machine this was written on: 7.8 GB, measured. */
-const thisMachine = { totalMemoryBytes: 7.8 * 1024 ** 3, memoryIsApproximate: false };
-const roomy = { totalMemoryBytes: 64 * 1024 ** 3, memoryIsApproximate: false };
+const thisMachine = { totalMemoryBytes: 7.8 * 1024 ** 3, memoryIsApproximate: false, availableMemoryBytes: null };
+const roomy = { totalMemoryBytes: 64 * 1024 ** 3, memoryIsApproximate: false, availableMemoryBytes: null };
 
 describe('footprintFromName', () => {
   it('reads the parameter count from an Ollama-style tag', () => {
@@ -81,9 +81,19 @@ describe('assessFit', () => {
     expect(verdict.message).toContain('swap to disk');
   });
 
-  it('accepts a 7B on the same machine, with a caveat', () => {
-    const verdict = assessFit(footprintFromName('qwen2.5:7b'), thisMachine);
-    expect(['tight', 'comfortable']).toContain(verdict.verdict);
+  /**
+   * Written the other way round at first, and measurement corrected it. A 7B
+   * on this machine ran at 0.2 tokens per second; calling that \"tight\" was
+   * the optimistic error this module exists to avoid.
+   */
+  it('refuses a 7B on this machine too, because it genuinely does not fit', () => {
+    expect(assessFit(footprintFromName('qwen2.5:7b'), thisMachine).verdict).toBe('will-not-fit');
+  });
+
+  it('accepts a 3B on this machine, which is what actually ran well', () => {
+    expect(assessFit(footprintFromName('qwen2.5:3b'), thisMachine).verdict).not.toBe(
+      'will-not-fit',
+    );
   });
 
   it('is comfortable with a 7B on a large machine', () => {
@@ -110,7 +120,7 @@ describe('assessFit', () => {
   it('admits when the machine cannot be measured', () => {
     const verdict = assessFit(footprintFromName('qwen2.5:7b'), {
       totalMemoryBytes: null,
-      memoryIsApproximate: false,
+      memoryIsApproximate: false, availableMemoryBytes: null,
     });
 
     expect(verdict.verdict).toBe('unknown');
@@ -120,7 +130,7 @@ describe('assessFit', () => {
   it('says when the memory figure is only approximate', () => {
     const verdict = assessFit(footprintFromName('qwen2.5:7b'), {
       totalMemoryBytes: 7.8 * 1024 ** 3,
-      memoryIsApproximate: true,
+      memoryIsApproximate: true, availableMemoryBytes: null,
     });
     expect(verdict.message).toContain('approximate');
   });
@@ -129,6 +139,57 @@ describe('assessFit', () => {
     for (const name of ['qwen2.5:7b', 'llama2:70b', 'mystery']) {
       expect(assessFit(footprintFromName(name), thisMachine).message.length).toBeGreaterThan(20);
     }
+  });
+
+  /**
+   * The case that was got wrong, pinned with the numbers that got it wrong.
+   *
+   * This machine has 7.8 GB total and had 2.3 GB genuinely free. The earlier
+   * version assumed a flat 3 GB reserve, concluded 4.8 GB was usable, and
+   * called a 7B "tight". It was not tight: it ran at 0.2 tokens per second
+   * because it was swapping, against 10.8 for a 3B on the same machine.
+   *
+   * With free memory measured rather than assumed, the same model on the same
+   * machine is correctly refused.
+   */
+  it('uses measured free memory, not an assumed reserve', () => {
+    const measured = {
+      totalMemoryBytes: 7.8 * 1024 ** 3,
+      memoryIsApproximate: false,
+      availableMemoryBytes: 2.3 * 1024 ** 3,
+    };
+
+    const sevenB = assessFit(footprintFromName('qwen2.5:7b'), measured);
+    expect(sevenB.verdict).toBe('will-not-fit');
+    expect(sevenB.message).toContain('free now');
+
+    // The 3B that actually ran well is not refused.
+    expect(assessFit(footprintFromName('qwen2.5:3b'), measured).verdict).not.toBe('will-not-fit');
+  });
+
+  it('says whether the free figure was measured or assumed', () => {
+    const assumed = assessFit(footprintFromName('llama2:13b'), thisMachine);
+    const measured = assessFit(footprintFromName('llama2:13b'), {
+      ...thisMachine,
+      availableMemoryBytes: 2.3 * 1024 ** 3,
+    });
+
+    expect(assumed.message).toContain('estimated free');
+    expect(measured.message).toContain('free now');
+  });
+
+  // A recommendation made against free memory has to move when it changes.
+  it('recommends a smaller model when less is free', () => {
+    const plenty = largestComfortableModel({
+      ...thisMachine,
+      availableMemoryBytes: 6 * 1024 ** 3,
+    });
+    const squeezed = largestComfortableModel({
+      ...thisMachine,
+      availableMemoryBytes: 2.3 * 1024 ** 3,
+    });
+
+    expect(squeezed as number).toBeLessThan(plenty as number);
   });
 });
 
@@ -155,13 +216,13 @@ describe('largestComfortableModel', () => {
 
   it('returns null when memory cannot be measured', () => {
     expect(
-      largestComfortableModel({ totalMemoryBytes: null, memoryIsApproximate: false }),
+      largestComfortableModel({ totalMemoryBytes: null, memoryIsApproximate: false, availableMemoryBytes: null }),
     ).toBeNull();
   });
 
   it('returns null on a machine too small for anything', () => {
     expect(
-      largestComfortableModel({ totalMemoryBytes: 2 * 1024 ** 3, memoryIsApproximate: false }),
+      largestComfortableModel({ totalMemoryBytes: 2 * 1024 ** 3, memoryIsApproximate: false, availableMemoryBytes: null }),
     ).toBeNull();
   });
 });
