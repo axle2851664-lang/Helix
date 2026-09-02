@@ -28,6 +28,9 @@ import { assessInstalledModels, preferredLocalModel } from '../ai/localModels.js
 import { assessDiskPressure } from '../storage/pressure.js';
 import { RelayWatcher } from '../relay/RelayWatcher.js';
 import { GmailProvider } from '../integrations/google/GmailProvider.js';
+import { WebResearch } from '../web/WebResearch.js';
+import { BraveProvider, DuckDuckGoProvider, WikipediaProvider } from '../web/providers.js';
+import { BrowserWebTransport, TauriWebTransport } from '../web/transport.js';
 import {
   BrowserInferenceTransport,
   TauriGoogleTransport,
@@ -338,7 +341,48 @@ export class HelixKernel {
       maxOutputTokens: settings.get('maxOutputTokens'),
     });
 
+    /**
+     * Live web search.
+     *
+     * Built in both hosts rather than only in the shell, because the browser
+     * transport refuses with a sentence the interface can show, and "the
+     * content policy forbids this, use the desktop app" is a far more useful
+     * answer than a research tool that is silently absent.
+     *
+     * Wikipedia and DuckDuckGo need no key and work the moment the shell runs.
+     * Brave needs a free one and says so; without it Helix can look things up
+     * but cannot see this morning's news, and that difference is stated rather
+     * than left for the user to infer from thin results.
+     */
+    const webTransport =
+      platform.kind === 'tauri' && typeof window !== 'undefined'
+        ? new TauriWebTransport({
+            invoke: ((command: string, args?: Record<string, unknown>) => {
+              const global = (window as unknown as Record<string, unknown>)['__TAURI__'] as
+                | { core?: { invoke?: (c: string, a?: Record<string, unknown>) => Promise<unknown> } }
+                | undefined;
+              const invoke = global?.core?.invoke;
+              if (!invoke) return Promise.reject(new Error('The shell command bridge did not load.'));
+              return invoke(command, args);
+            }) as never,
+          })
+        : new BrowserWebTransport();
+
+    const research = new WebResearch({
+      providers: [
+        new WikipediaProvider(webTransport),
+        new DuckDuckGoProvider(webTransport),
+        new BraveProvider({
+          transport: webTransport,
+          hasKey:
+            webTransport instanceof TauriWebTransport &&
+            webTransport.hasKeyFor('api.search.brave.com'),
+        }),
+      ],
+    });
+
     const orchestrator = new HelixOrchestrator({
+      research,
       settings,
       conversations,
       activity,

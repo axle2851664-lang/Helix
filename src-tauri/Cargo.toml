@@ -35,6 +35,9 @@ sha2 = "0.10"
 # in the tree beneath the TLS stack; named here because this code depends on
 # it directly and a weak source would make PKCE decorative.
 getrandom = "0.3"
+# URL parsing and joining for redirect handling. Already in the tree beneath
+# reqwest; named because web.rs depends on it directly to re-check every hop.
+url = "2"
 
 [features]
 # Kept so a release build can be produced without the devtools payload.

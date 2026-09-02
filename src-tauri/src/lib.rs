@@ -23,6 +23,7 @@
 //! this file refuses to offer the means.
 
 mod google;
+mod web;
 mod inference;
 
 use serde::Serialize;
@@ -127,7 +128,9 @@ pub fn run() {
             google::google_status,
             google::google_connect,
             google::google_disconnect,
-            google::google_request
+            google::google_request,
+            web::web_fetch,
+            web::configured_web_providers
         ])
         .run(tauri::generate_context!())
         .expect("error while running Helix");

@@ -32,6 +32,9 @@ import {
 } from '../tools/requirements.js';
 import type { OutboundKind } from '../outbound/outbound.js';
 import { scanForInjection } from '../guardrails/untrusted.js';
+import type { WebResearch } from '../web/WebResearch.js';
+import { asEvidence } from '../web/WebResearch.js';
+import { researchCard } from '../tools/researchCard.js';
 import type { AIRouter } from '../ai/AIRouter.js';
 import { classify } from '../ai/AIRouter.js';
 import { SYSTEM_PROMPT } from '../persona/systemPrompt.js';
@@ -122,6 +125,8 @@ export interface OrchestratorOptions {
   knowledge: KnowledgeIndex;
   logger: Logger;
   bus?: EventBus;
+  /** Live web search. Absent means the research tool reports what is missing. */
+  research?: WebResearch;
   /** The brain. Absent in tests that only exercise the tool routing. */
   ai?: AIRouter;
 }
@@ -135,6 +140,7 @@ export class HelixOrchestrator {
   readonly #knowledge: KnowledgeIndex;
   readonly #logger: Logger;
   readonly #ai: AIRouter | undefined;
+  readonly #research: WebResearch | undefined;
   readonly #tools: HelixTool[] = [];
 
   constructor(options: OrchestratorOptions) {
@@ -146,6 +152,7 @@ export class HelixOrchestrator {
     this.#knowledge = options.knowledge;
     this.#logger = options.logger.child('orchestrator');
     this.#ai = options.ai;
+    this.#research = options.research;
 
     // File search sits just below memory: "search my files for X" is explicit.
     this.registerTool(this.#fileSearchTool());
@@ -1067,7 +1074,7 @@ ${lines}`,
 
     return {
       name: 'researchWeb',
-      description: 'Search the web. Not built - reports what it would require.',
+      description: 'Search the live web and answer from what was found.',
       priority: 250,
       matches: (request) => {
         const lower = request.text.toLowerCase();
@@ -1079,15 +1086,81 @@ ${lines}`,
         const prefix = prefixes.find((candidate) => lower.startsWith(candidate.trim()));
         const query = prefix === undefined ? '' : request.text.slice(prefix.trim().length).trim();
 
-        const reply = researchRequirement(query);
-        return {
-          text: reply.spoken,
-          handled: false,
-          failure: 'PROVIDER_NOT_CONFIGURED',
-          card: reply.card,
-        };
+        // No research service at all: the old requirement card, which names
+        // what is missing rather than pretending to have searched.
+        if (!this.#research) {
+          const reply = researchRequirement(query);
+          return {
+            text: reply.spoken,
+            handled: false,
+            failure: 'PROVIDER_NOT_CONFIGURED',
+            card: reply.card,
+          };
+        }
+
+        return this.#searchAndAnswer(query);
       },
     };
+  }
+
+  /**
+   * Search, then answer from what was found and from nothing else.
+   *
+   * The order matters and so does the failure handling. If the search finds
+   * nothing, Helix says so - it does not fall through to answering from the
+   * model's own memory, because an answer that arrives after "searching the
+   * web" carries the authority of a search whether or not one succeeded. That
+   * is the specific dishonesty this method is arranged to prevent.
+   */
+  async #searchAndAnswer(query: string): Promise<HelixResponse> {
+    const research = this.#research as WebResearch;
+
+    const finding = await this.#activity.track(
+      'thinking',
+      () => research.search(query),
+      { label: 'Searching...', detail: query },
+    );
+
+    const card = researchCard(finding);
+
+    if (finding.results.length === 0) {
+      // Nothing found is a real answer, and it is not the same as a failure to
+      // look - the card carries whichever it was, per provider.
+      const spoken =
+        finding.answered.length === 0
+          ? unavailable('nothing could search for that', 'The card says what each provider needs.')
+          : observe(`I searched and found nothing useful on ${query}`);
+      return { text: spoken, handled: finding.answered.length > 0, card };
+    }
+
+    if (!this.#ai) {
+      // Results without a model is still a useful answer: the card lists what
+      // was found, with sources. Better than refusing to show it.
+      return { text: observe(`I found ${finding.results.length} sources on ${query}`), handled: true, card };
+    }
+
+    if (finding.suspicious.length > 0) {
+      this.#logger.info('A search result tried to give instructions.', {
+        urls: finding.suspicious.map((entry) => entry.url),
+      });
+    }
+
+    const result = await this.#ai.generate(
+      [
+        { role: 'system', content: SYSTEM_PROMPT },
+        // The evidence goes in as a user turn deliberately. A model treats its
+        // system prompt as authority, and web text must never sit there.
+        { role: 'user', content: asEvidence(finding) },
+        { role: 'user', content: query },
+      ],
+      classify(query),
+    );
+
+    const spoken = repair(result.text.trim(), {
+      allowAddress: allowAddressInReply(/\bsir\b/i.test(result.text)),
+    });
+
+    return { text: spoken.text, handled: true, card };
   }
 
   /**
