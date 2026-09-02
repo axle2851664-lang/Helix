@@ -60,8 +60,17 @@ export const MODEL_REGISTRY: readonly ModelInfo[] = [
   },
 
   // ----------------------------------------------------- Anthropic (cloud)
-  // The existing catalogue, restated in these terms. Anthropic is the
-  // inference provider for Claude models; it is not the model either.
+  //
+  // Anthropic is the inference provider for Claude models; it is not the model
+  // either. These three were marked `available`, and nothing could run them:
+  // there is no AnthropicProvider, only Cerebras, Ollama and Local. The router
+  // filtered them out silently - so nothing ever broke - while the Models
+  // screen went on presenting them as working configurations.
+  //
+  // `available` is a claim that a thing works, so they are `unavailable` with
+  // a reason, the same treatment the local placeholder already had. The Rust
+  // side does know how to reach api.anthropic.com; what is missing is the
+  // provider on this side. A note costs less than a false green light.
   {
     id: 'claude-opus-5',
     name: 'Opus 5',
@@ -71,7 +80,8 @@ export const MODEL_REGISTRY: readonly ModelInfo[] = [
     capabilities: ['chat', 'reasoning', 'coding', 'vision', 'long-context'],
     contextLength: 1_000_000,
     maxOutputTokens: 128_000,
-    status: 'available',
+    status: 'unavailable',
+    note: 'No Anthropic provider is built on this side yet, so nothing can run this. The Anthropic API is also paid, per token.',
   },
   {
     id: 'claude-sonnet-5',
@@ -82,7 +92,8 @@ export const MODEL_REGISTRY: readonly ModelInfo[] = [
     capabilities: ['chat', 'reasoning', 'coding', 'vision', 'long-context'],
     contextLength: 1_000_000,
     maxOutputTokens: 128_000,
-    status: 'available',
+    status: 'unavailable',
+    note: 'No Anthropic provider is built on this side yet, so nothing can run this. The Anthropic API is also paid, per token.',
   },
   {
     id: 'claude-haiku-4-5',
@@ -93,7 +104,8 @@ export const MODEL_REGISTRY: readonly ModelInfo[] = [
     capabilities: ['chat', 'coding', 'vision', 'fast'],
     contextLength: 200_000,
     maxOutputTokens: 64_000,
-    status: 'available',
+    status: 'unavailable',
+    note: 'No Anthropic provider is built on this side yet, so nothing can run this. The Anthropic API is also paid, per token.',
   },
 
   // ------------------------------------------------------- Local inference
