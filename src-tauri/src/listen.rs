@@ -74,18 +74,83 @@ struct Body {
 /// phone. Everything else is refused before the request is read - a check on
 /// the address costs nothing and removes the entire class of "someone else on
 /// this network".
-fn peer_allowed(address: &IpAddr) -> bool {
-    match address {
-        IpAddr::V4(v4) => {
-            // 100.64.0.0/10 - the carrier-grade NAT range Tailscale uses.
-            v4.is_loopback() || (v4.octets()[0] == 100 && (64..128).contains(&v4.octets()[1]))
+/// The ranges allowed when the user has not named any.
+///
+/// Tailscale's, because that is what the setup guide describes. It is a
+/// default and not an assumption: this was hard-coded to Tailscale, which
+/// quietly made the whole feature Tailscale-only, and the first question asked
+/// of it was whether a different VPN would work.
+pub const DEFAULT_RANGES: &str = "100.64.0.0/10, fd7a:115c::/32";
+
+/// One allowed range: an address and how many leading bits must match.
+struct Cidr {
+    base: IpAddr,
+    bits: u32,
+}
+
+/// Parse "100.64.0.0/10" and friends. A bare address means an exact match.
+fn parse_ranges(spec: &str) -> Vec<Cidr> {
+    spec.split(',')
+        .filter_map(|entry| {
+            let entry = entry.trim();
+            if entry.is_empty() {
+                return None;
+            }
+
+            let (address, bits) = match entry.split_once('/') {
+                Some((address, bits)) => (address, bits.trim().parse::<u32>().ok()?),
+                // No prefix given: one address, matched exactly.
+                None => (entry, if entry.contains(':') { 128 } else { 32 }),
+            };
+
+            let base: IpAddr = address.trim().parse().ok()?;
+            let width = if base.is_ipv4() { 32 } else { 128 };
+            if bits > width {
+                return None;
+            }
+
+            Some(Cidr { base, bits })
+        })
+        .collect()
+}
+
+/// Do the first `bits` bits of these two addresses agree?
+fn within(address: &IpAddr, range: &Cidr) -> bool {
+    fn compare(address: &[u8], base: &[u8], bits: u32) -> bool {
+        let whole = (bits / 8) as usize;
+        if address[..whole] != base[..whole] {
+            return false;
         }
-        // Tailscale's IPv6 range is fd7a:115c:a1e0::/48.
-        IpAddr::V6(v6) => {
-            v6.is_loopback()
-                || (v6.segments()[0] == 0xfd7a && v6.segments()[1] == 0x115c)
+
+        let remainder = bits % 8;
+        if remainder == 0 {
+            return true;
         }
+
+        let mask = 0xffu8 << (8 - remainder);
+        (address[whole] & mask) == (base[whole] & mask)
     }
+
+    match (address, &range.base) {
+        (IpAddr::V4(a), IpAddr::V4(b)) => compare(&a.octets(), &b.octets(), range.bits),
+        (IpAddr::V6(a), IpAddr::V6(b)) => compare(&a.octets(), &b.octets(), range.bits),
+        // A v4 peer never matches a v6 range, or the other way round.
+        _ => false,
+    }
+}
+
+/// May this peer talk to Helix?
+///
+/// Loopback always, so the machine can test itself. Otherwise only the ranges
+/// the user configured - whichever mesh VPN they run. What must never happen
+/// is a fallback to "allow everything" when the setting is empty or malformed:
+/// a typo in a settings field is not consent to accept the whole internet, so
+/// an unparseable list falls back to the default rather than to nothing.
+fn peer_allowed(address: &IpAddr, ranges: &[Cidr]) -> bool {
+    if address.is_loopback() {
+        return true;
+    }
+    ranges.iter().any(|range| within(address, range))
 }
 
 /// Constant-time comparison, so a wrong key reveals nothing about how wrong.
@@ -114,16 +179,19 @@ fn respond(stream: &mut TcpStream, status: &str, body: &str) {
     let _ = stream.shutdown(Shutdown::Both);
 }
 
-fn handle(app: &tauri::AppHandle, mut stream: TcpStream, key: &str) {
+fn handle(app: &tauri::AppHandle, mut stream: TcpStream, key: &str, ranges: &[Cidr]) {
     // Before anything is read. A refused peer never gets to send a request.
-    let allowed = stream
-        .peer_addr()
-        .map(|address| peer_allowed(&address.ip()))
-        .unwrap_or(false);
+    let peer = stream.peer_addr().map(|address| address.ip()).ok();
+    let allowed = peer.map(|address| peer_allowed(&address, ranges)).unwrap_or(false);
 
     if !allowed {
-        // No body, and no explanation. Telling a stranger why they were
-        // refused turns this into an oracle they can probe.
+        // Logged locally, where only the user can see it, so a peer refused by
+        // a range that does not cover their VPN is a diagnosable problem
+        // rather than a silent one. Nothing goes back down the socket: telling
+        // a stranger why they were refused turns this into an oracle.
+        if let Some(address) = peer {
+            eprintln!("helix: refused a connection from {address} - not in the allowed ranges");
+        }
         let _ = stream.shutdown(Shutdown::Both);
         return;
     }
@@ -246,6 +314,7 @@ pub fn start_phone_listener(
     app: tauri::AppHandle,
     port: u16,
     key: String,
+    ranges: Option<String>,
 ) -> Result<ListenerStatus, String> {
     if key.trim().len() < 12 {
         // The only credential here, so it carries the whole weight - there is
@@ -269,10 +338,25 @@ pub fn start_phone_listener(
         *running = true;
     }
 
+    // An empty or unparseable list falls back to the default rather than to an
+    // empty allow-list. Neither extreme is right: allowing everything on a
+    // typo would be catastrophic, and allowing nothing would look like a
+    // broken listener. The default is a working configuration.
+    //
+    // Resolved once, here, rather than per connection - resolving it inside
+    // the loop meant an empty setting parsed to an empty list every time and
+    // the fallback never ran, so only loopback would ever have been let in.
+    let requested = ranges.unwrap_or_default();
+    let spec = if parse_ranges(&requested).is_empty() {
+        DEFAULT_RANGES.to_string()
+    } else {
+        requested
+    };
+
     // Bound to every interface, which is safe only because `peer_allowed`
-    // refuses anything that is not Tailscale or this machine. Binding to the
-    // Tailscale address specifically would need interface enumeration and
-    // would break every time Tailscale reassigned it.
+    // refuses anything outside those ranges. Binding to the VPN's own address
+    // instead would need interface enumeration and would break every time the
+    // VPN reassigned it.
     let listener = TcpListener::bind(("0.0.0.0", port))
         .map_err(|error| format!("Could not listen on port {port}: {error}"))?;
 
@@ -280,7 +364,10 @@ pub fn start_phone_listener(
         for stream in listener.incoming().flatten() {
             let app = app.clone();
             let key = key.clone();
-            std::thread::spawn(move || handle(&app, stream, &key));
+            // Re-parsed per connection rather than shared behind a lock. It is
+            // a handful of integers and this is not a hot path.
+            let ranges = parse_ranges(&spec);
+            std::thread::spawn(move || handle(&app, stream, &key, &ranges));
         }
     });
 
@@ -320,18 +407,82 @@ mod tests {
     /// endpoint off them.
     #[test]
     fn allows_only_tailscale_and_this_machine() {
-        assert!(peer_allowed(&"100.101.102.103".parse().unwrap()));
-        assert!(peer_allowed(&"127.0.0.1".parse().unwrap()));
+        let ranges = parse_ranges(DEFAULT_RANGES);
+
+        assert!(peer_allowed(&"100.101.102.103".parse().unwrap(), &ranges));
+        assert!(peer_allowed(&"127.0.0.1".parse().unwrap(), &ranges));
 
         for outsider in ["192.168.1.50", "10.0.0.7", "8.8.8.8", "172.16.0.1"] {
-            assert!(!peer_allowed(&outsider.parse().unwrap()), "{outsider} allowed");
+            assert!(!peer_allowed(&outsider.parse().unwrap(), &ranges), "{outsider} allowed");
         }
     }
 
     #[test]
     fn allows_the_tailscale_ipv6_range() {
-        assert!(peer_allowed(&"fd7a:115c:a1e0::1".parse().unwrap()));
-        assert!(!peer_allowed(&"2001:4860:4860::8888".parse().unwrap()));
+        let ranges = parse_ranges(DEFAULT_RANGES);
+        assert!(peer_allowed(&"fd7a:115c:a1e0::1".parse().unwrap(), &ranges));
+        assert!(!peer_allowed(&"2001:4860:4860::8888".parse().unwrap(), &ranges));
+    }
+
+    /**
+     * The point of making this configurable: any mesh VPN, not just Tailscale.
+     * ZeroTier and a hand-rolled WireGuard both hand out ordinary private
+     * addresses, which the hard-coded version refused outright.
+     */
+    #[test]
+    fn honours_a_range_from_another_vpn() {
+        let zerotier = parse_ranges("10.147.17.0/24");
+
+        assert!(peer_allowed(&"10.147.17.42".parse().unwrap(), &zerotier));
+        // Neighbouring private space is still refused - the range is a range.
+        assert!(!peer_allowed(&"10.147.18.42".parse().unwrap(), &zerotier));
+        // And naming one VPN does not implicitly allow another.
+        assert!(!peer_allowed(&"100.101.102.103".parse().unwrap(), &zerotier));
+    }
+
+    #[test]
+    fn accepts_several_ranges_and_a_bare_address() {
+        let ranges = parse_ranges("10.147.17.0/24, 192.168.1.50, 100.64.0.0/10");
+
+        assert!(peer_allowed(&"10.147.17.1".parse().unwrap(), &ranges));
+        assert!(peer_allowed(&"192.168.1.50".parse().unwrap(), &ranges));
+        assert!(peer_allowed(&"100.90.1.1".parse().unwrap(), &ranges));
+        // A bare address is exactly that address, not its neighbours.
+        assert!(!peer_allowed(&"192.168.1.51".parse().unwrap(), &ranges));
+    }
+
+    /**
+     * Loopback is allowed whatever the configuration says, so the machine can
+     * always test itself - and, more importantly, so a user who empties the
+     * field cannot lock themselves out of diagnosing it.
+     */
+    #[test]
+    fn loopback_survives_any_configuration() {
+        assert!(peer_allowed(&"127.0.0.1".parse().unwrap(), &[]));
+        assert!(peer_allowed(&"::1".parse().unwrap(), &parse_ranges("10.0.0.0/8")));
+    }
+
+    /**
+     * The failure mode worth being certain about. A typo in a settings field
+     * must never widen the allow-list, and an empty list must never mean
+     * "everything".
+     */
+    #[test]
+    fn rubbish_ranges_allow_nothing_rather_than_everything() {
+        for spec in ["", "not an address", "10.0.0.0/99", "  ,  ,  "] {
+            let ranges = parse_ranges(spec);
+            assert!(
+                !peer_allowed(&"8.8.8.8".parse().unwrap(), &ranges),
+                "{spec:?} allowed a public address",
+            );
+        }
+    }
+
+    // A v4 peer must not match a v6 range by some accident of byte comparison.
+    #[test]
+    fn does_not_mix_address_families() {
+        let v6 = parse_ranges("fd7a:115c::/32");
+        assert!(!peer_allowed(&"100.101.102.103".parse().unwrap(), &v6));
     }
 
     #[test]

@@ -524,6 +524,7 @@ export class HelixKernel {
             const status = await shellInvoke<{ addresses: string[] }>('start_phone_listener', {
               port: settings.get('phoneListenerPort'),
               key: settings.get('relaySecret'),
+              ranges: settings.get('phoneAllowedRanges'),
             });
             await phone.start();
 

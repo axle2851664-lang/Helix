@@ -305,6 +305,30 @@ export const SETTINGS_SCHEMA = {
     step: 1,
     default: 8765,
   },
+  /**
+   * Which addresses may reach the listener.
+   *
+   * This began hard-coded to Tailscale's range, which quietly made the whole
+   * feature Tailscale-only - and the first question asked of it was whether a
+   * different VPN would work. It is a default now rather than an assumption:
+   * ZeroTier, Netbird, a self-hosted WireGuard and Headscale all hand out
+   * different addresses, and any of them works by naming its range here.
+   *
+   * Emptying it does not open the machine to everything. An unparseable or
+   * empty list falls back to the default, because a typo in a settings field
+   * is not consent to accept the whole internet. Loopback is always allowed so
+   * the machine can test itself.
+   */
+  phoneAllowedRanges: {
+    kind: 'string',
+    section: 'relay',
+    label: 'Allowed addresses',
+    description:
+      "Your VPN's address range, as CIDR. The default is Tailscale's. Refused connections are logged with their address, so you can see what to add.",
+    placeholder: '100.64.0.0/10, fd7a:115c::/32',
+    maxLength: 400,
+    default: '100.64.0.0/10, fd7a:115c::/32',
+  },
 
   /**
    * Permission to use a search provider that charges.
