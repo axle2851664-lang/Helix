@@ -68,14 +68,22 @@ class FakeSynthesis implements TextToSpeechProvider {
     return this.available ? { available: true } : { available: false, reason: 'no synthesis' };
   }
 
+  /** Overridable, so a machine with no British voice can be simulated. */
+  voices: SpeechVoice[] = [{ id: 'v1', name: 'Test', lang: 'en-US' }];
+  /** Every options object `speak` was called with, in order. */
+  options: Array<{ voiceId?: string; rate?: number }> = [];
+  listVoicesCalls = 0;
+
   async listVoices(): Promise<SpeechVoice[]> {
-    return [{ id: 'v1', name: 'Test', lang: 'en-US' }];
+    this.listVoicesCalls += 1;
+    return this.voices;
   }
 
-  async speak(text: string): Promise<void> {
+  async speak(text: string, options: { voiceId?: string; rate?: number } = {}): Promise<void> {
     if (this.shouldFail) throw new Error('synthesis exploded');
     this.speaking = true;
     this.spoken.push(text);
+    this.options.push(options);
     this.speaking = false;
   }
 
@@ -310,6 +318,83 @@ describe('VoiceManager: speaking and interruption', () => {
     const { voice, tts } = await makeVoice({ ttsSetting: 'none' });
     await voice.speak('Opening settings.');
     expect(tts.spoken).toEqual([]);
+  });
+
+  /**
+   * The bug this whole group of tests was missing.
+   *
+   * `selectVoice.ts` ranked British male voices, had its own test file, and
+   * was called by nothing. `speak` passed a rate and no voice, so every reply
+   * came out in the browser default - on Windows, an American one. The
+   * ranking was correct and wired to nothing, which no test noticed because
+   * every test asserted only the words.
+   */
+  it('speaks with a chosen voice rather than the default', async () => {
+    const tts = new FakeSynthesis();
+    tts.voices = [
+      { id: 'us', name: 'Microsoft David', lang: 'en-US' },
+      { id: 'gb', name: 'Microsoft Ryan', lang: 'en-GB' },
+    ];
+    const { voice } = await makeVoice({ tts });
+
+    await voice.speak('Good evening.');
+
+    expect(tts.options[0]?.voiceId).toBe('gb');
+  });
+
+  it('lets an explicit choice override the ranking', async () => {
+    const tts = new FakeSynthesis();
+    tts.voices = [
+      { id: 'us', name: 'Microsoft David', lang: 'en-US' },
+      { id: 'gb', name: 'Microsoft Ryan', lang: 'en-GB' },
+    ];
+    const { voice, settings } = await makeVoice({ tts });
+    await settings.set('voiceId', 'us');
+
+    await voice.speak('Good evening.');
+
+    expect(tts.options[0]?.voiceId).toBe('us');
+  });
+
+  // A voice can be uninstalled between sessions. Falling back to the ranking
+  // is better than asking for an id that is no longer there.
+  it('falls back when the chosen voice is no longer installed', async () => {
+    const tts = new FakeSynthesis();
+    tts.voices = [{ id: 'gb', name: 'Microsoft Ryan', lang: 'en-GB' }];
+    const { voice, settings } = await makeVoice({ tts });
+    await settings.set('voiceId', 'a-voice-that-was-removed');
+
+    await voice.speak('Good evening.');
+
+    expect(tts.options[0]?.voiceId).toBe('gb');
+  });
+
+  // `listVoices` waits on an event that can take a second; paying that per
+  // sentence would put a pause in the middle of a conversation.
+  it('resolves the voice once rather than on every sentence', async () => {
+    const { voice, tts } = await makeVoice();
+
+    await voice.speak('One.');
+    await voice.speak('Two.');
+    await voice.speak('Three.');
+
+    expect(tts.listVoicesCalls).toBe(1);
+  });
+
+  /**
+   * The machine this was written on has three voices installed, all American.
+   * Saying "Using Microsoft David (British English)" there would be a claim
+   * about something the user can hear is untrue.
+   */
+  it('does not claim a British voice on a machine that has none', async () => {
+    const tts = new FakeSynthesis();
+    tts.voices = [{ id: 'us', name: 'Microsoft David', lang: 'en-US' }];
+    const { voice } = await makeVoice({ tts });
+
+    const description = await voice.describeVoice();
+
+    expect(description).toContain('No British English voice is installed');
+    expect(description).toContain('Microsoft David');
   });
 
   // Spec 9: the user must be able to interrupt Helix.

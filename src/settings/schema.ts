@@ -143,7 +143,35 @@ export const SETTINGS_SCHEMA = {
       local: 'Local model',
       cloud: 'Cloud provider',
     },
-    default: 'none',
+    /**
+     * On by default, which the speech *input* setting deliberately is not.
+     *
+     * The two are not the same risk and should not share a default. Listening
+     * opens a microphone; speaking hands text that is already on screen to the
+     * operating system's own voices. Nothing is captured and nothing is sent.
+     *
+     * It was 'none', and the consequence was that Helix never spoke on a call:
+     * `outputBlocker()` returned "no text-to-speech provider is configured"
+     * and `speak()` returned silently, so a voice call worked in every respect
+     * except the one the user was listening for.
+     */
+    default: 'browser',
+  },
+  /**
+   * Which installed voice to speak with. Empty means choose the best match.
+   *
+   * Automatic by default, because the right answer is machine-dependent and
+   * `selectVoice` ranks what is actually installed. Overridable, because
+   * ranking voices by their names is crude and the user can hear what it
+   * cannot.
+   */
+  voiceId: {
+    kind: 'string',
+    section: 'voice',
+    label: 'Voice',
+    description: 'Empty means the closest match to the Helix character.',
+    maxLength: 300,
+    default: '',
   },
   speechRate: {
     kind: 'number',

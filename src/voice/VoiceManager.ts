@@ -5,9 +5,11 @@ import type { Logger } from '../core/Logger.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import type {
   SpeechToTextProvider,
+  SpeechVoice,
   TextToSpeechProvider,
   VoiceState,
 } from './types.js';
+import { describeSelection, selectVoice } from './selectVoice.js';
 
 /**
  * The voice pipeline (spec 9).
@@ -69,6 +71,15 @@ export class VoiceManager {
   #activityToken: ActivityToken | null = null;
   #level = 0;
   #offLevel: (() => void) | null = null;
+  /**
+   * The chosen voice, resolved once. `undefined` means not yet looked up;
+   * `null` means looked up and this machine has no voices at all - two states
+   * a single nullable could not keep apart, and the difference decides whether
+   * to probe again.
+   */
+  #voice: SpeechVoice | null | undefined = undefined;
+  /** The `voiceId` setting the cache was built for, so a change re-resolves. */
+  #voiceChosenFor = '';
   /** Resolves with the final transcript when listening ends. */
   #pending: ((transcript: string) => void) | null = null;
 
@@ -265,6 +276,48 @@ export class VoiceManager {
     this.#stt?.stop();
   }
 
+  /**
+   * Which voice will actually speak.
+   *
+   * This existed as `selectVoice` and was never called: `speak` passed only a
+   * rate, so every reply came out in whatever the browser's default happened
+   * to be - on Windows, an American one. The ranking was written, tested, and
+   * wired to nothing.
+   *
+   * Resolved once and cached. `listVoices` waits on a `voiceschanged` event
+   * that may take a second, and paying that on every sentence would put a
+   * pause in the middle of a conversation.
+   */
+  async #resolveVoice(tts: TextToSpeechProvider): Promise<SpeechVoice | null> {
+    const preferred = this.#settings.get('voiceId');
+
+    if (this.#voice !== undefined && this.#voiceChosenFor === preferred) return this.#voice;
+
+    const voices = await tts.listVoices();
+    // An explicit choice wins, but only if it is still installed - a voice can
+    // be removed between sessions, and falling back beats failing silently.
+    const chosen =
+      (preferred !== '' ? voices.find((voice) => voice.id === preferred) : undefined) ??
+      selectVoice(voices);
+
+    this.#voice = chosen;
+    this.#voiceChosenFor = preferred;
+    return chosen;
+  }
+
+  /**
+   * What the interface should say about the voice, in words.
+   *
+   * Never implies a British voice is in use when the machine has none - which
+   * is not hypothetical: the machine this was written on has exactly three
+   * voices installed, all American, so the honest answer there is that Helix
+   * will sound American until a British voice is added.
+   */
+  async describeVoice(): Promise<string> {
+    if (!this.#tts) return 'No speech provider is available in this build.';
+    return describeSelection(await this.#resolveVoice(this.#tts));
+  }
+
   /** Speak a response. Resolves when finished or interrupted. */
   async speak(text: string): Promise<void> {
     const blocker = this.outputBlocker();
@@ -280,7 +333,11 @@ export class VoiceManager {
     const token = this.#activity.begin('speaking');
 
     try {
-      await tts.speak(text, { rate: this.#settings.get('speechRate') });
+      const voice = await this.#resolveVoice(tts);
+      await tts.speak(text, {
+        rate: this.#settings.get('speechRate'),
+        ...(voice ? { voiceId: voice.id } : {}),
+      });
     } catch (error) {
       this.#logger.warn('Speech synthesis failed.', error);
       this.#error = 'Helix could not speak the response, but it is shown above.';
