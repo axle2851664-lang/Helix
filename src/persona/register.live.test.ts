@@ -2,7 +2,7 @@ import os from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { inspect, repair } from './register.js';
 import { SYSTEM_PROMPT } from './systemPrompt.js';
-import { allowAddressInReply } from './voice.js';
+import { allowAddressInReply, carriesAddress } from './voice.js';
 import { assessInstalledModels, preferredLocalModel } from '../ai/localModels.js';
 import type { ModelInfo } from '../ai/types.js';
 
@@ -135,7 +135,7 @@ describe.skipIf(!LIVE)('the persona, against a model that is running', () => {
         // Exactly what the orchestrator does, so the rate measured here is the
         // rate the user would experience.
         const repaired = repair(reply.text, {
-          allowAddress: allowAddressInReply(/\bsir\b/i.test(reply.text)),
+          allowAddress: allowAddressInReply(carriesAddress(reply.text)),
         });
 
         // eslint-disable-next-line no-console
@@ -161,7 +161,7 @@ describe.skipIf(!LIVE)('the persona, against a model that is running', () => {
         // exact match is a copy.
         expect(EXAMPLES, `recited an example: ${repaired.text}`).not.toContain(repaired.text);
 
-        if (/\bsir\b/i.test(repaired.text)) addressed += 1;
+        if (carriesAddress(repaired.text)) addressed += 1;
       }
 
       // eslint-disable-next-line no-console

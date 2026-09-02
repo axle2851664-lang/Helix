@@ -11,6 +11,7 @@ import type { MemoryManager } from '../memory/MemoryManager.js';
 import type { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import {
   allowAddressInReply,
+  carriesAddress,
   confirm,
   enquire,
   observe,

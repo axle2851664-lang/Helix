@@ -101,6 +101,11 @@ describe('the offer of further service', () => {
     // with a trailing qualifier the pattern of the day did not know about.
     'The render job is stopped. What can I assist with today?',
     'The render job is stopped. How may I assist you this evening?',
+    // Measured against qwen2.5:3b once a second form of address existed. The
+    // comma before "boss" ended the tag pattern early, so the tag survived and
+    // only the address was taken out.
+    'The render job is stopped. How can I assist further, boss?',
+    'The render job is stopped. Anything else you need, sir?',
   ])('removes it however it is phrased: %j', (input) => {
     expect(repair(input).text).toBe('The render job is stopped.');
   });

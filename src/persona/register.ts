@@ -25,6 +25,8 @@
  * string would turn a bad answer into no answer.
  */
 
+import { ADDRESS_FORMS, addressPattern } from './voice.js';
+
 /** A way the voice went wrong. */
 export type RegisterFault =
   | 'terminal'
@@ -114,8 +116,28 @@ const DISCLAIMER =
  * opposite of both. Removed only as a final sentence, so a genuine mid-reply
  * offer to do something specific is untouched.
  */
+/**
+ * Let a service tag carry an address, which they very often do.
+ *
+ * Measured: qwen2.5:3b answered "How far is the Moon?" with the distance and
+ * then "How can I assist further, boss?" The tag pattern ended at the
+ * qualifier and the comma before the address defeated it, so the tag survived
+ * and only the address was removed - leaving "How can I assist further?"
+ * exactly as before. The address is stripped separately, and the two passes
+ * were quietly assuming they ran in the other order.
+ *
+ * Written as a substitution on the pattern source so the address forms stay
+ * defined in one place rather than being spelled out in four regexes.
+ */
+function withTrailingAddress(pattern: RegExp): RegExp {
+  return new RegExp(
+    pattern.source.replace('ADDRESS', `(?:,?\\s*(?:${ADDRESS_FORMS.join('|')}))?`),
+    pattern.flags,
+  );
+}
+
 const SERVICE_TAGS = [
-  /\s*(?:is there )?anything else (?:i can (?:assist|help) (?:you )?with|you (?:need|require))\s*[?.!]?\s*$/i,
+  /\s*(?:is there )?anything else (?:i can (?:assist|help) (?:you )?with|you (?:need|require))ADDRESS\s*[?.!]?\s*$/i,
   /**
    * "How may I assist you further / today / this evening?", and the same
    * without the "you".
@@ -131,15 +153,22 @@ const SERVICE_TAGS = [
    * trailing words come from a closed list of fillers: extend the list when a
    * new one turns up, and content is never at risk.
    */
-  /\s*(?:how|what) (?:may|can) i (?:assist|help)(?:\s+(?:you|with|further|else|today|tonight|now|then|this|next|morning|afternoon|evening|day))*\s*[?.!]?\s*$/i,
-  /\s*(?:please )?let me know (?:if|how) (?:i can (?:be of )?(?:assist|help|service)|you(?:'d| would) like to proceed)[^.!?]*[?.!]?\s*$/i,
-  /\s*i(?:'m| am) (?:here|at your (?:service|disposal))(?: (?:if|should) you need (?:me|anything))?\s*[?.!]?\s*$/i,
-];
+  /\s*(?:how|what) (?:may|can) i (?:assist|help)(?:\s+(?:you|with|further|else|today|tonight|now|then|this|next|morning|afternoon|evening|day))*ADDRESS\s*[?.!]?\s*$/i,
+  /\s*(?:please )?let me know (?:if|how) (?:i can (?:be of )?(?:assist|help|service)|you(?:'d| would) like to proceed)[^.!?]*ADDRESS\s*[?.!]?\s*$/i,
+  /\s*i(?:'m| am) (?:here|at your (?:service|disposal))(?: (?:if|should) you need (?:me|anything))?ADDRESS\s*[?.!]?\s*$/i,
+].map(withTrailingAddress);
 
 const EMOJI = /\p{Extended_Pictographic}️?/gu;
 
-/** `sir` as a form of address, with any comma that attaches it. */
-const ADDRESS_OCCURRENCE = /(,\s*)?\bsir\b([,.!?]?)/gi;
+/**
+ * Any form of address, with the comma that usually attaches it.
+ *
+ * Built from `ADDRESS_FORMS` rather than written out, because this file and
+ * `voice.ts` disagreeing is a silent failure: a form the composer uses and the
+ * checker does not recognise slips past the rate rule and the one-per-reply
+ * rule together, and the only symptom is Helix saying it slightly too often.
+ */
+const ADDRESS_OCCURRENCE = addressPattern();
 
 /**
  * Capitalise the opening word, but only when it is safely a word.
@@ -172,7 +201,10 @@ function matchTerminalOpener(text: string): { remainder: string; found: string }
   for (const opener of TERMINAL_OPENERS) {
     // The trailing boundary matters: without it "roger" matches the front of
     // a name, and the reply loses its first three letters.
-    const pattern = new RegExp('^\\s*' + opener + '\\b(?:,\\s*sir)?\\s*[,.:!-]?\\s*', 'i');
+    const pattern = new RegExp(
+      `^\\s*${opener}\\b(?:,\\s*(?:${ADDRESS_FORMS.join('|')}))?\\s*[,.:!-]?\\s*`,
+      'i',
+    );
     const match = pattern.exec(text);
     if (match) {
       return { remainder: text.slice(match[0].length).trim(), found: match[0].trim() };

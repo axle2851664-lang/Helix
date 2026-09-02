@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  ADDRESS,
+  carriesAddress,
   acknowledge,
   addressed,
   confirm,
@@ -18,9 +18,30 @@ beforeEach(() => {
 });
 
 describe('addressed', () => {
+  /**
+   * Either form, because there are two and they alternate. Pinning this to
+   * "sir" made the second call in the same test fail for doing exactly what it
+   * was asked to do.
+   */
   it('adds the form of address before terminal punctuation', () => {
-    expect(addressed('The project is open.', { force: true })).toBe('The project is open, sir.');
-    expect(addressed('Shall I proceed?', { force: true })).toBe('Shall I proceed, sir?');
+    expect(addressed('The project is open.', { force: true })).toMatch(
+      /^The project is open, (?:sir|boss)\.$/,
+    );
+    expect(addressed('Shall I proceed?', { force: true })).toMatch(
+      /^Shall I proceed, (?:sir|boss)\?$/,
+    );
+  });
+
+  // Alternating rather than random: a run of "boss, boss, boss" reads as a tic.
+  it('alternates between the two forms', () => {
+    const lines = Array.from({ length: 4 }, (_, i) =>
+      addressed(`Line ${i}.`, { force: true }),
+    );
+
+    expect(lines[0]).toContain('sir');
+    expect(lines[1]).toContain('boss');
+    expect(lines[2]).toContain('sir');
+    expect(lines[3]).toContain('boss');
   });
 
   it('does not double up when already addressed', () => {
@@ -42,7 +63,7 @@ describe('confirm', () => {
     const text = confirm('The project is open');
     expect(text).toMatch(/^(Certainly|Very good|Of course|Right away)\./);
     expect(text).toContain('The project is open');
-    expect(text.endsWith(`, ${ADDRESS}.`)).toBe(true);
+    expect(text, 'should end with an address in either form').toMatch(/, (?:sir|boss)\.$/);
   });
 
   it('does not double the full stop', () => {
@@ -58,7 +79,7 @@ describe('confirm', () => {
   });
 
   it('can omit the address where it would read oddly', () => {
-    expect(confirm('Indexed', { address: false })).not.toContain(ADDRESS);
+    expect(carriesAddress(confirm('Indexed', { address: false }))).toBe(false);
   });
 });
 
@@ -163,7 +184,7 @@ describe('tone rules', () => {
   });
 });
 
-describe('how often Helix says "sir"', () => {
+describe('how often Helix addresses the user', () => {
   beforeEach(resetVoice);
 
   /**
@@ -173,7 +194,10 @@ describe('how often Helix says "sir"', () => {
    */
   it('lands inside the intended range over a long conversation', () => {
     const lines = Array.from({ length: 60 }, (_, i) => addressed(`Reply number ${i}.`));
-    const withAddress = lines.filter((line) => /\bsir\b/i.test(line)).length;
+    // Counted across both forms. This counted "sir" alone, and when a second
+    // form was added it reported half the true rate and failed - measuring the
+    // vocabulary rather than the behaviour it was written to protect.
+    const withAddress = lines.filter((line) => carriesAddress(line)).length;
     const rate = withAddress / lines.length;
 
     expect(rate).toBeGreaterThanOrEqual(0.2);
@@ -185,8 +209,10 @@ describe('how often Helix says "sir"', () => {
     const lines = Array.from({ length: 40 }, (_, i) => addressed(`Line ${i}.`));
 
     for (let i = 1; i < lines.length; i += 1) {
-      const both =
-        /\bsir\b/i.test(lines[i] as string) && /\bsir\b/i.test(lines[i - 1] as string);
+      // Across both forms. Checking "sir" alone would let "sir" followed by
+      // "boss" pass as though it were not a run, which is exactly the effect
+      // the rule exists to prevent.
+      const both = carriesAddress(lines[i] as string) && carriesAddress(lines[i - 1] as string);
       expect(both, `lines ${i - 1} and ${i}`).toBe(false);
     }
   });

@@ -31,8 +31,48 @@
  * text rather than speech.
  */
 
-/** How Helix addresses the user. Kept in one place so it can be changed once. */
+/**
+ * How Helix addresses the user.
+ *
+ * Two forms, alternating. "Sir" is the formal register the persona was built
+ * around; "boss" is warmer and less deferential, and the pair together read as
+ * a person with a manner rather than a machine with a setting. Asked for by
+ * the user directly.
+ *
+ * `ADDRESS` remains the primary and is what the prompt and the composed
+ * sentences reach for by default. Everything that has to *recognise* an
+ * address - the rate limiter, the register repair - must use `ADDRESS_FORMS`,
+ * because recognising only one of two would let the other slip past the rate
+ * rule entirely.
+ */
 export const ADDRESS = 'sir';
+
+/** Every form Helix uses, for matching as well as for composing. */
+export const ADDRESS_FORMS = ['sir', 'boss'] as const;
+
+/** Matches any form of address, with the comma that usually attaches it. */
+export function addressPattern(flags = 'gi'): RegExp {
+  return new RegExp(`(,\\s*)?\\b(?:${ADDRESS_FORMS.join('|')})\\b([,.!?]?)`, flags);
+}
+
+/** True when a reply already carries an address in any of its forms. */
+export function carriesAddress(text: string): boolean {
+  return addressPattern('i').test(text);
+}
+
+/**
+ * Alternate rather than randomise.
+ *
+ * Random choice produces runs, and "boss" three times running reads as a tic.
+ * Strict alternation between the two is the simplest thing that never does
+ * that, and it is deterministic, so tests stay predictable.
+ */
+let addressForm = 0;
+function nextAddress(): string {
+  const form = ADDRESS_FORMS[addressForm % ADDRESS_FORMS.length] as string;
+  addressForm += 1;
+  return form;
+}
 
 /**
  * Target share of conversational replies carrying the address.
@@ -130,8 +170,8 @@ export function addressed(sentence: string, options: { force?: boolean } = {}): 
   const trimmed = sentence.trim();
   if (trimmed === '') return trimmed;
 
-  // Already addressed: count it, and leave it alone.
-  if (new RegExp(`\\b${ADDRESS}\\b`, 'i').test(trimmed)) {
+  // Already addressed, in any form: count it, and leave it alone.
+  if (carriesAddress(trimmed)) {
     recordAddress(true);
     return trimmed;
   }
@@ -142,10 +182,12 @@ export function addressed(sentence: string, options: { force?: boolean } = {}): 
   }
   recordAddress(true);
 
+  const form = nextAddress();
+
   // Insert before the terminal punctuation so it reads as speech, not a suffix.
   const match = /^(.*?)([.?!]+)$/s.exec(trimmed);
-  if (match) return `${match[1]}, ${ADDRESS}${match[2]}`;
-  return `${trimmed}, ${ADDRESS}.`;
+  if (match) return `${match[1]}, ${form}${match[2]}`;
+  return `${trimmed}, ${form}.`;
 }
 
 /**
@@ -221,4 +263,9 @@ export function enquire(question: string, options: { address?: boolean } = {}): 
 export function resetVoice(): void {
   turn = 0;
   addressHistory = [];
+  // The alternation counter belongs here too. Leaving it out made which form
+  // Helix used depend on how many sentences an unrelated earlier conversation
+  // had composed - state leaking across a reset, and the symptom was tests
+  // that passed or failed according to the order they ran in.
+  addressForm = 0;
 }
