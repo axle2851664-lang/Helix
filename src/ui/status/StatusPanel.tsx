@@ -32,7 +32,8 @@ interface StatusPanelProps {
 }
 
 export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
-  const { platform, store, activity, conversations, projects, memory, ai, bus } = useHelix();
+  const { platform, store, activity, conversations, projects, memory, ai, bus, voice } =
+    useHelix();
   const settings = useSettings([
     'languageProvider',
     'languageModel',
@@ -74,6 +75,25 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
     return bus.on('AI_MODELS_REGISTERED', () => setSelection(ai.describeSelection()));
   }, [ai, bus]);
 
+  /**
+   * Which voice will actually speak, named rather than assumed.
+   *
+   * Resolved asynchronously because listing voices waits on a browser event,
+   * and null until it lands - at which point the row says "Ready" and names
+   * the voice, including when that voice is not the British one the persona
+   * asks for and this machine does not have.
+   */
+  const [voiceDescription, setVoiceDescription] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    void voice.describeVoice().then((description) => {
+      if (live) setVoiceDescription(description);
+    });
+    return () => {
+      live = false;
+    };
+  }, [voice]);
+
   useEffect(() => {
     const refresh = () => {
       void conversations.list().then((list) => setConversationCount(list.length));
@@ -106,6 +126,7 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
     return memory.subscribe(refresh);
   }, [memory]);
 
+  const voiceBlocker = voice.outputBlocker();
   const forcedOffline = settings.offlineMode === 'offline';
   const effectivelyOnline = online && !forcedOffline;
   const durable = (store as { durable?: boolean }).durable ?? false;
@@ -190,13 +211,20 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
       key: 'voice',
       icon: 'microphone',
       label: 'VOICE',
+      // Asked of the voice manager, which knows what this build can load,
+      // rather than hard-coded. This row read "Not connected - voice pipeline
+      // arrives in phase 5" for a long time after speech in and out both
+      // worked, which is the same stale-note fault the settings screen had:
+      // it fails in the direction nobody thinks to check.
       ...(settings.speechToTextProvider === 'none'
         ? { value: 'Locked', tone: 'off' as Tone, detail: 'No speech provider configured' }
-        : {
-            value: 'Not connected',
-            tone: 'warn' as Tone,
-            detail: 'Voice pipeline arrives in phase 5',
-          }),
+        : voiceBlocker !== null
+          ? { value: 'Unavailable', tone: 'warn' as Tone, detail: voiceBlocker }
+          : {
+              value: 'Ready',
+              tone: 'ok' as Tone,
+              detail: voiceDescription ?? 'Speech in and out are available.',
+            }),
     },
     {
       key: 'files',
