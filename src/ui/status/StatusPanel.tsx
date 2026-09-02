@@ -32,7 +32,7 @@ interface StatusPanelProps {
 }
 
 export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
-  const { platform, store, activity, conversations, projects, memory } = useHelix();
+  const { platform, store, activity, conversations, projects, memory, ai, bus } = useHelix();
   const settings = useSettings([
     'languageProvider',
     'languageModel',
@@ -54,6 +54,25 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
 
   useEffect(() => platform.onConnectivityChange(setOnline), [platform]);
   useEffect(() => activity.subscribe(setCurrent), [activity]);
+
+  /**
+   * What would actually answer, asked of the router rather than of settings.
+   *
+   * The two rows below used to be derived from `settings.languageModel` and
+   * `settings.inferenceProvider`, and the result was a panel reading
+   * "AI MODEL: Opus 5 / INFERENCE: Not configured" while qwen2.5:3b was
+   * answering a question three inches to its left. Settings record a
+   * preference; the router knows what is installed, what fits, and what is
+   * reachable from this host. Only the second of those is a status.
+   *
+   * Recomputed when the local probe finishes, because at first paint the
+   * registry holds nothing but a placeholder marked unavailable.
+   */
+  const [selection, setSelection] = useState(() => ai.describeSelection());
+  useEffect(() => {
+    setSelection(ai.describeSelection());
+    return bus.on('AI_MODELS_REGISTERED', () => setSelection(ai.describeSelection()));
+  }, [ai, bus]);
 
   useEffect(() => {
     const refresh = () => {
@@ -92,30 +111,25 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
   const durable = (store as { durable?: boolean }).durable ?? false;
   const model = getModelOrDefault(settings.languageModel);
 
-  // The registry knows which provider serves which model, so the two rows
-  // below cannot drift apart or be filled from the same value.
   const registry = new ModelRegistry();
-  const selectedModel = registry.get(settings.languageModel);
-  const providerId = settings.inferenceProvider;
+  // The router's actual choice where there is one; the stated preference
+  // otherwise, which is the right thing to show when nothing can run.
+  const selectedModel = selection.model ?? registry.get(settings.languageModel);
 
-  const inferenceLabel =
-    providerId === 'none'
-      ? 'Not configured'
-      : providerId === 'cerebras'
-        ? 'Cerebras'
-        : providerId === 'anthropic'
-          ? 'Anthropic'
-          : 'Local inference';
+  const inferenceLabel = selection.provider
+    ? selection.provider.location === 'local'
+      ? 'Local'
+      : selection.provider.name
+    : 'Not configured';
 
-  // Nothing can actually run yet in a web build, and the reason differs by
-  // provider. Saying "Connected" here would be the one claim this panel has
-  // spent every phase refusing to make.
-  const inferenceDetail =
-    providerId === 'none'
-      ? 'Choose an inference provider in Settings'
-      : providerId === 'local'
-        ? 'No local runtime installed'
-        : `${inferenceLabel} inference is not configured`;
+  // "Not configured" is still the honest answer wherever nothing can run, and
+  // the reason now comes from the router, which names the specific missing
+  // thing per provider rather than one generic failure for all of them.
+  const inferenceDetail = selection.provider
+    ? selection.provider.location === 'local'
+      ? 'Running on this machine. Nothing leaves it.'
+      : `${selection.provider.name} is answering.`
+    : selection.reason;
 
   const rows: StatusRow[] = [
     {
@@ -133,7 +147,9 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
       // The model, and only the model. Cerebras is not a model and must never
       // appear on this row - it runs models other people trained.
       value: selectedModel?.name ?? model.name,
-      tone: 'off',
+      // Lit only when this is the model that would genuinely answer, not when
+      // it is merely the one selected in Settings.
+      tone: selection.model ? 'ok' : 'off',
       detail: selectedModel
         ? `${selectedModel.family} by ${selectedModel.author} - ${formatContext(selectedModel.contextLength)} context`
         : `${formatContext(model.contextTokens)} context`,
@@ -145,7 +161,7 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
       // The infrastructure that would run it. A separate fact with a separate
       // failure: a configured model with no provider is not a working setup.
       value: inferenceLabel,
-      tone: 'off',
+      tone: selection.provider ? 'ok' : 'off',
       detail: inferenceDetail,
     },
     {

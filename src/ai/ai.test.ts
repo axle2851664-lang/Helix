@@ -3,7 +3,11 @@ import { MODEL_REGISTRY, ModelRegistry } from './registry.js';
 import { AIRouter, classify } from './AIRouter.js';
 import { CerebrasProvider } from './CerebrasProvider.js';
 import { LocalProvider } from './LocalProvider.js';
-import { BrowserInferenceTransport, TauriInferenceTransport } from './transport.js';
+import {
+  BrowserInferenceTransport,
+  LOCAL_INFERENCE_ORIGIN,
+  TauriInferenceTransport,
+} from './transport.js';
 import type {
   GenerateRequest,
   GenerateResult,
@@ -110,14 +114,92 @@ describe('the browser transport', () => {
     expect(transport.hasCredential()).toBe(false);
   });
 
-  it('refuses, naming both reasons', () => {
-    const reason = transport.unavailableReason();
-    expect(reason).toContain('outside origin');
+  it('refuses a cloud provider, and says why', () => {
+    const reason = transport.unavailableReason('cerebras');
     expect(reason).toContain('readable by everything in the page');
+    expect(reason).toContain('desktop shell');
+  });
+
+  it('refuses when no provider is named, which is the cautious answer', () => {
+    expect(transport.unavailableReason()).not.toBeNull();
   });
 
   it('throws rather than quietly returning nothing', async () => {
-    await expect(transport.request()).rejects.toThrow(/desktop shell/);
+    await expect(
+      transport.request({ providerId: 'cerebras', path: '/v1/chat', body: {} }),
+    ).rejects.toThrow(/desktop shell/);
+  });
+
+  /**
+   * The refusal used to cover this case too, and it should not have.
+   *
+   * The rule being applied is about credentials, and a local model server has
+   * none - there is nothing in the page to steal, and nothing addressed to
+   * loopback leaves the machine. One blanket answer was covering two different
+   * questions, and it cost the browser build the only kind of inference it can
+   * safely do.
+   */
+  it('allows a local provider, because there is no key to leak', () => {
+    expect(transport.unavailableReason('ollama')).toBeNull();
+  });
+
+  it('reaches loopback and nowhere else', async () => {
+    const seen: string[] = [];
+    const local = new BrowserInferenceTransport({
+      fetch: (async (url: string | URL | Request) => {
+        seen.push(String(url));
+        return new Response(JSON.stringify({ models: [] }), { status: 200 });
+      }) as typeof globalThis.fetch,
+    });
+
+    await local.request({ providerId: 'ollama', path: '/api/tags', body: null });
+
+    expect(seen).toEqual([`${LOCAL_INFERENCE_ORIGIN}/api/tags`]);
+  });
+
+  // A body means a chat request; no body means asking what is installed.
+  it('sends a body as a POST and no body as a GET', async () => {
+    const methods: string[] = [];
+    const local = new BrowserInferenceTransport({
+      fetch: (async (_url: unknown, init?: RequestInit) => {
+        methods.push(init?.method ?? 'GET');
+        return new Response('{}', { status: 200 });
+      }) as typeof globalThis.fetch,
+    });
+
+    await local.request({ providerId: 'ollama', path: '/api/tags', body: null });
+    await local.request({ providerId: 'ollama', path: '/api/chat', body: { model: 'x' } });
+
+    expect(methods).toEqual(['GET', 'POST']);
+  });
+
+  /**
+   * A blocked request and a stopped service are indistinguishable to `fetch`,
+   * and they have entirely different fixes. Naming only one would be a guess.
+   */
+  it('names both possibilities when the request will not go through', async () => {
+    const local = new BrowserInferenceTransport({
+      fetch: (() => Promise.reject(new TypeError('Failed to fetch'))) as typeof globalThis.fetch,
+    });
+
+    await expect(
+      local.request({ providerId: 'ollama', path: '/api/tags', body: null }),
+    ).rejects.toThrow(/not running, or this page is not permitted/);
+  });
+
+  /**
+   * The two halves of one decision, in two files that cannot import each
+   * other. If they disagree the browser blocks the request and reports
+   * something misleading, so the agreement is asserted rather than assumed.
+   */
+  it('agrees with the origin the content policy permits', async () => {
+    const { readFileSync } = await import('node:fs');
+    const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+
+    expect(html).toContain(`connect-src 'self' blob: ${LOCAL_INFERENCE_ORIGIN}`);
+    // Everything else stays shut. A wildcard here would undo the whole point.
+    expect(html).not.toContain('https://');
+    expect(html).not.toContain("connect-src 'self' blob: *");
   });
 });
 

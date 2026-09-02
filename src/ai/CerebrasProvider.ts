@@ -69,7 +69,7 @@ export class CerebrasProvider implements InferenceProvider {
    * they are reported separately rather than as one "not available".
    */
   isConfigured(): ProviderConfiguration {
-    const hostProblem = this.#transport.unavailableReason();
+    const hostProblem = this.#transport.unavailableReason(this.id);
     if (hostProblem !== null) {
       return { configured: false, reason: hostProblem };
     }

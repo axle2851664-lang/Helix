@@ -57,6 +57,16 @@ export interface HelixEventMap {
   // --- Storage (spec 2) ---
   STORAGE_WARNING: StorageWarningPayload;
 
+  /**
+   * The registry has learned what the local runtime actually has installed.
+   *
+   * Raised once at startup, after a probe that may fail or take a moment. The
+   * status panel needs it because until it lands there is nothing but a
+   * placeholder entry to report against - which is how the panel came to read
+   * "INFERENCE: Not configured" while a local model was answering.
+   */
+  AI_MODELS_REGISTERED: { provider: string; usable: number; chosen: string | null };
+
   // --- Connectivity (spec 27) ---
   CONNECTIVITY_CHANGED: { mode: 'online' | 'offline' };
 

@@ -39,6 +39,8 @@ interface TagsResponse {
     name?: unknown;
     model?: unknown;
     size?: unknown;
+    /** Ollama reports this alongside the model, not inside `details`. */
+    context_length?: unknown;
     details?: { parameter_size?: unknown; family?: unknown; quantization_level?: unknown };
   }>;
 }
@@ -99,7 +101,7 @@ export class OllamaProvider implements InferenceProvider {
   }
 
   isConfigured(): ProviderConfiguration {
-    const hostProblem = this.#transport.unavailableReason();
+    const hostProblem = this.#transport.unavailableReason(this.id);
     if (hostProblem !== null) return { configured: false, reason: hostProblem };
 
     // A probe that has already failed is remembered rather than repeated on
@@ -130,7 +132,7 @@ export class OllamaProvider implements InferenceProvider {
    * one.
    */
   async getStatus(): Promise<LocalAIStatus> {
-    const hostProblem = this.#transport.unavailableReason();
+    const hostProblem = this.#transport.unavailableReason(this.id);
     if (hostProblem !== null) {
       return {
         serviceRunning: false,
@@ -199,7 +201,12 @@ export class OllamaProvider implements InferenceProvider {
           // Not probed. Claiming a model can do vision or code because of its
           // name would be a guess the router would then act on.
           capabilities: ['chat' as const],
-          contextLength: 0,
+          // Read where the runtime states it. Zero was standing in for "not
+          // known" and the status panel rendered it as "0K context", which
+          // reads as a fact rather than a gap - the one thing a panel of real
+          // figures must not do. Still zero when the runtime is silent, and
+          // the formatter is what decides how to show an absent value.
+          contextLength: asNumber(entry.context_length) ?? 0,
           maxOutputTokens: null,
           status: 'available' as const,
           ...(asNumber(entry.size) !== null

@@ -3,7 +3,7 @@ import { Composer } from './Composer.js';
 import { ToolCardView } from './ToolCardView.js';
 import { useHelix, useSettings } from '../HelixProvider.js';
 import { Reactor } from '../hero/Reactor.js';
-import { reactorSegments } from '../hero/capabilities.js';
+import { describeReasoning, reactorSegments } from '../hero/capabilities.js';
 import { rotateWindow, suggestedPrompts } from '../hero/prompts.js';
 import { toUserMessage } from '../../core/HelixError.js';
 import type { VoiceSnapshot } from '../../voice/VoiceManager.js';
@@ -39,8 +39,19 @@ export function HomeWorkspace({
   onNavigate,
   onOpenProject,
 }: HomeWorkspaceProps) {
-  const { orchestrator, conversations, activity, voice, platform, store, projects, memory, knowledge } =
-    useHelix();
+  const {
+    orchestrator,
+    conversations,
+    activity,
+    voice,
+    platform,
+    store,
+    projects,
+    memory,
+    knowledge,
+    ai,
+    bus,
+  } = useHelix();
   const config = useSettings([
     'languageProvider',
     'speechToTextProvider',
@@ -181,8 +192,18 @@ export function HomeWorkspace({
   // build can actually load, which is not the same as what is selected.
   const hearingBlocker = voice.inputBlocker();
 
+  // What would actually answer, refreshed when the local probe reports in.
+  // The registry holds only a placeholder until then, so a value read at first
+  // paint would say nothing is available and never correct itself.
+  const [reasoning, setReasoning] = useState(() => describeReasoning(ai));
+  useEffect(() => {
+    setReasoning(describeReasoning(ai));
+    return bus.on('AI_MODELS_REGISTERED', () => setReasoning(describeReasoning(ai)));
+  }, [ai, bus]);
+
   const segments = reactorSegments({
     online,
+    reasoning,
     languageProvider: config.languageProvider,
     hearingBlocker,
     hearingProvider: config.speechToTextProvider,

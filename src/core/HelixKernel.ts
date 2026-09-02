@@ -343,11 +343,14 @@ export class HelixKernel {
         const assessed = assessInstalledModels(installed, hardware);
         ai.registry.replaceProviderModels('ollama', assessed);
 
-        logger.info('Local models registered.', {
-          installed: assessed.length,
-          usable: assessed.filter((model) => model.status !== 'unavailable').length,
-          chosen: preferredLocalModel(assessed)?.id ?? null,
-        });
+        const usable = assessed.filter((model) => model.status !== 'unavailable').length;
+        const chosen = preferredLocalModel(assessed)?.id ?? null;
+
+        logger.info('Local models registered.', { installed: assessed.length, usable, chosen });
+        // The status panel is computed from the registry, and until this point
+        // the registry held only a placeholder. Without the event it goes on
+        // reporting that nothing is configured while a model answers.
+        bus.emit('AI_MODELS_REGISTERED', { provider: 'ollama', usable, chosen });
       } catch (error) {
         logger.debug('Local model probe failed; the placeholder entry stands.', error);
       }

@@ -3,9 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      connect-src names exactly one destination beyond the page's own origin:
+      http://127.0.0.1:11434, the local model server. It is loopback, so
+      nothing addressed there leaves this machine, and it needs no credential,
+      so there is nothing for the page to hold and nothing to leak. Every other
+      origin stays forbidden - a cloud provider's key must never be in a web
+      page, and this line is what makes that a fact rather than an intention.
+
+      The same origin is written in src/ai/transport.ts and a test asserts the
+      two agree: a mismatch surfaces as a blocked request with a misleading
+      error rather than an obvious failure.
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob:;"
+      content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: http://127.0.0.1:11434;"
     />
     <title>Helix</title>
   </head>

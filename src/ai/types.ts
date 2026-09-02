@@ -136,8 +136,19 @@ export interface InferenceProvider {
  */
 export interface InferenceTransport {
   readonly id: string;
-  /** Why a request cannot be made from this host, or null when it can. */
-  unavailableReason(): string | null;
+  /**
+   * Why a request cannot be made from this host, or null when it can.
+   *
+   * Asked per provider, because on one host the answer genuinely differs
+   * between them. A browser page must never hold a cloud provider's key, and
+   * that is a permanent fact; it can perfectly well reach a keyless model
+   * server on loopback, and refusing that too was one blanket answer covering
+   * two different questions.
+   *
+   * The argument is optional, so a caller with no particular provider in mind
+   * still gets the host's general position.
+   */
+  unavailableReason(providerId?: string): string | null;
   /** Whether a credential is held for this provider. Never the value. */
   hasCredential(providerId: string): boolean;
 

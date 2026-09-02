@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   describeArc,
+  describeReasoning,
   polarToCartesian,
   reactorSegments,
   segmentAngles,
@@ -41,14 +42,74 @@ describe('reactorSegments', () => {
     }
   });
 
-  it('never lights reasoning, because nothing connects to a model', () => {
+  /**
+   * This used to read "never lights reasoning, because nothing connects to a
+   * model", and it was correct for as long as that held. It stopped holding
+   * when a local model started answering, and the segment went on reporting
+   * REASONING as unavailable on a screen where Helix was replying - the exact
+   * fabricated status this module exists to prevent, in the one direction
+   * nobody thinks to check.
+   *
+   * A stated preference still cannot light it. Only a router naming what would
+   * actually answer can.
+   */
+  it('stays dark on a preference alone', () => {
     expect(find({ languageProvider: 'cloud' }, 'reason')?.state).toBe('unavailable');
     expect(find({ languageProvider: 'local' }, 'reason')?.state).toBe('unavailable');
   });
 
-  it('distinguishes no provider from a selected one that is not built', () => {
+  it('lights when something would genuinely answer', () => {
+    const segment = find(
+      { languageProvider: 'none', reasoning: { model: 'qwen2.5:3b', local: true } },
+      'reason',
+    );
+
+    expect(segment?.state).toBe('ready');
+    expect(segment?.reason).toContain('qwen2.5:3b');
+  });
+
+  // Where the words go matters as much as whether the light is on: running
+  // locally is a privacy fact, and the ring is where the user reads it.
+  it('says a local model keeps the conversation on the machine', () => {
+    const local = find({ reasoning: { model: 'qwen2.5:3b', local: true } }, 'reason');
+    const cloud = find({ reasoning: { model: 'gpt-oss 120B', local: false } }, 'reason');
+
+    expect(local?.reason).toContain('leaves it');
+    expect(cloud?.reason).not.toContain('leaves it');
+  });
+
+  it('distinguishes no provider from a selected one that cannot run', () => {
     expect(find({ languageProvider: 'none' }, 'reason')?.reason).toContain('No language provider');
-    expect(find({ languageProvider: 'cloud' }, 'reason')?.reason).toContain('not built');
+    expect(find({ languageProvider: 'cloud' }, 'reason')?.reason).toContain('nothing is reachable');
+  });
+
+  describe('describeReasoning', () => {
+    it('reports null when nothing would answer', () => {
+      expect(
+        describeReasoning({ describeSelection: () => ({ model: null, provider: null }) }),
+      ).toBeNull();
+    });
+
+    it('carries the model name and whether it is local', () => {
+      expect(
+        describeReasoning({
+          describeSelection: () => ({
+            model: { name: 'qwen2.5:3b' },
+            provider: { location: 'local' },
+          }),
+        }),
+      ).toEqual({ model: 'qwen2.5:3b', local: true });
+    });
+
+    // A model with no provider to run it is not a working arrangement, and
+    // half an answer here would light the segment on nothing.
+    it('needs both halves before it reports anything', () => {
+      expect(
+        describeReasoning({
+          describeSelection: () => ({ model: { name: 'orphan' }, provider: null }),
+        }),
+      ).toBeNull();
+    });
   });
 
   /**

@@ -130,6 +130,11 @@ function escapeRegExp(value: string): string {
 
 /** Human-readable context size, e.g. "1M" or "200K". */
 export function formatContext(tokens: number): string {
+  // Zero means the runtime never said, and "0K" reads as a measured figure
+  // rather than a missing one. A locally probed model reported exactly that,
+  // and the status panel showed "0K context" beside a model that was working
+  // perfectly well.
+  if (tokens <= 0) return 'unstated';
   if (tokens >= 1_000_000) return `${tokens / 1_000_000}M`;
   return `${Math.round(tokens / 1000)}K`;
 }

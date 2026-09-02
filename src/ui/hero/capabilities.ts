@@ -19,6 +19,29 @@
 
 export type SegmentState = 'ready' | 'caveat' | 'unavailable';
 
+/** The shape the reasoning segment needs, without importing the router here. */
+export interface ReasoningSelection {
+  model: string;
+  local: boolean;
+}
+
+/**
+ * Ask a router what would answer, in the terms this file uses.
+ *
+ * A tiny adapter, and it earns its place: it keeps the ring ignorant of
+ * `AIRouter` while making sure the ring is fed a measurement rather than a
+ * setting. The duck type is deliberate - anything that can describe its own
+ * selection will do, which is what makes this testable without a router.
+ */
+export function describeReasoning(router: {
+  describeSelection(): { model: { name: string } | null; provider: { location: string } | null };
+}): ReasoningSelection | null {
+  const selection = router.describeSelection();
+  if (!selection.model || !selection.provider) return null;
+
+  return { model: selection.model.name, local: selection.provider.location === 'local' };
+}
+
 export interface ReactorSegment {
   id: string;
   /** Drawn beside the ring, so colour is never the only signal. */
@@ -31,6 +54,15 @@ export interface ReactorSegment {
 export interface ReactorInput {
   online: boolean;
   languageProvider: string;
+  /**
+   * What would actually answer, from the router. Null when nothing would.
+   *
+   * Distinct from `languageProvider`, which records a stated preference. This
+   * segment read "REASONING: unavailable. No language provider selected."
+   * while a local model was answering questions on the same screen, because a
+   * preference was standing in for a measurement.
+   */
+  reasoning?: { model: string; local: boolean } | null;
   /** From VoiceManager, which knows what is actually loadable in this build. */
   hearingBlocker: string | null;
   hearingProvider: string;
@@ -55,14 +87,23 @@ export function reactorSegments(input: ReactorInput): ReactorSegment[] {
     {
       id: 'reason',
       label: 'REASONING',
-      // Never "ready": a model is selected, but nothing connects to it, and a
-      // lit segment here would promise an answer Helix cannot produce.
-      ...(input.languageProvider === 'none'
-        ? { state: 'unavailable' as const, reason: 'No language provider selected.' }
-        : {
-            state: 'unavailable' as const,
-            reason: 'A provider is selected, but the connection is not built and no key is held.',
-          }),
+      // Lit only when something would genuinely answer. This was hard-coded
+      // to `unavailable` in both branches, which was true when nothing could
+      // run and became a lie the moment a local model could - the segment
+      // stayed dark while that model answered.
+      ...(input.reasoning
+        ? {
+            state: 'ready' as const,
+            reason: input.reasoning.local
+              ? `${input.reasoning.model}, running on this machine. Nothing you say leaves it.`
+              : `${input.reasoning.model} is answering.`,
+          }
+        : input.languageProvider === 'none'
+          ? { state: 'unavailable' as const, reason: 'No language provider selected.' }
+          : {
+              state: 'unavailable' as const,
+              reason: 'A provider is selected, but nothing is reachable to run it.',
+            }),
     },
     {
       id: 'hearing',
