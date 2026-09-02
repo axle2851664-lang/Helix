@@ -25,6 +25,7 @@
 mod google;
 mod web;
 mod inference;
+mod listen;
 
 use serde::Serialize;
 use sysinfo::Disks;
@@ -130,7 +131,9 @@ pub fn run() {
             google::google_disconnect,
             google::google_request,
             web::web_fetch,
-            web::configured_web_providers
+            web::configured_web_providers,
+            listen::start_phone_listener,
+            listen::phone_reply
         ])
         .run(tauri::generate_context!())
         .expect("error while running Helix");

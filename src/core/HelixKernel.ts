@@ -27,6 +27,7 @@ import { CerebrasProvider } from '../ai/CerebrasProvider.js';
 import { assessInstalledModels, preferredLocalModel } from '../ai/localModels.js';
 import { assessDiskPressure } from '../storage/pressure.js';
 import { RelayWatcher } from '../relay/RelayWatcher.js';
+import { PhoneListener } from '../relay/PhoneListener.js';
 import { GmailProvider } from '../integrations/google/GmailProvider.js';
 import { WebResearch } from '../web/WebResearch.js';
 import {
@@ -299,17 +300,26 @@ export class HelixKernel {
      * outside origin. Local inference therefore needs the desktop shell too,
      * even though the model itself is on this machine.
      */
+    /**
+     * One way to call the shell, rather than the same lambda written out at
+     * every call site. It was inlined three times and about to be a fourth.
+     *
+     * Declared before the transports that use it: `const` is not hoisted, and
+     * putting it after them was a temporal dead zone waiting to happen.
+     */
+    const shellInvoke = <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+      const global = (window as unknown as Record<string, unknown>)['__TAURI__'] as
+        | { core?: { invoke?: (c: string, a?: Record<string, unknown>) => Promise<unknown> } }
+        | undefined;
+      const invoke = global?.core?.invoke;
+      if (!invoke) return Promise.reject(new Error('The shell command bridge did not load.'));
+      return invoke(command, args) as Promise<T>;
+    };
+
     const inferenceTransport =
       platform.kind === 'tauri' && typeof window !== 'undefined'
         ? new TauriInferenceTransport({
-            invoke: ((command: string, args?: Record<string, unknown>) => {
-              const global = (window as unknown as Record<string, unknown>)['__TAURI__'] as
-                | { core?: { invoke?: (c: string, a?: Record<string, unknown>) => Promise<unknown> } }
-                | undefined;
-              const invoke = global?.core?.invoke;
-              if (!invoke) return Promise.reject(new Error('The shell command bridge did not load.'));
-              return invoke(command, args);
-            }) as never,
+            invoke: shellInvoke as never,
             // Ollama needs no key, so it counts as configured wherever the
             // shell can reach it. The shell confirms the rest.
             configuredProviders: ['ollama'],
@@ -326,14 +336,7 @@ export class HelixKernel {
     const googleTransport =
       platform.kind === 'tauri' && typeof window !== 'undefined'
         ? new TauriGoogleTransport({
-            invoke: ((command: string, args?: Record<string, unknown>) => {
-              const global = (window as unknown as Record<string, unknown>)['__TAURI__'] as
-                | { core?: { invoke?: (c: string, a?: Record<string, unknown>) => Promise<unknown> } }
-                | undefined;
-              const invoke = global?.core?.invoke;
-              if (!invoke) return Promise.reject(new Error('The shell command bridge did not load.'));
-              return invoke(command, args);
-            }) as never,
+            invoke: shellInvoke as never,
           })
         : null;
 
@@ -363,14 +366,7 @@ export class HelixKernel {
     const webTransport =
       platform.kind === 'tauri' && typeof window !== 'undefined'
         ? new TauriWebTransport({
-            invoke: ((command: string, args?: Record<string, unknown>) => {
-              const global = (window as unknown as Record<string, unknown>)['__TAURI__'] as
-                | { core?: { invoke?: (c: string, a?: Record<string, unknown>) => Promise<unknown> } }
-                | undefined;
-              const invoke = global?.core?.invoke;
-              if (!invoke) return Promise.reject(new Error('The shell command bridge did not load.'));
-              return invoke(command, args);
-            }) as never,
+            invoke: shellInvoke as never,
           })
         : new BrowserWebTransport();
 
@@ -478,6 +474,84 @@ export class HelixKernel {
     applyRelaySetting();
     settings.subscribe((_values, changed) => {
       if (changed.includes('relayEnabled')) applyRelaySetting();
+    });
+
+    /**
+     * The direct connection: the phone reaching this machine over Tailscale.
+     *
+     * Two halves. The shell owns the socket and every guard on it - peer
+     * address, shared key, body size - because a check written in the web view
+     * could be walked around by anything able to call the command directly.
+     * This half owns running the instruction, because the orchestrator is here.
+     *
+     * It shares the relay's key rather than introducing a second one. Two
+     * secrets for two doors into the same house is how one of them ends up
+     * weak.
+     */
+    const phone =
+      googleTransport === null
+        ? null
+        : new PhoneListener({
+            sink: orchestrator,
+            listen: async (event, handler) => {
+              const api = (window as unknown as Record<string, unknown>)['__TAURI__'] as
+                | {
+                    event?: {
+                      listen?: (
+                        e: string,
+                        cb: (m: { payload: unknown }) => void,
+                      ) => Promise<() => void>;
+                    };
+                  }
+                | undefined;
+              const subscribe = api?.event?.listen;
+              if (!subscribe) throw new Error('The shell event bridge did not load.');
+              return subscribe(event, (message) => handler(message.payload as never));
+            },
+            reply: async (id, text) => {
+              await shellInvoke('phone_reply', { id, text });
+            },
+            log: (message, detail) => logger.info(message, detail),
+          });
+
+    const applyPhoneSetting = () => {
+      if (!phone) return;
+      const wanted = settings.get('phoneListenerEnabled');
+
+      if (wanted && !phone.running) {
+        void (async () => {
+          try {
+            const status = await shellInvoke<{ addresses: string[] }>('start_phone_listener', {
+              port: settings.get('phoneListenerPort'),
+              key: settings.get('relaySecret'),
+            });
+            await phone.start();
+
+            logger.info('Phone listener started.', {
+              port: settings.get('phoneListenerPort'),
+              addresses: status.addresses,
+            });
+
+            // An empty address list is a different problem from a listener
+            // that failed to start, and the fix is different too.
+            if (status.addresses.length === 0) {
+              this.#warnings.push(
+                'Helix is listening for your phone, but Tailscale does not appear to be running, so nothing can reach it yet.',
+              );
+            }
+          } catch (error) {
+            logger.warn('Phone listener could not start.', error);
+          }
+        })();
+      } else if (!wanted && phone.running) {
+        phone.stop();
+        logger.info('Phone listener stopped.');
+      }
+    };
+
+    applyPhoneSetting();
+    settings.subscribe((_values, changed) => {
+      if (changed.includes('phoneListenerEnabled')) applyPhoneSetting();
     });
 
     /**

@@ -277,6 +277,36 @@ export const SETTINGS_SCHEMA = {
    * it.
    */
   /**
+   * Listen for the phone directly, over Tailscale.
+   *
+   * Off by default, like the mail relay and for the same reason: this is a way
+   * to make Helix act from outside the machine, and that should be something
+   * the user switched on rather than discovered was already on.
+   *
+   * The difference from the relay is what protects it. A mail message has a
+   * sender to check as well as a key; a TCP connection has no such thing, so
+   * the key here is the only credential and the shell refuses to start the
+   * listener with a short one.
+   */
+  phoneListenerEnabled: {
+    kind: 'boolean',
+    section: 'relay',
+    label: 'Listen for my phone directly',
+    description: 'Accept commands over Tailscale. Needs the desktop shell and a shared key.',
+    default: false,
+  },
+  phoneListenerPort: {
+    kind: 'number',
+    section: 'relay',
+    label: 'Port',
+    description: 'The port your phone connects to.',
+    min: 1024,
+    max: 65535,
+    step: 1,
+    default: 8765,
+  },
+
+  /**
    * Permission to use a search provider that charges.
    *
    * Off, and it stays off until the user says otherwise. Brave went in here
