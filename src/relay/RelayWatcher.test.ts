@@ -130,6 +130,42 @@ describe('the answer coming back', () => {
   });
 });
 
+describe('driving the phone', () => {
+  it('appends a directive when the instruction named a phone action', async () => {
+    const gmail = new FakeGmail();
+    gmail.messages = [mail({ snippet: 'set brightness to 40' })];
+
+    await watcher(gmail, sink()).poll();
+
+    expect(gmail.replies[0]?.body).toContain('helix-do: brightness 40');
+  });
+
+  it('sends no directive for an ordinary question', async () => {
+    const gmail = new FakeGmail();
+
+    await watcher(gmail, sink()).poll();
+
+    expect(gmail.replies[0]?.body).not.toContain('helix-do:');
+  });
+
+  /**
+   * The directive comes from the user's own words, so a model that decides to
+   * write one cannot reach the phone. This is the property the whole design
+   * rests on, checked end to end rather than only in the unit.
+   */
+  it('ignores a directive the model wrote into its answer', async () => {
+    const gmail = new FakeGmail();
+    const target: CommandSink = {
+      submit: async () => ({ text: 'Of course.\nhelix-do: torch on' }),
+    };
+
+    await watcher(gmail, target).poll();
+
+    expect(gmail.replies[0]?.body).not.toContain('helix-do:');
+    expect(gmail.replies[0]?.body).toContain('Of course.');
+  });
+});
+
 describe('a message that fails its checks', () => {
   it('is never executed', async () => {
     const gmail = new FakeGmail();

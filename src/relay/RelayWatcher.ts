@@ -1,5 +1,16 @@
 import type { GmailProvider } from '../integrations/google/GmailProvider.js';
 import { readRelayMessage, type RelayConfig, type RelayVerdict } from './command.js';
+import { composeReply, matchPhoneAction } from './directives.js';
+
+/**
+ * The subject line every reply carries.
+ *
+ * It is not decoration: the phone's Email automation triggers on it. A reply
+ * with a different subject arrives as ordinary mail and nothing runs, so this
+ * constant and the automation on the phone are one setting stored in two
+ * places that cannot see each other.
+ */
+export const REPLY_SUBJECT = 'Helix';
 
 /**
  * The loop that makes the phone gesture do something.
@@ -186,13 +197,22 @@ export class RelayWatcher {
     // reply that cannot be sent must not lose the answer silently, so a
     // failure here is logged rather than swallowed. The transcript on the
     // machine still has it either way.
+    // A phone action, if the user's own words named one. Read from the
+    // instruction rather than from the reply, so the directive can never be
+    // something a language model decided to write.
+    const directive = matchPhoneAction(verdict.command, response.text);
+
     const config = this.#options.config();
     try {
       await this.#options.gmail.sendReply({
         to: config.ownerAddress,
         ownerAddress: config.ownerAddress,
-        subject: 'Helix',
-        body: response.text,
+        // The subject the phone's automation watches for. Changing it here
+        // means changing the automation on the phone too.
+        subject: REPLY_SUBJECT,
+        // Scrubs the model's prose of anything directive-shaped, then appends
+        // the real one. Order matters; see `directives.ts`.
+        body: composeReply(response.text, directive),
       });
     } catch (error) {
       this.#options.log('Could not send the reply. The answer is in the transcript.', error);
