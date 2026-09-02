@@ -26,7 +26,15 @@ sysinfo = "0.32"
 # is the only side of the boundary where an API key can be held without being
 # readable by the page.
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
-tokio = { version = "1", features = ["macros"] }
+tokio = { version = "1", features = ["macros", "rt"] }
+# PKCE. The code challenge is a SHA-256 of the verifier, base64url-encoded;
+# the encoding is written out in google.rs because it is twenty lines, but a
+# hand-rolled hash would be a different matter entirely.
+sha2 = "0.10"
+# Cryptographic randomness for the PKCE verifier and the state value. Already
+# in the tree beneath the TLS stack; named here because this code depends on
+# it directly and a weak source would make PKCE decorative.
+getrandom = "0.3"
 
 [features]
 # Kept so a release build can be produced without the devtools payload.

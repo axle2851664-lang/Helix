@@ -22,6 +22,7 @@
 //! that Helix never writes outside its own folders survives the move only if
 //! this file refuses to offer the means.
 
+mod google;
 mod inference;
 
 use serde::Serialize;
@@ -122,7 +123,11 @@ pub fn run() {
             available_memory,
             shell_version,
             inference::configured_inference_providers,
-            inference::inference_request
+            inference::inference_request,
+            google::google_status,
+            google::google_connect,
+            google::google_disconnect,
+            google::google_request
         ])
         .run(tauri::generate_context!())
         .expect("error while running Helix");

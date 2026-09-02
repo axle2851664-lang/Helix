@@ -187,3 +187,84 @@ export class TauriInferenceTransport implements InferenceTransport {
     });
   }
 }
+
+/**
+ * The same boundary, for Google.
+ *
+ * A separate class rather than another branch inside the one above, because
+ * the two are not the same shape underneath: inference carries an API key from
+ * the environment, and Google carries an OAuth token the shell minted, stored
+ * and refreshes. Sharing a command would mean one `match` deciding between
+ * credential kinds, which is the sort of place a path ends up reaching the
+ * wrong wall.
+ *
+ * `hasCredential` is a question about a stored token, which only the shell can
+ * answer, so it is cached from `refreshStatus()` rather than guessed. The
+ * front end still never sees the token itself - `google_status` returns a
+ * boolean and an address, and nothing else.
+ */
+export class TauriGoogleTransport implements InferenceTransport {
+  readonly id = 'tauri-google';
+
+  readonly #invoke: TauriInvoke;
+  #connected = false;
+  #account: string | null = null;
+
+  constructor(options: { invoke: TauriInvoke }) {
+    this.#invoke = options.invoke;
+  }
+
+  get account(): string | null {
+    return this.#account;
+  }
+
+  /** Ask the shell whether a token is held. Never asks for the token. */
+  async refreshStatus(): Promise<{ connected: boolean; account: string | null }> {
+    try {
+      const status = await this.#invoke<{ connected: boolean; account: string | null }>(
+        'google_status',
+      );
+      this.#connected = status.connected === true;
+      this.#account = this.#connected ? (status.account ?? null) : null;
+    } catch {
+      this.#connected = false;
+      this.#account = null;
+    }
+    return { connected: this.#connected, account: this.#account };
+  }
+
+  /**
+   * Run the consent flow. Resolves with the connected address.
+   *
+   * The client id and secret pass through the page on their way to the shell,
+   * once, because the user types them into a settings field and there is
+   * nowhere else for them to enter. They are stored on the far side and never
+   * read back - `google_status` has no field for them.
+   */
+  async connect(clientId: string, clientSecret: string): Promise<string> {
+    const account = await this.#invoke<string>('google_connect', { clientId, clientSecret });
+    await this.refreshStatus();
+    return account;
+  }
+
+  async disconnect(): Promise<void> {
+    await this.#invoke<void>('google_disconnect');
+    this.#connected = false;
+    this.#account = null;
+  }
+
+  unavailableReason(): null {
+    return null;
+  }
+
+  hasCredential(): boolean {
+    return this.#connected;
+  }
+
+  async request(options: { path: string; body: unknown }): Promise<unknown> {
+    return this.#invoke<unknown>('google_request', {
+      path: options.path,
+      body: options.body,
+    });
+  }
+}
