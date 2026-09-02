@@ -58,6 +58,21 @@ export interface HelixEventMap {
   STORAGE_WARNING: StorageWarningPayload;
 
   /**
+   * Free disk space is low, and what Helix did about it.
+   *
+   * Deliberately not folded into STORAGE_WARNING, which describes how full
+   * Helix's own quota is. That is a different measurement with a different
+   * fix, and a browser can report the quota while having no idea what the
+   * disk is doing.
+   */
+  DISK_PRESSURE: {
+    level: 'low' | 'critical';
+    message: string;
+    /** Index records removed. Zero on a warning, which clears nothing. */
+    cleared: number;
+  };
+
+  /**
    * The registry has learned what the local runtime actually has installed.
    *
    * Raised once at startup, after a probe that may fail or take a moment. The

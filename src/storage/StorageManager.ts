@@ -58,8 +58,20 @@ export interface CategoryUsage {
 /**
  * Something that can be deleted to free space.
  *
- * Never acted on automatically. Helix reports what could go and what it would
- * recover; deleting is a decision, and a storage figure is not consent.
+ * Reported, not acted on - with exactly one exception, added deliberately and
+ * scoped as narrowly as it would go.
+ *
+ * The rule was that deleting is a decision and a storage figure is not
+ * consent. It still is for everything here that cannot be recreated:
+ * `generated-assets`, `stored-conversations` and `old-snapshots` are never
+ * touched unless the user asks, whatever the disk is doing.
+ *
+ * `orphan-index` is the exception. The user asked for automatic clearing when
+ * the disk runs low, and this is the only entry that qualifies: it holds index
+ * records whose files are already gone, it rebuilds from files that are still
+ * there, and nothing is lost with it. `storage/pressure.ts` decides when,
+ * refuses to act on a browser's origin quota, and says out loud what it
+ * cleared and what it left alone.
  */
 export interface Reclaimable {
   id: 'orphan-index' | 'generated-assets' | 'stored-conversations' | 'old-snapshots';

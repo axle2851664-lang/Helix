@@ -25,6 +25,7 @@ import { AIRouter } from '../ai/AIRouter.js';
 import { OllamaProvider } from '../ai/OllamaProvider.js';
 import { CerebrasProvider } from '../ai/CerebrasProvider.js';
 import { assessInstalledModels, preferredLocalModel } from '../ai/localModels.js';
+import { assessDiskPressure } from '../storage/pressure.js';
 import {
   BrowserInferenceTransport,
   TauriInferenceTransport,
@@ -355,6 +356,54 @@ export class HelixKernel {
         logger.debug('Local model probe failed; the placeholder entry stands.', error);
       }
     })();
+
+    /**
+     * Watch free disk space, and clear Helix's own rebuildable caches when it
+     * runs low.
+     *
+     * Polled rather than event-driven because no host offers an event for it.
+     * Every ten minutes: often enough to notice a disk filling, rare enough
+     * that it costs nothing, and nowhere near frequent enough to react to a
+     * momentary dip - which is deliberate, because free space is a reading and
+     * `assessDiskPressure` has a warning band precisely so there is a moment
+     * to intervene before anything is removed.
+     *
+     * On a browser this finds an origin quota rather than a disk and declines
+     * to act, which is the honest answer rather than a missing feature.
+     */
+    const diskWatch = setInterval(() => {
+      void (async () => {
+        const thresholdGb = settings.get('diskCleanupThresholdGb');
+        if (thresholdGb <= 0) return;
+
+        const verdict = assessDiskPressure(
+          await platform.getVolumeStats(),
+          thresholdGb * 1024 ** 3,
+        );
+        if (verdict.level === 'unmeasurable' || verdict.level === 'ample') return;
+
+        // Only the rebuildable entry. Everything else in `Reclaimable` needs
+        // the user to ask, whatever the disk is doing.
+        const cleared = verdict.shouldReclaim
+          ? (await storage.reclaim('orphan-index')).items
+          : 0;
+
+        // Said out loud either way, and after the fact so the count is real.
+        // An automatic action nobody is told about is precisely what the
+        // storage report refused to build.
+        logger.info(verdict.message, { level: verdict.level, cleared });
+        bus.emit('DISK_PRESSURE', {
+          level: verdict.level === 'critical' ? 'critical' : 'low',
+          message: verdict.message,
+          cleared,
+        });
+      })().catch((error: unknown) => {
+        logger.debug('Disk pressure check failed.', error);
+      });
+    }, 10 * 60 * 1000);
+    // Node keeps the process alive for a bare interval; the browser does not
+    // care either way, and the shell should not be held open by a timer.
+    (diskWatch as unknown as { unref?: () => void }).unref?.();
 
     // Newly imported files are indexed in the background. Indexing failures
     // are recorded on the document, not thrown at the import, so a file that

@@ -184,6 +184,29 @@ export const SETTINGS_SCHEMA = {
     default: 100,
   },
 
+  /**
+   * Free disk space below which Helix clears its own rebuildable caches.
+   *
+   * Zero switches it off entirely. The default is five gigabytes rather than
+   * the 0.33 originally asked for, and the difference is not a liberty: on a
+   * 237 GB drive, 0.33 GB free means Windows is already failing to save, while
+   * the caches Helix can clear are measured in megabytes. Acting there would
+   * be a gesture rather than a rescue. The lower figure is still permitted -
+   * it is the user's machine - and `thresholdWarning` says plainly that it is
+   * too late to help rather than accepting it in silence.
+   */
+  diskCleanupThresholdGb: {
+    kind: 'number',
+    section: 'storage',
+    label: 'Clear caches below',
+    description: 'Free disk space at which Helix clears its own caches. 0 turns it off.',
+    min: 0,
+    max: 100,
+    step: 0.5,
+    unit: ' GB',
+    default: 5,
+  },
+
   // -------------------------------------------------------------------- camera
   cameraDeviceId: {
     kind: 'string',
