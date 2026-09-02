@@ -116,10 +116,22 @@ const DISCLAIMER =
  */
 const SERVICE_TAGS = [
   /\s*(?:is there )?anything else (?:i can (?:assist|help) (?:you )?with|you (?:need|require))\s*[?.!]?\s*$/i,
-  /\s*how (?:may|can) i (?:assist|help) you(?: further| today| with that)?\s*[?.!]?\s*$/i,
-  // "What can I assist with today?" - the same tag without the "you", which
-  // the pattern above required. It reached the user in a measured run.
-  /\s*what (?:can|may) i (?:assist|help)(?: you)?(?: with)?(?: today)?\s*[?.!]?\s*$/i,
+  /**
+   * "How may I assist you further / today / this evening?", and the same
+   * without the "you".
+   *
+   * The trailing qualifier was a fixed list of three - further, today, with
+   * that - and the model produced "what can I assist with today", then "how
+   * may I assist you this evening". Chasing one suffix at a time was always
+   * going to lose.
+   *
+   * What it is not allowed to become is `\w+`, matching anything. "How can I
+   * help you fix the printer?" is a real offer to do a specific thing, and a
+   * pattern loose enough to catch every pleasantry would delete it. So the
+   * trailing words come from a closed list of fillers: extend the list when a
+   * new one turns up, and content is never at risk.
+   */
+  /\s*(?:how|what) (?:may|can) i (?:assist|help)(?:\s+(?:you|with|further|else|today|tonight|now|then|this|next|morning|afternoon|evening|day))*\s*[?.!]?\s*$/i,
   /\s*(?:please )?let me know (?:if|how) (?:i can (?:be of )?(?:assist|help|service)|you(?:'d| would) like to proceed)[^.!?]*[?.!]?\s*$/i,
   /\s*i(?:'m| am) (?:here|at your (?:service|disposal))(?: (?:if|should) you need (?:me|anything))?\s*[?.!]?\s*$/i,
 ];

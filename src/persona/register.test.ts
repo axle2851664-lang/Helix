@@ -97,9 +97,10 @@ describe('the offer of further service', () => {
     'The render job is stopped. Is there anything else I can assist with?',
     'The render job is stopped. Let me know if I can help.',
     'The render job is stopped. Anything else you need?',
-    // Reached the user in a measured run: the "you" the earlier pattern
-    // insisted on is not always there.
+    // Both of these reached the user in real runs against qwen2.5:3b, each
+    // with a trailing qualifier the pattern of the day did not know about.
     'The render job is stopped. What can I assist with today?',
+    'The render job is stopped. How may I assist you this evening?',
   ])('removes it however it is phrased: %j', (input) => {
     expect(repair(input).text).toBe('The render job is stopped.');
   });
@@ -114,6 +115,21 @@ describe('the offer of further service', () => {
   it('leaves a genuine offer alone', () => {
     const offer = 'Three files failed to index. I can list them if you want.';
     expect(repair(offer).text).toBe(offer);
+  });
+
+  /**
+   * The line the filler list exists to hold.
+   *
+   * These have the exact shape of the tag and are not tags: they name a thing
+   * to be done. A pattern permissive enough to catch every closing pleasantry
+   * would take these too, which is why the trailing words are a closed list
+   * rather than `\w+`.
+   */
+  it.each([
+    'The printer is jammed. How can I help you fix it?',
+    'There are two options. How may I help you choose?',
+  ])('does not touch a specific offer of the same shape: %j', (input) => {
+    expect(repair(input).text).toBe(input);
   });
 });
 
