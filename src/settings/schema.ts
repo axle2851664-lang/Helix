@@ -19,6 +19,7 @@ export type SettingsSection =
   | 'vision'
   | 'gestures'
   | 'providers'
+  | 'relay'
   | 'storage'
   | 'privacy'
   | 'advanced';
@@ -205,6 +206,92 @@ export const SETTINGS_SCHEMA = {
     step: 0.5,
     unit: ' GB',
     default: 5,
+  },
+
+  // --------------------------------------------------------------------- relay
+  /**
+   * The phone relay: a mailbox Helix polls for commands.
+   *
+   * Off by default, and that is not timidity. Switching it on turns an email
+   * address into a way to make Helix act, and a feature that reaches the
+   * machine from outside should be something the user turned on deliberately
+   * rather than something they discovered was already on.
+   */
+  relayEnabled: {
+    kind: 'boolean',
+    section: 'relay',
+    label: 'Accept commands by email',
+    description: 'Poll the relay mailbox for instructions sent from your phone.',
+    default: false,
+  },
+  relayOwnerAddress: {
+    kind: 'string',
+    section: 'relay',
+    label: 'Your address',
+    description: 'The only address Helix will take instructions from.',
+    placeholder: 'you@gmail.com',
+    maxLength: 320,
+    default: '',
+  },
+  /**
+   * The shared secret the phone includes in every message.
+   *
+   * Stored like every other setting, which on the shell means a file on this
+   * disk. That is the same trust boundary as the Google refresh token beside
+   * it: readable by this user's account, not encrypted. Worth knowing, and
+   * worth not overstating - a machine where something hostile is already
+   * running as the user has bigger problems than this field.
+   */
+  relaySecret: {
+    kind: 'string',
+    section: 'relay',
+    label: 'Shared key',
+    description: 'Four or five unrelated words. Messages without it are ignored.',
+    maxLength: 200,
+    default: '',
+  },
+  relayPollSeconds: {
+    kind: 'number',
+    section: 'relay',
+    label: 'Check every',
+    description: 'How often to look for new instructions.',
+    min: 15,
+    max: 600,
+    step: 5,
+    unit: ' seconds',
+    default: 30,
+  },
+  /**
+   * The OAuth client id and secret for the Google project.
+   *
+   * The word "secret" here is Google's, not a description. RFC 8252 is
+   * explicit that an installed application cannot keep a client secret - it
+   * ships on the user's machine, so anyone with the binary has it - and Google
+   * documents desktop client secrets as not confidential for exactly that
+   * reason. The security of this flow rests on PKCE and the loopback redirect,
+   * both of which are in the shell. Storing this beside the other settings is
+   * therefore not the weak point it looks like.
+   *
+   * The refresh token is an entirely different matter and never comes near
+   * here: it is minted, stored and used in the shell, and no command returns
+   * it.
+   */
+  googleClientId: {
+    kind: 'string',
+    section: 'relay',
+    label: 'Google client ID',
+    description: 'From the OAuth client you created in Google Cloud.',
+    placeholder: '000000000000-xxxxxxxx.apps.googleusercontent.com',
+    maxLength: 300,
+    default: '',
+  },
+  googleClientSecret: {
+    kind: 'string',
+    section: 'relay',
+    label: 'Google client secret',
+    description: 'Not confidential for a desktop client - PKCE is what secures this.',
+    maxLength: 300,
+    default: '',
   },
 
   // -------------------------------------------------------------------- camera

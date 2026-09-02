@@ -38,6 +38,19 @@ class FakeGmail {
     this.marked.push([...ids]);
     return { changed: ids.length };
   }
+
+  replies: Array<{ to: string; body: string }> = [];
+  failSend: string | null = null;
+
+  async sendReply(options: {
+    to: string;
+    ownerAddress: string;
+    subject: string;
+    body: string;
+  }): Promise<void> {
+    if (this.failSend !== null) throw new Error(this.failSend);
+    this.replies.push({ to: options.to, body: options.body });
+  }
 }
 
 const sink = (): CommandSink & { seen: string[] } => {
@@ -78,6 +91,42 @@ describe('a valid command', () => {
     await watcher(gmail, target).poll();
 
     expect(spy).toHaveBeenCalledWith({ text: 'Brief me.', conversationId: 'relay' });
+  });
+});
+
+describe('the answer coming back', () => {
+  it('replies to the owner with what Helix said', async () => {
+    const gmail = new FakeGmail();
+
+    await watcher(gmail, sink()).poll();
+
+    expect(gmail.replies).toEqual([{ to: 'owner@gmail.com', body: 'done' }]);
+  });
+
+  // A rejected message is not a conversation, and answering one would tell a
+  // stranger their guess was close.
+  it('never replies to a message it refused', async () => {
+    const gmail = new FakeGmail();
+    gmail.messages = [mail({ from: 'stranger@example.com' })];
+
+    await watcher(gmail, sink()).poll();
+
+    expect(gmail.replies).toEqual([]);
+  });
+
+  /**
+   * A reply that cannot be sent must not take the answer with it. The
+   * transcript on the machine still has it, and the command genuinely ran, so
+   * counting this as a failure would be the wrong report.
+   */
+  it('still counts the command as executed when the reply will not send', async () => {
+    const gmail = new FakeGmail();
+    gmail.failSend = 'quota exceeded';
+
+    const outcome = await watcher(gmail, sink()).poll();
+
+    expect(outcome.executed).toBe(1);
+    expect(outcome.failure).toBeNull();
   });
 });
 

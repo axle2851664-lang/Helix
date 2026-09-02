@@ -46,6 +46,7 @@ const CALENDAR_BASE: &str = "https://www.googleapis.com";
 const SCOPES: &str = concat!(
     "https://www.googleapis.com/auth/gmail.readonly ",
     "https://www.googleapis.com/auth/gmail.modify ",
+    "https://www.googleapis.com/auth/gmail.send ",
     "https://www.googleapis.com/auth/calendar.readonly ",
     "https://www.googleapis.com/auth/userinfo.email"
 );
@@ -433,6 +434,7 @@ fn allowed(path: &str) -> bool {
     }
 
     const PREFIXES: &[&str] = &[
+        // Covers list, get, batchModify and send - all are paths beneath it.
         "/gmail/v1/users/me/messages",
         "/gmail/v1/users/me/labels",
         "/gmail/v1/users/me/profile",

@@ -32,7 +32,7 @@ export interface CommandSink {
 }
 
 export interface RelayWatcherOptions {
-  gmail: Pick<GmailProvider, 'unread' | 'markRead' | 'status'>;
+  gmail: Pick<GmailProvider, 'unread' | 'markRead' | 'status' | 'sendReply'>;
   sink: CommandSink;
   config: () => RelayConfig;
   /** Where relayed turns are recorded. One thread, so context carries over. */
@@ -175,10 +175,29 @@ export class RelayWatcher {
       });
     }
 
-    await this.#options.sink.submit({
+    const response = await this.#options.sink.submit({
       text: verdict.command,
       conversationId: this.#options.conversationId,
     });
+
+    // The answer goes back to the phone, where the question came from.
+    //
+    // Only ever to the owner - `sendReply` refuses any other recipient, and a
+    // reply that cannot be sent must not lose the answer silently, so a
+    // failure here is logged rather than swallowed. The transcript on the
+    // machine still has it either way.
+    const config = this.#options.config();
+    try {
+      await this.#options.gmail.sendReply({
+        to: config.ownerAddress,
+        ownerAddress: config.ownerAddress,
+        subject: 'Helix',
+        body: response.text,
+      });
+    } catch (error) {
+      this.#options.log('Could not send the reply. The answer is in the transcript.', error);
+    }
+
     return true;
   }
 }

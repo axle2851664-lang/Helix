@@ -53,17 +53,32 @@ export const CALENDAR_READ: GoogleScope = {
 };
 
 /**
- * The scopes Helix requests. Sending mail is absent on purpose.
+ * Sending, added when a feature finally needed it.
  *
- * `gmail.send` is not here because nothing yet asks for it, and a scope that
- * is requested "in case" is a permission granted for nothing. It goes in when
- * a feature needs it, alongside the confirmation flow that governs it - the
- * standing rule is that nothing leaves without the user seeing the exact draft
- * and agreeing to that specific one.
+ * This was deliberately absent, with a note saying it would go in "when a
+ * feature needs it, alongside the confirmation flow that governs it". Helix
+ * answering the phone is that feature, and this is that moment - so the rule
+ * comes with it rather than after it.
+ *
+ * The standing rule is that nothing leaves without the user seeing the exact
+ * draft and agreeing to that specific one. A reply to a question the user
+ * asked thirty seconds ago, sent to nobody but themselves, is the one case
+ * where that would be absurd - so the permission is narrowed in code instead:
+ * `sendReply` refuses every recipient except the configured owner address, and
+ * a test asserts it. Mail to anyone else still goes through confirmation.
  */
+export const GMAIL_SEND: GoogleScope = {
+  url: 'https://www.googleapis.com/auth/gmail.send',
+  grants: 'Send mail from your account, appearing as you.',
+  because: 'Answering a question you asked from your phone, back to your own address.',
+  alsoPermits:
+    'Mailing anyone at all. Helix will only reply to the configured owner address; any other recipient needs your confirmation at the machine.',
+};
+
 export const REQUESTED_SCOPES: readonly GoogleScope[] = [
   GMAIL_READ,
   GMAIL_MODIFY,
+  GMAIL_SEND,
   CALENDAR_READ,
 ];
 

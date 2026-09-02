@@ -28,10 +28,21 @@ describe('the scopes Helix asks for', () => {
     }
   });
 
-  // A scope requested "in case" is a permission granted for nothing.
-  it('does not ask to send mail, because nothing sends mail yet', () => {
-    expect(scopeParameter()).not.toContain('gmail.send');
+  /**
+   * This test used to read "does not ask to send mail, because nothing sends
+   * mail yet", and that was the right rule while it held. Helix answering the
+   * phone is the feature that needed it, so the scope went in - along with the
+   * restriction that keeps it from being a general licence, which is asserted
+   * in `refuses to reply to anyone but the owner` below.
+   *
+   * `gmail.compose` stays out: it is a wider scope, and nothing asks for it.
+   */
+  it('asks to send only because a feature needs it, and narrows it in code', () => {
+    expect(scopeParameter()).toContain('gmail.send');
     expect(scopeParameter()).not.toContain('gmail.compose');
+
+    const send = REQUESTED_SCOPES.find((scope) => scope.url.endsWith('gmail.send'));
+    expect(send?.alsoPermits).toContain('Mailing anyone at all');
   });
 
   /**
@@ -160,6 +171,72 @@ describe('GmailProvider once connected', () => {
 
     expect(result.changed).toBe(2);
     expect(sent).toEqual({ ids: ['m1', 'm2'], removeLabelIds: ['UNREAD'] });
+  });
+
+  /**
+   * The gap that keeps `gmail.send` from being a licence to mail people. The
+   * scope permits any recipient; this method permits one.
+   */
+  it('refuses to reply to anyone but the owner', async () => {
+    let sent = false;
+    const provider = new GmailProvider({
+      transport: shellTransport(() => {
+        sent = true;
+        return {};
+      }),
+      account: 'owner@gmail.com',
+    });
+
+    await expect(
+      provider.sendReply({
+        to: 'someone-else@example.com',
+        ownerAddress: 'owner@gmail.com',
+        subject: 'Helix',
+        body: 'hello',
+      }),
+    ).rejects.toThrow(/only replies to your own address/);
+
+    expect(sent).toBe(false);
+  });
+
+  it('sends to the owner, as a base64url raw message', async () => {
+    let body: unknown = null;
+    const provider = new GmailProvider({
+      transport: shellTransport((_path, sentBody) => {
+        body = sentBody;
+        return {};
+      }),
+      account: 'owner@gmail.com',
+    });
+
+    await provider.sendReply({
+      to: 'Owner@Gmail.com',
+      ownerAddress: 'owner@gmail.com',
+      subject: 'Helix',
+      body: 'Canberra.',
+    });
+
+    const raw = (body as { raw: string }).raw;
+    expect(raw).not.toContain('+');
+    expect(raw).not.toContain('/');
+    expect(raw).not.toContain('=');
+    // Decoded, it is the message that was asked for.
+    const decoded = Buffer.from(raw.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString();
+    expect(decoded).toContain('Canberra.');
+    expect(decoded).toContain('To: Owner@Gmail.com');
+  });
+
+  // An owner address that was never configured must not match an empty
+  // recipient and quietly allow a send to nowhere.
+  it('refuses when no owner address is configured', async () => {
+    const provider = new GmailProvider({
+      transport: shellTransport(() => ({})),
+      account: 'a@b.com',
+    });
+
+    await expect(
+      provider.sendReply({ to: '', ownerAddress: '', subject: 'x', body: 'y' }),
+    ).rejects.toThrow();
   });
 
   it('does nothing at all for an empty list', async () => {

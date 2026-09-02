@@ -155,6 +155,65 @@ export class GmailProvider {
 
     return { changed: ids.length };
   }
+
+  /**
+   * Reply to the owner, and to nobody else.
+   *
+   * The recipient is not a parameter. It is read from the configured owner
+   * address, and a mismatch throws rather than sending - which is what keeps
+   * `gmail.send` from being a general licence to mail people. The scope
+   * permits any recipient; this method permits one, and that gap is deliberate
+   * and tested.
+   *
+   * Anything addressed elsewhere goes through the outbound confirmation flow,
+   * where the user sees the exact draft and agrees to that specific one.
+   */
+  async sendReply(options: {
+    to: string;
+    ownerAddress: string;
+    subject: string;
+    body: string;
+  }): Promise<void> {
+    const status = this.status();
+    if (!status.connected) throw new Error(status.message ?? NOT_CONNECTED);
+
+    const recipient = options.to.trim().toLowerCase();
+    const owner = options.ownerAddress.trim().toLowerCase();
+
+    if (owner === '' || recipient !== owner) {
+      throw new Error(
+        `Helix only replies to your own address. Sending to ${options.to} needs your confirmation here.`,
+      );
+    }
+
+    // RFC 2822, base64url as the Gmail API expects for a raw message.
+    const mime = [
+      `To: ${options.to}`,
+      `Subject: ${options.subject}`,
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      options.body,
+    ].join('\r\n');
+
+    await this.#transport.request({
+      providerId: this.id,
+      path: '/gmail/v1/users/me/messages/send',
+      body: { raw: base64Url(mime) },
+    });
+  }
+}
+
+/** Base64url without padding, which is what the Gmail API's `raw` field takes. */
+function base64Url(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+
+  const standard = typeof btoa === 'function'
+    ? btoa(binary)
+    : Buffer.from(bytes).toString('base64');
+
+  return standard.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 function isMessage(value: unknown): value is Record<string, unknown> {

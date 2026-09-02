@@ -26,8 +26,11 @@ import { OllamaProvider } from '../ai/OllamaProvider.js';
 import { CerebrasProvider } from '../ai/CerebrasProvider.js';
 import { assessInstalledModels, preferredLocalModel } from '../ai/localModels.js';
 import { assessDiskPressure } from '../storage/pressure.js';
+import { RelayWatcher } from '../relay/RelayWatcher.js';
+import { GmailProvider } from '../integrations/google/GmailProvider.js';
 import {
   BrowserInferenceTransport,
+  TauriGoogleTransport,
   TauriInferenceTransport,
 } from '../ai/transport.js';
 import { BrowserSpeechSynthesis } from '../voice/BrowserSpeechSynthesis.js';
@@ -300,6 +303,27 @@ export class HelixKernel {
           })
         : new BrowserInferenceTransport();
 
+    /**
+     * The Google bridge, or null in a browser.
+     *
+     * Null rather than a refusing stand-in, because there is nothing for a
+     * refusing one to do here: without the shell there is no relay to start,
+     * and `GmailProvider` already says why when the interface asks.
+     */
+    const googleTransport =
+      platform.kind === 'tauri' && typeof window !== 'undefined'
+        ? new TauriGoogleTransport({
+            invoke: ((command: string, args?: Record<string, unknown>) => {
+              const global = (window as unknown as Record<string, unknown>)['__TAURI__'] as
+                | { core?: { invoke?: (c: string, a?: Record<string, unknown>) => Promise<unknown> } }
+                | undefined;
+              const invoke = global?.core?.invoke;
+              if (!invoke) return Promise.reject(new Error('The shell command bridge did not load.'));
+              return invoke(command, args);
+            }) as never,
+          })
+        : null;
+
     const ai = new AIRouter({
       providers: [
         new OllamaProvider({ transport: inferenceTransport }),
@@ -356,6 +380,48 @@ export class HelixKernel {
         logger.debug('Local model probe failed; the placeholder entry stands.', error);
       }
     })();
+
+    /**
+     * The phone relay.
+     *
+     * Only in the shell, and only when switched on. Both halves matter: a
+     * browser cannot hold the token, and a mailbox that makes Helix act is not
+     * something to have running because a default said so.
+     *
+     * The watcher reads its configuration through a function rather than a
+     * snapshot, so editing the address or the key in Settings takes effect on
+     * the next poll instead of at the next restart.
+     */
+    const relay =
+      googleTransport === null
+        ? null
+        : new RelayWatcher({
+            gmail: new GmailProvider({ transport: googleTransport }),
+            sink: orchestrator,
+            config: () => ({
+              ownerAddress: settings.get('relayOwnerAddress'),
+              secret: settings.get('relaySecret'),
+            }),
+            intervalSeconds: settings.get('relayPollSeconds'),
+            log: (message, detail) => logger.info(message, detail),
+          });
+
+    const applyRelaySetting = () => {
+      if (!relay) return;
+      const wanted = settings.get('relayEnabled');
+      if (wanted && !relay.running) {
+        relay.start();
+        logger.info('Phone relay started.', { every: settings.get('relayPollSeconds') });
+      } else if (!wanted && relay.running) {
+        relay.stop();
+        logger.info('Phone relay stopped.');
+      }
+    };
+
+    applyRelaySetting();
+    settings.subscribe((_values, changed) => {
+      if (changed.includes('relayEnabled')) applyRelaySetting();
+    });
 
     /**
      * Watch free disk space, and clear Helix's own rebuildable caches when it

@@ -23,6 +23,7 @@ const SECTION_ORDER: readonly SettingsSection[] = [
   'vision',
   'gestures',
   'providers',
+  'relay',
   'storage',
   'privacy',
   'advanced',
@@ -35,6 +36,7 @@ const SECTION_LABELS: Record<SettingsSection, string> = {
   vision: 'Vision',
   gestures: 'Hand tracking',
   providers: 'AI providers',
+  relay: 'Phone relay',
   storage: 'Storage',
   privacy: 'Privacy',
   advanced: 'Advanced',
@@ -44,13 +46,23 @@ const SECTION_LABELS: Record<SettingsSection, string> = {
  * Notes shown against sections whose settings describe capabilities that are
  * not built yet. Being explicit is the point: a user must not conclude from a
  * populated dropdown that the feature works.
+ *
+ * Which cuts both ways, and did. Voice and local inference were both still
+ * described here as arriving in a later phase long after they started working,
+ * so the screen was telling the user that a thing they could hear and read was
+ * not built. A stale note is the same fault as an optimistic one - it just
+ * fails in the direction nobody checks.
  */
 const SECTION_NOTES: Partial<Record<SettingsSection, string>> = {
-  voice: 'Voice pipeline arrives in phase 5. These choices are saved now and take effect then.',
+  voice:
+    'Speech in and out both work. Which voice Helix speaks with depends on what is installed on this machine, and it will tell you which one it chose.',
   camera: 'The camera workspace arrives in phase 6.',
   vision: 'Vision providers arrive in phase 6. No provider is implemented yet.',
   gestures: 'Hand tracking arrives in phase 9.',
-  providers: 'Provider connections arrive in phase 5 onward. Selecting one does not connect it yet.',
+  providers:
+    'Local inference works. Cloud providers need the desktop shell, because a key held in a web page is a leaked key.',
+  relay:
+    'Needs the desktop shell and a connected Google account. Nothing is polled until you switch it on, and an address without a shared key is ignored.',
   storage: 'Reported usage arrives with StorageManager. The ceiling is stored now.',
 };
 
