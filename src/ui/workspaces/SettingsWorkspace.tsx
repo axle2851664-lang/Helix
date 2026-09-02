@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useHelix, useSettings } from '../HelixProvider.js';
+import { RelayPanel } from '../relay/RelayPanel.js';
 import {
   SETTINGS_KEYS,
   SETTINGS_SCHEMA,
@@ -121,6 +122,13 @@ export function SettingsWorkspace() {
               onChange={(next) => void update(key, next)}
             />
           ))}
+
+          {/*
+            The relay needs an action, not just fields. Storing a client id
+            does nothing on its own, and for a while nothing called the connect
+            command at all - so a fully configured relay dead-ended in silence.
+          */}
+          {section === 'relay' && <RelayPanel />}
         </section>
       ))}
     </div>

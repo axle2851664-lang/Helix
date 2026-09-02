@@ -205,6 +205,14 @@
   line-height: 1.5;
 }
 
+/* Buttons belonging to a whole settings section rather than to one field. */
+.helix-settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
 .helix-setting {
   display: flex;
   align-items: center;

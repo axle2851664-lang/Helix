@@ -71,6 +71,10 @@ export interface KernelServices {
   readonly voice: VoiceManager;
   readonly camera: CameraManager;
   readonly orchestrator: HelixOrchestrator;
+  /** The Google bridge, or null in a browser where no token can be held. */
+  readonly google: TauriGoogleTransport | null;
+  /** The mailbox watcher, or null where there is no shell to run it. */
+  readonly relay: RelayWatcher | null;
 }
 
 export interface KernelOptions {
@@ -502,6 +506,8 @@ export class HelixKernel {
       voice,
       camera,
       orchestrator,
+      google: googleTransport,
+      relay,
     };
   }
 
