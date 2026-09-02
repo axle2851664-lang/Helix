@@ -29,7 +29,13 @@ import { assessDiskPressure } from '../storage/pressure.js';
 import { RelayWatcher } from '../relay/RelayWatcher.js';
 import { GmailProvider } from '../integrations/google/GmailProvider.js';
 import { WebResearch } from '../web/WebResearch.js';
-import { BraveProvider, DuckDuckGoProvider, WikipediaProvider } from '../web/providers.js';
+import {
+  BraveProvider,
+  DuckDuckGoProvider,
+  HackerNewsProvider,
+  NewsProvider,
+  WikipediaProvider,
+} from '../web/providers.js';
 import { BrowserWebTransport, TauriWebTransport } from '../web/transport.js';
 import {
   BrowserInferenceTransport,
@@ -372,11 +378,14 @@ export class HelixKernel {
       providers: [
         new WikipediaProvider(webTransport),
         new DuckDuckGoProvider(webTransport),
+        new NewsProvider(webTransport),
+        new HackerNewsProvider(webTransport),
         new BraveProvider({
           transport: webTransport,
           hasKey:
             webTransport instanceof TauriWebTransport &&
             webTransport.hasKeyFor('api.search.brave.com'),
+          allowBilling: settings.get('allowPaidSearch'),
         }),
       ],
     });

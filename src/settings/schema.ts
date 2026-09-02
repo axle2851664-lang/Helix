@@ -276,6 +276,25 @@ export const SETTINGS_SCHEMA = {
    * here: it is minted, stored and used in the shell, and no command returns
    * it.
    */
+  /**
+   * Permission to use a search provider that charges.
+   *
+   * Off, and it stays off until the user says otherwise. Brave went in here
+   * described as having a free tier of 2,000 searches a month - true when
+   * written, and untrue since February 2026: every plan now needs a card on
+   * file and bills past roughly a thousand queries. A provider that can
+   * quietly turn into a bill is precisely what the standing rule against
+   * spending exists to prevent, so holding a key is not consent. This is a
+   * separate and deliberate yes.
+   */
+  allowPaidSearch: {
+    kind: 'boolean',
+    section: 'providers',
+    label: 'Allow search providers that charge',
+    description:
+      'Brave Search bills a card on file past about 1,000 queries a month. Off by default.',
+    default: false,
+  },
   googleClientId: {
     kind: 'string',
     section: 'relay',

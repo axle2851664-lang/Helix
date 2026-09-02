@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { WebResearch, asEvidence } from './WebResearch.js';
-import { BraveProvider, DuckDuckGoProvider, WikipediaProvider } from './providers.js';
+import {
+  BraveProvider,
+  DuckDuckGoProvider,
+  HackerNewsProvider,
+  NewsProvider,
+  WikipediaProvider,
+} from './providers.js';
 import type { SearchResult, WebSearchProvider, WebTransport } from './types.js';
 
 const transport = (body: string): WebTransport => ({
@@ -108,30 +114,135 @@ describe('DuckDuckGoProvider', () => {
 
 describe('BraveProvider', () => {
   /**
-   * A missing key is not an absence of results, and the difference is the
-   * whole point: told "no results", a user concludes their question has no
-   * answer.
+   * This shipped described as "free tier, 2,000 searches a month". That was
+   * true when written and stopped being true in February 2026: every plan now
+   * requires a card on file and bills past roughly a thousand queries.
+   *
+   * The standing rule is that Helix never spends, so a key is not enough. The
+   * refusal has to name money rather than configuration, or the user goes and
+   * fixes the wrong thing.
    */
-  it('says a key is missing rather than returning nothing', () => {
-    const reason = new BraveProvider({ transport: transport('{}') }).unavailableReason();
+  it('refuses on cost, not on configuration, when billing is not allowed', () => {
+    const reason = new BraveProvider({
+      transport: transport('{}'),
+      hasKey: true,
+    }).unavailableReason();
+
+    expect(reason).toContain('not free');
+    expect(reason).toContain('bills');
+    expect(reason).not.toContain('no API key');
+  });
+
+  it('will not search even holding a key, until billing is allowed', async () => {
+    await expect(
+      new BraveProvider({ transport: transport('{}'), hasKey: true }).search('news', 5),
+    ).rejects.toThrow(/turn it on deliberately/);
+  });
+
+  // Once permitted, a missing key is an ordinary configuration problem again.
+  it('asks for a key once billing is allowed', () => {
+    const reason = new BraveProvider({
+      transport: transport('{}'),
+      allowBilling: true,
+    }).unavailableReason();
 
     expect(reason).toContain('no API key');
-    expect(reason).toContain('free tier');
   });
 
-  it('refuses to search at all without one', async () => {
-    await expect(
-      new BraveProvider({ transport: transport('{}') }).search('news', 5),
-    ).rejects.toThrow(/no API key/);
-  });
-
-  it('reads results when configured', async () => {
+  it('reads results when permitted and configured', async () => {
     const body = JSON.stringify({
       web: { results: [{ title: 'A headline', url: 'https://example.com/a', description: 'Some text' }] },
     });
 
-    const found = await new BraveProvider({ transport: transport(body), hasKey: true }).search('x', 5);
+    const found = await new BraveProvider({
+      transport: transport(body),
+      hasKey: true,
+      allowBilling: true,
+    }).search('x', 5);
+
     expect(found[0]).toMatchObject({ title: 'A headline', url: 'https://example.com/a' });
+  });
+
+  // Declared rather than left for a reader to infer from the prose.
+  it('declares that it bills', () => {
+    expect(BraveProvider.BILLS).toBe(true);
+    expect(new BraveProvider({ transport: transport('{}') }).covers).toContain('Costs money');
+  });
+});
+
+describe('the free providers that are actually live', () => {
+  /**
+   * Captured from the real BBC feed. RSS is not a search index, but it is
+   * genuinely current, which is what the paid provider was wanted for.
+   */
+  const feed = `<rss><channel>
+    <item>
+      <title><![CDATA[EU and Nato vow to step up pressure on Russia]]></title>
+      <description><![CDATA[Russia is accused of growing increasingly reckless.]]></description>
+      <link>https://www.bbc.co.uk/news/articles/ce9e810pg7ko</link>
+    </item>
+    <item>
+      <title><![CDATA[A telescope story]]></title>
+      <description><![CDATA[Something about space.]]></description>
+      <link>https://www.bbc.co.uk/news/articles/other</link>
+    </item>
+  </channel></rss>`;
+
+  it('reads headlines out of a feed, CDATA and all', async () => {
+    const found = await new NewsProvider(transport(feed), ['https://example.com/rss']).search(
+      '',
+      10,
+    );
+
+    expect(found).toHaveLength(2);
+    expect(found[0]?.title).toBe('EU and Nato vow to step up pressure on Russia');
+    expect(found[0]?.url).toBe('https://www.bbc.co.uk/news/articles/ce9e810pg7ko');
+    expect(found[0]?.snippet).toContain('increasingly reckless');
+  });
+
+  it('narrows to headlines that match a specific question', async () => {
+    const found = await new NewsProvider(transport(feed), ['https://example.com/rss']).search(
+      'telescope',
+      10,
+    );
+
+    expect(found).toHaveLength(1);
+    expect(found[0]?.title).toBe('A telescope story');
+  });
+
+  /**
+   * A question matching nothing in the last few headlines should still show
+   * the headlines rather than nothing - the honest answer to "what is
+   * happening" is the news, even when the words did not line up.
+   */
+  it('falls back to everything rather than returning nothing', async () => {
+    const found = await new NewsProvider(transport(feed), ['https://example.com/rss']).search(
+      'zzzzzzz',
+      10,
+    );
+
+    expect(found.length).toBeGreaterThan(0);
+  });
+
+  it('reads Hacker News results', async () => {
+    const body = JSON.stringify({
+      hits: [
+        { title: 'A thing was released', url: 'https://example.com/thing', objectID: '1' },
+        { title: 'A discussion', url: '', objectID: '42', story_text: '<p>Some text</p>' },
+      ],
+    });
+
+    const found = await new HackerNewsProvider(transport(body)).search('thing', 5);
+
+    expect(found[0]?.url).toBe('https://example.com/thing');
+    // A discussion with no linked article still has a page of its own.
+    expect(found[1]?.url).toBe('https://news.ycombinator.com/item?id=42');
+    expect(found[1]?.snippet).toBe('Some text');
+  });
+
+  it('drops a hit with no title', async () => {
+    const body = JSON.stringify({ hits: [{ title: '', url: 'https://example.com/x' }] });
+    expect(await new HackerNewsProvider(transport(body)).search('x', 5)).toEqual([]);
   });
 });
 
