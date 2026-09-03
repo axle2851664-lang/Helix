@@ -205,6 +205,24 @@
   line-height: 1.5;
 }
 
+/*
+ * A setting that is switched on and not working, said on screen.
+ *
+ * Distinct from the ordinary note colour on purpose: this is the difference
+ * between "here is how this works" and "you have turned this on and it is not
+ * running", and those must not look the same.
+ */
+.helix-settings__problem {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--helix-text);
+  border-left: 2px solid var(--helix-accent);
+  background: var(--helix-accent-soft);
+  border-radius: 3px;
+}
+
 /* Buttons belonging to a whole settings section rather than to one field. */
 .helix-settings__actions {
   display: flex;

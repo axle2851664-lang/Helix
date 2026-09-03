@@ -85,6 +85,8 @@ export interface KernelServices {
   readonly google: TauriGoogleTransport | null;
   /** The mailbox watcher, or null where there is no shell to run it. */
   readonly relay: RelayWatcher | null;
+  /** The direct phone listener, or null where there is no shell. */
+  readonly listener: PhoneListener | null;
 }
 
 export interface KernelOptions {
@@ -636,6 +638,7 @@ export class HelixKernel {
       orchestrator,
       google: googleTransport,
       relay,
+      listener: phone,
     };
   }
 

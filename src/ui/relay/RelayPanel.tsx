@@ -19,8 +19,15 @@ import { useHelix, useSettings } from '../HelixProvider.js';
  *     run on demand and reports exactly what it found.
  */
 export function RelayPanel() {
-  const { google, relay } = useHelix();
-  const config = useSettings(['googleClientId', 'googleClientSecret', 'relayEnabled']);
+  const { google, relay, listener } = useHelix();
+  const config = useSettings([
+    'googleClientId',
+    'googleClientSecret',
+    'relayEnabled',
+    'phoneListenerEnabled',
+    'phoneListenerPort',
+    'relaySecret',
+  ]);
 
   const [account, setAccount] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
@@ -102,8 +109,40 @@ export function RelayPanel() {
 
   const canConnect = config.googleClientId.trim() !== '' && busy === null;
 
+  /**
+   * Why the direct listener is not running, in words, on screen.
+   *
+   * It reported failures through `logger.warn` into a buffer nobody opens, so
+   * a listener that refused to start looked exactly like one that was working
+   * - the switch said on, the port was shut, and nothing said why. That is the
+   * same invisible-failure fault this project keeps finding, so the reason
+   * belongs here rather than in a log.
+   */
+  const listenerProblem = ((): string | null => {
+    if (!config.phoneListenerEnabled) return null;
+    if (config.relaySecret.trim().length < 12) {
+      return `The shared key is ${config.relaySecret.trim().length} characters. This connection has no sender to check as well, so the key is the only thing protecting it and needs at least twelve.`;
+    }
+    if (listener && !listener.running) {
+      return 'The listener is switched on but not running. The port may already be in use.';
+    }
+    return null;
+  })();
+
   return (
     <div className="helix-settings__note">
+      {listenerProblem !== null && (
+        <p role="alert" className="helix-settings__problem">
+          {listenerProblem}
+        </p>
+      )}
+
+      {config.phoneListenerEnabled && listenerProblem === null && listener?.running && (
+        <p>
+          Listening on port {config.phoneListenerPort} for your phone.
+        </p>
+      )}
+
       <p>
         {connected
           ? `Connected${account ? ` to ${account}` : ''}.`
