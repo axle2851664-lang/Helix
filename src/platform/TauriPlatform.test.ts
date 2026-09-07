@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { TauriPlatform, detectTauri } from './TauriPlatform.js';
 
 const dataRoot = 'E:/Helix/data';
@@ -15,7 +15,38 @@ const shell = (handlers: Record<string, unknown>) =>
   });
 
 describe('detectTauri', () => {
+  const clear = () => {
+    const global = globalThis as unknown as Record<string, unknown>;
+    delete global['window'];
+  };
+
+  const withWindow = (shape: Record<string, unknown>) => {
+    (globalThis as unknown as Record<string, unknown>)['window'] = shape;
+  };
+
+  afterEach(clear);
+
   it('is false with no window at all', () => {
+    expect(detectTauri()).toBe(false);
+  });
+
+  /**
+   * The case that made Helix report `host: 'browser'` inside its own desktop
+   * window: `withGlobalTauri` is off by default in Tauri 2, so `__TAURI__` is
+   * never injected and only the internals are there.
+   */
+  it('finds the shell when only the internals are injected', () => {
+    withWindow({ __TAURI_INTERNALS__: { invoke: () => Promise.resolve(null) } });
+    expect(detectTauri()).toBe(true);
+  });
+
+  it('still finds it when withGlobalTauri is on', () => {
+    withWindow({ __TAURI__: { core: { invoke: () => Promise.resolve(null) } } });
+    expect(detectTauri()).toBe(true);
+  });
+
+  it('is false in a plain page', () => {
+    withWindow({ document: {} });
     expect(detectTauri()).toBe(false);
   });
 });

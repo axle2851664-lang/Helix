@@ -46,6 +46,23 @@ interface TauriGlobal {
 }
 
 /**
+ * Tauri 2 injects this into every web view it owns, whatever the config says.
+ *
+ * `__TAURI__` - the global the rest of this file used to look for - only
+ * appears when `withGlobalTauri` is turned on, and it is off by default. Left
+ * relying on that alone, Helix runs inside its own desktop window and reports
+ * `host: 'browser'`, so every command the shell offers is unreachable while
+ * looking, from the outside, exactly like a shell that is working.
+ *
+ * Reading internals rather than turning `withGlobalTauri` on is the narrower
+ * of the two fixes: the page gets the one function it needs instead of the
+ * whole API surface, which is the trade this file has made everywhere else.
+ */
+interface TauriInternals {
+  invoke?: TauriInvoke;
+}
+
+/**
  * Is this actually running inside the shell?
  *
  * A probe for a global, which can be wrong - a page could define it, and a
@@ -55,17 +72,24 @@ interface TauriGlobal {
  */
 export function detectTauri(): boolean {
   if (typeof window === 'undefined') return false;
-  const candidate = (window as unknown as Record<string, unknown>)['__TAURI__'];
-  return typeof candidate === 'object' && candidate !== null;
+  const global = window as unknown as Record<string, unknown>;
+
+  const present = (value: unknown) => typeof value === 'object' && value !== null;
+  // Internals first: it is the one that is always there.
+  return present(global['__TAURI_INTERNALS__']) || present(global['__TAURI__']);
 }
 
 function invoker(): TauriInvoke | null {
   if (typeof window === 'undefined') return null;
-  const global = (window as unknown as Record<string, unknown>)['__TAURI__'] as
-    | TauriGlobal
-    | undefined;
+  const window_ = window as unknown as Record<string, unknown>;
 
-  return global?.core?.invoke ?? global?.invoke ?? null;
+  const global = window_['__TAURI__'] as TauriGlobal | undefined;
+  const fromGlobal = global?.core?.invoke ?? global?.invoke;
+  if (fromGlobal) return fromGlobal;
+
+  // The path that works with the default configuration.
+  const internals = window_['__TAURI_INTERNALS__'] as TauriInternals | undefined;
+  return internals?.invoke ?? null;
 }
 
 export interface TauriPlatformOptions {
