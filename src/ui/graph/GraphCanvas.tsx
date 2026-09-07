@@ -41,6 +41,8 @@ export interface GraphCanvasProps {
   onFocus: (id: string | null) => void;
   /** Shift-click: trace a path from the focused node to this one. */
   onTrace: (id: string) => void;
+  /** Live force settings; omitted leaves the layout's own defaults. */
+  forces?: { repulsion: number; attraction: number };
 }
 
 export function GraphCanvas({
@@ -50,6 +52,7 @@ export function GraphCanvas({
   pathIds,
   onFocus,
   onTrace,
+  forces,
 }: GraphCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const layoutRef = useRef(new ForceLayout());
@@ -82,6 +85,12 @@ export function GraphCanvas({
     // fitting to zero produces a cramped pile in the corner.
     needsFitRef.current = true;
   }, [nodes, edges]);
+
+  // Forces are applied separately from loading, so moving a slider re-settles
+  // the graph the user is looking at rather than rebuilding it from scratch.
+  useEffect(() => {
+    if (forces) layoutRef.current.configure(forces);
+  }, [forces]);
 
   const toWorld = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;

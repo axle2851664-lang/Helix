@@ -139,6 +139,19 @@ export class ForceLayout {
     this.#options = { ...DEFAULTS, ...options };
   }
 
+  /**
+   * Change the forces on a running layout.
+   *
+   * Mutates rather than rebuilding because the positions are the expensive
+   * part: recreating the layout to change one number would throw the galaxy
+   * back to its opening scatter every time a slider moved. Nudges alpha so the
+   * change is actually felt on a layout that had already settled.
+   */
+  configure(options: LayoutOptions): void {
+    Object.assign(this.#options, options);
+    this.#alpha = Math.max(this.#alpha, 0.35);
+  }
+
   get nodes(): readonly LayoutNode[] {
     return this.#nodes;
   }

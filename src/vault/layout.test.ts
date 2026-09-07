@@ -49,6 +49,39 @@ describe('createLayoutNodes', () => {
 describe('ForceLayout', () => {
   const graph = VaultGraph.build(generateDemoVault());
 
+  /**
+   * The sliders move forces on a layout the user is already looking at, so
+   * configure has to do two things: take the new value, and wake a settled
+   * layout up. Without the second, dragging a slider on a still graph would
+   * appear to do nothing at all.
+   */
+  it('revives a settled layout when the forces change', () => {
+    const layout = new ForceLayout();
+    layout.load(graph.nodes, graph.edges);
+    layout.settle();
+    expect(layout.settled).toBe(true);
+
+    layout.configure({ repulsion: 5000 });
+
+    expect(layout.settled).toBe(false);
+    expect(layout.alpha).toBeGreaterThanOrEqual(0.35);
+  });
+
+  it('keeps the positions it had when forces change', () => {
+    const layout = new ForceLayout();
+    layout.load(graph.nodes, graph.edges);
+    layout.settle();
+
+    const before = layout.nodes.map((node) => ({ id: node.id, x: node.x, y: node.y }));
+    layout.configure({ repulsion: 5000 });
+    const after = layout.nodes;
+
+    // Rebuilding instead of mutating would scatter the galaxy on every drag.
+    expect(after).toHaveLength(before.length);
+    expect(after[0]?.x).toBe(before[0]?.x);
+    expect(after[0]?.y).toBe(before[0]?.y);
+  });
+
   it('settles from its initial state', () => {
     const layout = new ForceLayout();
     layout.load(graph.nodes, graph.edges);

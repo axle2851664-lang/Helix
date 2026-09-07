@@ -86,6 +86,16 @@ export function GraphWorkspace() {
   const [hidden, setHidden] = useState<Set<NoteType>>(new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [pathIds, setPathIds] = useState<string[]>([]);
+  const [query, setQuery] = useState('');
+  // Sliders in the reference are Repel and Link length. Link length is the
+  // inverse of spring stiffness: a longer link is a weaker pull.
+  const [repel, setRepel] = useState(2400);
+  const [linkLength, setLinkLength] = useState(50);
+
+  const forces = useMemo(
+    () => ({ repulsion: repel, attraction: 0.012 - (linkLength / 100) * 0.011 }),
+    [repel, linkLength]
+  );
 
   const stats = useMemo(() => graph.stats(), [graph]);
 
@@ -120,6 +130,19 @@ export function GraphWorkspace() {
 
   const focused = focusedId ? graph.get(focusedId) : undefined;
 
+  /** Title search. Empty query means no list, not every note. */
+  const matches = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (needle === '') return [];
+    return graph.nodes
+      .filter((node) => node.title.toLowerCase().includes(needle))
+      .sort((a, b) => b.degree - a.degree || a.title.localeCompare(b.title))
+      .slice(0, 12);
+  }, [graph, query]);
+
+  /** Most-connected notes, which is the fastest way into an unfamiliar vault. */
+  const hubs = useMemo(() => graph.hubs(8), [graph]);
+
   const toggleType = (type: NoteType) => {
     setHidden((current) => {
       const next = new Set(current);
@@ -153,6 +176,56 @@ export function GraphWorkspace() {
     <div className="hx-graph">
       {/* ---------------- left: inspector and hubs ---------------- */}
       <aside className="hx-graph__side">
+        <section className="hx-panel">
+          <h2 className="hx-panel__title">Search</h2>
+          <input
+            className="hx-input"
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search the vault..."
+            aria-label="Search notes by title"
+          />
+          {query.trim() !== '' && (
+            <NodeList nodes={matches} empty="No note by that name." onSelect={focus} />
+          )}
+        </section>
+
+        <section className="hx-panel">
+          <h2 className="hx-panel__title">Top hubs</h2>
+          <NodeList
+            nodes={hubs}
+            empty="Nothing linked yet."
+            onSelect={focus}
+          />
+        </section>
+
+        <section className="hx-panel">
+          <h2 className="hx-panel__title">Forces</h2>
+          <label className="hx-field">
+            <span className="hx-field__label">Repel</span>
+            <input
+              type="range"
+              min={400}
+              max={6000}
+              step={100}
+              value={repel}
+              onChange={(event) => setRepel(Number(event.target.value))}
+            />
+          </label>
+          <label className="hx-field">
+            <span className="hx-field__label">Link length</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={linkLength}
+              onChange={(event) => setLinkLength(Number(event.target.value))}
+            />
+          </label>
+        </section>
+
         <section className="hx-panel">
           <h2 className="hx-panel__title">Inspector</h2>
           {focused ? (
@@ -249,6 +322,7 @@ export function GraphWorkspace() {
             pathIds={pathIds}
             onFocus={focus}
             onTrace={trace}
+            forces={forces}
           />
         ) : (
           <GalaxyCanvas
