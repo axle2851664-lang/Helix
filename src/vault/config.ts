@@ -27,7 +27,7 @@ export interface RealVaultConfig {
 }
 
 export const REAL_VAULT: RealVaultConfig = {
-  roots: [],
+  roots: ['C:/Users/selam/Notes'],
   maxFileBytes: 2 * 1024 * 1024,
   ignoredDirectories: ['node_modules', '.git', 'dist', 'build', '.cache', 'venv', '__pycache__'],
 };
@@ -44,7 +44,7 @@ export function vaultMode(): VaultMode {
     typeof import.meta.env !== 'undefined'
       ? (import.meta.env['VITE_HELIX_VAULT'] as string | undefined)
       : undefined;
-  return configured === 'real' ? 'real' : 'demo';
+  return configured === 'demo' ? 'demo' : 'real';
 }
 
 /** True when Helix is running on invented fixtures. Safe to screen-record. */
