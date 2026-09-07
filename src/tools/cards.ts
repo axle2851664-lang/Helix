@@ -45,8 +45,13 @@ export interface CardSection {
 }
 
 export interface ToolCard {
-  /** Used by the UI for the accent colour and icon. */
-  kind: 'brief' | 'plan' | 'requirement';
+  /**
+   * Used by the UI for the accent colour and icon.
+   *
+   * Every member needs an entry in the view's icon map: an unlisted kind
+   * renders no icon and fails the build, which is the intended trade.
+   */
+  kind: 'brief' | 'plan' | 'requirement' | 'result';
   title: string;
   subtitle?: string;
   sections: CardSection[];

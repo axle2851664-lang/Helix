@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon.js';
 import { useHelix, useSettings } from '../HelixProvider.js';
 import { formatBytes } from '../../storage/budget.js';
 import { assessFit, footprintFromName, largestComfortableModel } from '../../ai/resources.js';
+import type { FitVerdict } from '../../ai/resources.js';
 import type { LocalAIStatus } from '../../ai/OllamaProvider.js';
 import type { OllamaProvider } from '../../ai/OllamaProvider.js';
 import type { ModelInfo } from '../../ai/types.js';
@@ -22,12 +23,19 @@ import type { HardwareProfile } from '../../platform/PlatformAdapter.js';
  * clicked the wrong row is not a button worth having.
  */
 
-const VERDICT_TONE = {
+/**
+ * Every FitVerdict, deliberately exhaustive: a missing member reads as
+ * `undefined` in the class name, so the dot silently loses its colour on
+ * exactly the models the user most needs warning about.
+ */
+const VERDICT_TONE: Record<FitVerdict, 'ok' | 'warn' | 'off'> = {
   comfortable: 'ok',
   tight: 'warn',
+  // It could fit, just not alongside what is running - a warning, not a no.
+  'not-right-now': 'warn',
   'will-not-fit': 'warn',
   unknown: 'off',
-} as const;
+};
 
 export function ModelsWorkspace() {
   const { ai, platform } = useHelix();

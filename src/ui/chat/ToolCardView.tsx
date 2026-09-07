@@ -19,6 +19,8 @@ const KIND_ICON = {
   brief: 'activity',
   plan: 'check',
   requirement: 'alert',
+  // A search result came from outside Helix, which the globe says at a glance.
+  result: 'globe',
 } as const;
 
 export function ToolCardView({ card }: { card: ToolCard }) {

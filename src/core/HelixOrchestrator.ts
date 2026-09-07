@@ -296,7 +296,7 @@ export class HelixOrchestrator {
         // The same rolling window that governs Helix's own sentences, so a
         // model that reaches for "sir" every time is brought back to the rate
         // rather than left to set it.
-        allowAddress: allowAddressInReply(/\bsir\b/i.test(raw)),
+        allowAddress: allowAddressInReply(carriesAddress(raw)),
       });
       if (spoken.findings.length > 0) {
         this.#logger.debug('Register corrected on a model reply.', {
@@ -1158,7 +1158,7 @@ ${lines}`,
     );
 
     const spoken = repair(result.text.trim(), {
-      allowAddress: allowAddressInReply(/\bsir\b/i.test(result.text)),
+      allowAddress: allowAddressInReply(carriesAddress(result.text)),
     });
 
     return { text: spoken.text, handled: true, card };
