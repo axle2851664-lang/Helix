@@ -84,6 +84,23 @@ export interface VolumeStats {
   source: 'volume' | 'origin-quota';
 }
 
+/** A note read off disk, shaped to match what the graph builder takes. */
+export interface VaultFile {
+  path: string;
+  fileName: string;
+  content: string;
+  sizeBytes: number;
+}
+
+export interface VaultReadRequest {
+  /** Folders to index. Nothing outside these is opened. */
+  roots: readonly string[];
+  /** Files above this are skipped rather than read. */
+  maxFileBytes: number;
+  /** Directory names never descended into, alongside hidden ones. */
+  ignoredDirectories: readonly string[];
+}
+
 export interface PlatformAdapter {
   readonly kind: PlatformKind;
   readonly capabilities: PlatformCapabilities;
@@ -96,6 +113,16 @@ export interface PlatformAdapter {
    * Returns null when the host cannot determine them at all.
    */
   getVolumeStats(): Promise<VolumeStats | null>;
+
+  /**
+   * Every indexable note under `roots`.
+   *
+   * The one filesystem capability Helix offers, and read-only by
+   * construction: there is no counterpart that writes. A host that cannot
+   * reach a filesystem returns an empty array rather than throwing, so a
+   * caller can ask without first checking which host it is on.
+   */
+  readVaultDocuments(request: VaultReadRequest): Promise<VaultFile[]>;
 
   /** Current connectivity, used to drive ONLINE / OFFLINE / HYBRID (spec 27). */
   isOnline(): boolean;

@@ -3,6 +3,8 @@ import type {
   HardwareProfile,
   PlatformAdapter,
   PlatformCapabilities,
+  VaultFile,
+  VaultReadRequest,
   VolumeStats,
 } from './PlatformAdapter.js';
 
@@ -92,11 +94,20 @@ export class TauriPlatform implements PlatformAdapter {
       // Possible here, and deliberately not exposed yet. Saying "available"
       // because the host could would be the same overstatement the browser
       // build spent ten phases avoiding.
-      filesystem: {
-        available: false,
-        reason:
-          'The shell can reach the filesystem, but Helix exposes no general file access. Anything it needs arrives as a named command, so the rule that it never writes outside its own folders is kept by the shell rather than by the browser.',
-      },
+      // Reading the folders you nominated, and nothing else. There is no
+      // command that writes outside Helix's own folders, so the standing rule
+      // holds: what arrived is one narrow named command, as promised, not a
+      // filesystem.
+      filesystem: this.#invoke
+        ? {
+            available: true,
+            reason:
+              'Read-only, and only inside the folders configured as vault roots. No command writes outside Helix\'s own folders.',
+          }
+        : {
+            available: false,
+            reason: 'The shell is present but its command bridge did not load.',
+          },
       diskStats: this.#invoke
         ? { available: true }
         : {
@@ -139,6 +150,27 @@ export class TauriPlatform implements PlatformAdapter {
    * Helix's own footprint still comes from the storage layer, which knows what
    * belongs to it. The shell reports the disk; it does not guess at the share.
    */
+  /**
+   * Every indexable note under the given roots, read by the shell.
+   *
+   * Failures come back as an empty vault rather than an exception: the graph
+   * showing nothing is a legible outcome the interface already handles, and a
+   * throw here would take down the whole workspace over one unreadable folder.
+   */
+  async readVaultDocuments(request: VaultReadRequest): Promise<VaultFile[]> {
+    if (!this.#invoke || request.roots.length === 0) return [];
+
+    try {
+      return await this.#invoke<VaultFile[]>('vault_documents', {
+        roots: [...request.roots],
+        maxFileBytes: request.maxFileBytes,
+        ignoredDirectories: [...request.ignoredDirectories],
+      });
+    } catch {
+      return [];
+    }
+  }
+
   async getVolumeStats(): Promise<VolumeStats | null> {
     if (!this.#invoke) return this.#browser.getVolumeStats();
 

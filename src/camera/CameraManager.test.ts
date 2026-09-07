@@ -66,6 +66,7 @@ function platformWith(camera: { available: boolean; reason?: string }): Platform
       gpuVendor: null,
       vramBytes: null,
     }),
+    readVaultDocuments: async () => [],
     getVolumeStats: async () => null,
     isOnline: () => true,
     onConnectivityChange: () => () => {},

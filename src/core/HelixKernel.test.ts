@@ -25,6 +25,7 @@ function stubPlatform(overrides: Partial<PlatformAdapter> = {}): PlatformAdapter
       gpuVendor: null,
       vramBytes: null,
     }),
+    readVaultDocuments: async () => [],
     getVolumeStats: async () => null,
     isOnline: () => true,
     onConnectivityChange: () => () => {},

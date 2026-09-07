@@ -3,6 +3,7 @@ import type {
   PlatformAdapter,
   PlatformCapabilities,
   VolumeStats,
+  VaultFile,
 } from './PlatformAdapter.js';
 
 /**
@@ -118,6 +119,15 @@ export class BrowserPlatform implements PlatformAdapter {
     } catch {
       return { renderer: null, vendor: null };
     }
+  }
+
+  /**
+   * Always empty. A page cannot walk the user's folders, and asking it to
+   * would mean a file picker - a different feature with a different consent
+   * story, not a silent substitute for indexing a path.
+   */
+  async readVaultDocuments(): Promise<VaultFile[]> {
+    return [];
   }
 
   async getVolumeStats(): Promise<VolumeStats | null> {

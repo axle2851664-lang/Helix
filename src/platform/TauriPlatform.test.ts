@@ -22,16 +22,85 @@ describe('detectTauri', () => {
 
 describe('TauriPlatform capabilities', () => {
   /**
-   * The rule that survives the move. Real paths become possible in the shell,
-   * and possible is not the same as exposed - saying "available" because the
-   * host could would be exactly the overstatement the browser build spent ten
-   * phases avoiding.
+   * The rule that survives the move, restated now that something is actually
+   * exposed. "Available" here is not "the host has a disk" - it is one named
+   * read command over folders the user nominated, and the reason has to say
+   * so, because a caller reading only the boolean would otherwise assume a
+   * filesystem it does not have.
    */
-  it('does not claim filesystem access merely because the host has one', () => {
+  it('reports read-only vault access, and says that is what it is', () => {
     const platform = shell({});
 
+    expect(platform.capabilities.filesystem.available).toBe(true);
+    expect(platform.capabilities.filesystem.reason).toContain('Read-only');
+    expect(platform.capabilities.filesystem.reason).toContain('vault roots');
+  });
+
+  it('claims no filesystem when the bridge did not load', () => {
+    const platform = new TauriPlatform({ dataRoot });
+
     expect(platform.capabilities.filesystem.available).toBe(false);
-    expect(platform.capabilities.filesystem.reason).toContain('named command');
+    expect(platform.capabilities.filesystem.reason).toContain('command bridge');
+  });
+
+  it('asks the shell for the roots it was given', async () => {
+    let seen: Record<string, unknown> | undefined;
+    const platform = new TauriPlatform({
+      dataRoot,
+      invoke: (async (command: string, args?: Record<string, unknown>) => {
+        expect(command).toBe('vault_documents');
+        seen = args;
+        return [{ path: 'C:/Notes/a.md', fileName: 'a.md', content: '# A', sizeBytes: 3 }];
+      }) as <T>(command: string, args?: Record<string, unknown>) => Promise<T>,
+    });
+
+    const files = await platform.readVaultDocuments({
+      roots: ['C:/Notes'],
+      maxFileBytes: 2048,
+      ignoredDirectories: ['node_modules'],
+    });
+
+    expect(seen).toEqual({
+      roots: ['C:/Notes'],
+      maxFileBytes: 2048,
+      ignoredDirectories: ['node_modules'],
+    });
+    expect(files).toHaveLength(1);
+    expect(files[0]?.fileName).toBe('a.md');
+  });
+
+  /** No roots means nothing to read, and no reason to wake the shell. */
+  it('does not call the shell when no roots are configured', async () => {
+    let called = false;
+    const platform = new TauriPlatform({
+      dataRoot,
+      invoke: (async () => {
+        called = true;
+        return [];
+      }) as <T>(command: string, args?: Record<string, unknown>) => Promise<T>,
+    });
+
+    expect(
+      await platform.readVaultDocuments({ roots: [], maxFileBytes: 1, ignoredDirectories: [] })
+    ).toEqual([]);
+    expect(called).toBe(false);
+  });
+
+  /**
+   * A vault that cannot be read is an empty galaxy, not a broken screen: the
+   * workspace already renders "no notes found", and a throw here would take
+   * the whole view down over one unreadable folder.
+   */
+  it('reports an empty vault rather than throwing when the shell fails', async () => {
+    const platform = shell({});
+
+    expect(
+      await platform.readVaultDocuments({
+        roots: ['C:/Notes'],
+        maxFileBytes: 1,
+        ignoredDirectories: [],
+      })
+    ).toEqual([]);
   });
 
   it('reports disk statistics as available once the bridge is there', () => {

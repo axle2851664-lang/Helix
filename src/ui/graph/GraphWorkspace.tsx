@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { GraphCanvas } from './GraphCanvas.js';
 import { GalaxyCanvas } from './GalaxyCanvas.js';
 import { Icon } from '../components/Icon.js';
 import { VaultGraph, type NoteType, type VaultNode } from '../../vault/VaultGraph.js';
 import { generateDemoVault } from '../../vault/demoVault.js';
-import { isDemo } from '../../vault/config.js';
+import { REAL_VAULT, isDemo, realVaultBlocker } from '../../vault/config.js';
+import { useHelix } from '../HelixProvider.js';
+import type { VaultDocument } from '../../vault/VaultGraph.js';
 
 /**
  * The vault graph workspace: canvas in the centre, inspector left, filters
@@ -35,8 +37,46 @@ const TYPE_COLOURS: Record<NoteType, string> = {
 const ALL_TYPES: NoteType[] = ['client', 'project', 'meeting', 'invoice', 'note', 'missing'];
 
 export function GraphWorkspace() {
-  // Built once: rebuilding on every render would restart the layout.
-  const graph = useMemo(() => VaultGraph.build(generateDemoVault()), []);
+  const { platform } = useHelix();
+
+  // In real mode the documents are read from disk, so they arrive after the
+  // first render; in demo mode they are synchronous fixtures. Null means "not
+  // read yet", which is what separates loading from a genuinely empty vault.
+  const [documents, setDocuments] = useState<readonly VaultDocument[] | null>(
+    isDemo() ? generateDemoVault() : null
+  );
+
+  useEffect(() => {
+    if (isDemo()) return;
+
+    let cancelled = false;
+    void platform
+      .readVaultDocuments({
+        roots: REAL_VAULT.roots,
+        maxFileBytes: REAL_VAULT.maxFileBytes,
+        ignoredDirectories: REAL_VAULT.ignoredDirectories,
+      })
+      .then((files) => {
+        if (cancelled) return;
+        setDocuments(
+          files.map((file) => ({
+            path: file.path,
+            fileName: file.fileName,
+            content: file.content,
+            sizeBytes: file.sizeBytes,
+          }))
+        );
+      });
+
+    // A vault read that outlives the screen must not set state on the way out.
+    return () => {
+      cancelled = true;
+    };
+  }, [platform]);
+
+  // Rebuilt only when the documents change: rebuilding on every render would
+  // restart the layout.
+  const graph = useMemo(() => VaultGraph.build(documents ?? []), [documents]);
 
   // The flat graph is kept, not replaced. It is better for tracing a path
   // and reading many labels at once; the galaxy is better for finding your
@@ -48,6 +88,28 @@ export function GraphWorkspace() {
   const [pathIds, setPathIds] = useState<string[]>([]);
 
   const stats = useMemo(() => graph.stats(), [graph]);
+
+  /**
+   * Why the graph looks the way it does. An empty galaxy has several very
+   * different causes - still reading, no folders configured, a host that
+   * cannot reach a filesystem, or genuinely no notes - and showing nothing
+   * without saying which is the state this screen was worst at.
+   */
+  const vaultNote = useMemo(() => {
+    if (isDemo()) {
+      return 'Demo fixtures, sir. Invented, seeded, and identical every run - safe to record.';
+    }
+    const blocker = realVaultBlocker();
+    if (blocker) return blocker;
+    if (!platform.capabilities.filesystem.available) {
+      return platform.capabilities.filesystem.reason ?? 'This host cannot read your folders.';
+    }
+    if (documents === null) return 'Reading your folders...';
+    if (documents.length === 0) {
+      return `No notes found in ${REAL_VAULT.roots.join(', ')}. Markdown and text files only.`;
+    }
+    return `${documents.length} file${documents.length === 1 ? '' : 's'} from ${REAL_VAULT.roots.join(', ')}.`;
+  }, [documents, platform]);
 
   const visible = useMemo(() => {
     const nodes = graph.nodes.filter((node) => !hidden.has(node.type));
@@ -261,11 +323,7 @@ export function GraphWorkspace() {
             <span className="hx-row__label">Orphans</span>
             <span className="hx-row__value">{stats.orphans}</span>
           </div>
-          <p className="hx-settings__note">
-            {isDemo()
-              ? 'Demo fixtures, sir. Invented, seeded, and identical every run - safe to record.'
-              : 'Your configured folders.'}
-          </p>
+          <p className="hx-settings__note">{vaultNote}</p>
         </section>
 
         <section className="hx-panel">
