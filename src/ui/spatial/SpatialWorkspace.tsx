@@ -6,8 +6,10 @@ import { SpatialScene } from '../../spatial/SpatialScene.js';
 import { GestureController } from '../../spatial/GestureController.js';
 import { MediaPipeGestureProvider } from '../../gestures/MediaPipeGestureProvider.js';
 import { SpatialStage } from './SpatialStage.js';
+import { spatialActions, SPATIAL_ACTION_IDS } from '../../actions/spatial.js';
 import type { CameraSnapshot } from '../../camera/CameraManager.js';
 import type { ProjectSummary } from '../../projects/types.js';
+import type { ActionDefinition } from '../../actions/action.js';
 
 /**
  * Spatial mode: objects manipulated by hand over the camera view (spec 11, 12).
@@ -20,7 +22,7 @@ import type { ProjectSummary } from '../../projects/types.js';
  * works throughout, whether tracking is on or not.
  */
 export function SpatialWorkspace() {
-  const { camera, projects, logger, bus } = useHelix();
+  const { camera, projects, logger, bus, actions, runner } = useHelix();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const providerRef = useRef<MediaPipeGestureProvider | null>(null);
@@ -28,6 +30,26 @@ export function SpatialWorkspace() {
   // One scene and controller for the lifetime of the workspace.
   const scene = useMemo(() => new SpatialScene(bus), [bus]);
   const controller = useMemo(() => new GestureController({ scene }), [scene]);
+
+  /**
+   * The stage's actions exist only while the stage does, because they hold
+   * this scene. Registering them centrally rather than keeping a private list
+   * is what lets the palm-out menu - and anything else that asks the registry
+   * what applies to an object - see them without knowing about this file.
+   */
+  const [objectActions, setObjectActions] = useState<readonly ActionDefinition[]>([]);
+
+  useEffect(() => {
+    actions.registerAll(spatialActions(scene));
+    // Read back rather than using the list we just built: what the menu shows
+    // is whatever the registry says applies, so an action registered anywhere
+    // else appears here too.
+    setObjectActions(actions.forTarget('spatial-object'));
+    return () => {
+      actions.unregisterAll(SPATIAL_ACTION_IDS);
+      setObjectActions([]);
+    };
+  }, [actions, scene]);
 
   const [cameraState, setCameraState] = useState<CameraSnapshot>(() => camera.snapshot);
   const [tracking, setTracking] = useState(false);
@@ -163,6 +185,17 @@ export function SpatialWorkspace() {
         controller={controller}
         videoRef={videoRef}
         cameraLive={cameraState.live}
+        actions={objectActions}
+        onRun={(actionId, objectId) => {
+          // The menu closes as the action starts. Any question it raises is
+          // asked by the consent dialog, which must not be behind a menu.
+          controller.dismissMenu();
+          void runner.run(actionId, { objectId }).then((result) => {
+            // A refusal is the user's own answer and needs no announcement;
+            // a failure is something they could not have expected.
+            if (result.status === 'failed') say(result.message);
+          });
+        }}
       />
 
       <section className="hx-panel">
@@ -238,8 +271,9 @@ export function SpatialWorkspace() {
             hand to drag it. Opening your hand releases it.
           </li>
           <li>
-            <strong>Hold an open palm</strong> over an object for a moment to reveal Duplicate and
-            Delete. A ring fills to show the wait, so a passing hand does not trigger it.
+            <strong>Hold an open palm</strong> over an object for a moment to open its menu. A
+            ring fills to show the wait, so a passing hand does not trigger it. The menu lists
+            only what can actually be done to that object, and Delete asks before it acts.
           </li>
           <li>
             <strong>Mouse:</strong> drag to move, right-click for the same menu. This works whether

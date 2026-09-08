@@ -188,28 +188,14 @@ describe('GestureController: open palm reveals actions', () => {
     expect(second.id).toBeTruthy();
   });
 
-  it('deletes the object from the menu', () => {
+  // The controller opens the menu and nothing more. Which actions it holds,
+  // and what happens when one is chosen, belong to the action registry and
+  // runner - so a palm cannot delete anything by itself.
+  it('names the object the menu is for, and changes nothing on its own', () => {
     controller.update(palmFrame({ x: 0.5, y: 0.5 }, 0));
     controller.update(palmFrame({ x: 0.5, y: 0.5 }, PALM_DWELL_MS));
 
-    expect(controller.deleteFromMenu()).toBe(true);
-    expect(scene.objects).toHaveLength(0);
-    expect(controller.state.menu).toBeNull();
-  });
-
-  it('duplicates the object from the menu', () => {
-    controller.update(palmFrame({ x: 0.5, y: 0.5 }, 0));
-    controller.update(palmFrame({ x: 0.5, y: 0.5 }, PALM_DWELL_MS));
-
-    expect(controller.duplicateFromMenu()).toBe(true);
-    expect(scene.objects).toHaveLength(2);
-    // The copy is offset, so it is visibly distinct from the original.
-    expect(scene.objects[1]?.x).not.toBe(scene.objects[0]?.x);
-  });
-
-  it('does nothing when acting with no menu open', () => {
-    expect(controller.deleteFromMenu()).toBe(false);
-    expect(controller.duplicateFromMenu()).toBe(false);
+    expect(controller.state.menu?.objectId).toBe(scene.objects[0]?.id);
     expect(scene.objects).toHaveLength(1);
   });
 
@@ -301,18 +287,15 @@ describe('GestureController: mouse fallback parity', () => {
     expect(controller.state.menu?.objectId).toBe(id);
   });
 
-  it('the same delete and duplicate actions work from a mouse-opened menu', () => {
+  it('a mouse-opened menu is the same menu, over the same object', () => {
     const scene = new SpatialScene();
     const id = scene.add({ label: 'A', x: 0.4, y: 0.4, scale: 1, rotation: 0 }).id;
     const controller = new GestureController({ scene });
 
     controller.openMenuFor(id);
-    expect(controller.duplicateFromMenu()).toBe(true);
-    expect(scene.objects).toHaveLength(2);
-
-    controller.openMenuFor(scene.objects[0]?.id as string);
-    expect(controller.deleteFromMenu()).toBe(true);
-    expect(scene.objects).toHaveLength(1);
+    // Same state a dwell produces, so the two inputs reach the same actions.
+    expect(controller.state.mode).toBe('menu');
+    expect(controller.state.menu).toEqual({ objectId: id, x: 0.4, y: 0.4 });
   });
 
   it('refuses to open a menu for an object that does not exist', () => {

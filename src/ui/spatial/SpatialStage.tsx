@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import type { GestureController, ControllerState } from '../../spatial/GestureController.js';
 import type { SpatialObject, SpatialScene } from '../../spatial/SpatialScene.js';
+import type { ActionDefinition } from '../../actions/action.js';
 
 /**
  * The spatial stage: objects laid over the camera view.
@@ -10,6 +11,14 @@ import type { SpatialObject, SpatialScene } from '../../spatial/SpatialScene.js'
  * genuine fallback rather than a parallel implementation - dragging with a
  * mouse calls `scene.move`, exactly as a pinch does, and right-clicking opens
  * the same action menu an open palm reveals.
+ *
+ * The menu's contents come from the action registry, filtered to what applies
+ * to a stage object. That is the specification's rule - only show actions
+ * compatible with the selected object - held by construction: an action that
+ * does not declare itself compatible cannot appear, and one that does needs no
+ * change here to show up. Choosing an item runs it through the action runner,
+ * so Delete gets its confirmation from the same pipeline as everything else
+ * rather than from a check written into this file.
  */
 
 interface SpatialStageProps {
@@ -18,9 +27,20 @@ interface SpatialStageProps {
   /** Live camera element to show behind the objects, when running. */
   videoRef: React.RefObject<HTMLVideoElement | null>;
   cameraLive: boolean;
+  /** What the registry says applies to a stage object. */
+  actions: readonly ActionDefinition[];
+  /** Runs one, through the permission and confirmation pipeline. */
+  onRun: (actionId: string, objectId: string) => void;
 }
 
-export function SpatialStage({ scene, controller, videoRef, cameraLive }: SpatialStageProps) {
+export function SpatialStage({
+  scene,
+  controller,
+  videoRef,
+  cameraLive,
+  actions,
+  onRun,
+}: SpatialStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [objects, setObjects] = useState<readonly SpatialObject[]>(scene.objects);
   const [selectedId, setSelectedId] = useState<string | null>(scene.selectedId);
@@ -161,22 +181,29 @@ export function SpatialStage({ scene, controller, videoRef, cameraLive }: Spatia
           aria-label={`Actions for ${menuObject.label}`}
         >
           <div className="hx-objmenu__title">{menuObject.label}</div>
+
+          {actions.length === 0 && (
+            <p className="hx-objmenu__empty">Nothing can be done to this yet.</p>
+          )}
+
+          {actions.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              role="menuitem"
+              className={`hx-objmenu__item${
+                action.reversible ? '' : ' hx-objmenu__item--danger'
+              }`}
+              onClick={() => onRun(action.id, menuObject.id)}
+            >
+              {action.reversible ? null : <Icon name="close" size={14} />}
+              {action.label}
+            </button>
+          ))}
+
           <button
             type="button"
-            className="hx-objmenu__item"
-            onClick={() => controller.duplicateFromMenu()}
-          >
-            <Icon name="plus" size={14} /> Duplicate
-          </button>
-          <button
-            type="button"
-            className="hx-objmenu__item hx-objmenu__item--danger"
-            onClick={() => controller.deleteFromMenu()}
-          >
-            <Icon name="close" size={14} /> Delete
-          </button>
-          <button
-            type="button"
+            role="menuitem"
             className="hx-objmenu__item hx-objmenu__item--quiet"
             onClick={() => controller.dismissMenu()}
           >

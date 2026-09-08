@@ -27,6 +27,22 @@ export class ActionRegistry {
     for (const action of actions) this.register(action);
   }
 
+  /**
+   * Remove an action.
+   *
+   * Needed because some actions are bound to something with a shorter life
+   * than the registry: the spatial ones hold a scene that exists only while
+   * that workspace is open. Leaving them registered would mean a menu, or a
+   * planner, offering an action against a scene nobody can see.
+   */
+  unregister(id: string): boolean {
+    return this.#actions.delete(id);
+  }
+
+  unregisterAll(ids: readonly string[]): void {
+    for (const id of ids) this.#actions.delete(id);
+  }
+
   get(id: string): ActionDefinition | undefined {
     return this.#actions.get(id);
   }

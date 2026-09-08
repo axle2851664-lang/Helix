@@ -11,11 +11,20 @@ import type { SpatialScene } from './SpatialScene.js';
  *    grabbed object moves - the rest of the scene and the interface stay put,
  *    which the specification calls out explicitly.
  *
- * 2. **An open palm held over an object reveals delete and duplicate.** It is a
+ * 2. **An open palm held over an object opens its action menu.** It is a
  *    dwell, not an instant trigger: a palm passing across the view would
  *    otherwise open menus continuously. The dwell also means a destructive
  *    action is never one accidental gesture away - the menu appears, and
  *    deleting still needs a deliberate second action.
+ *
+ * What the menu *contains* is not decided here, and neither is what happens
+ * when an item is chosen. This class reports that a menu should be open over a
+ * given object; the action registry says which actions apply to it, and the
+ * action runner performs the chosen one with whatever permission or
+ * confirmation it requires. Moving objects is direct manipulation and stays
+ * here; anything with consequences goes through the pipeline, which is the
+ * specification's rule that Helix acts through a central action system rather
+ * than reaching into state from wherever the gesture happened to be handled.
  *
  * Pure with respect to time: `update` takes the frame's timestamp rather than
  * reading the clock, so dwell behaviour is testable without waiting.
@@ -211,21 +220,6 @@ export class GestureController {
     this.#resetDwell();
     this.#notify();
     return true;
-  }
-
-  /** Act on the open menu. Returns false when there is no menu. */
-  deleteFromMenu(): boolean {
-    if (!this.#menu) return false;
-    const removed = this.#scene.remove(this.#menu.objectId);
-    this.dismissMenu();
-    return removed;
-  }
-
-  duplicateFromMenu(): boolean {
-    if (!this.#menu) return false;
-    const copy = this.#scene.duplicate(this.#menu.objectId);
-    this.dismissMenu();
-    return copy !== null;
   }
 
   dismissMenu(): void {

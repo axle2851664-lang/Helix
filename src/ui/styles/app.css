@@ -2554,3 +2554,13 @@
   color: var(--hx-text-faint);
   text-align: right;
 }
+
+/* An object with no applicable actions says so rather than showing an empty
+   menu. The specification's rule is that incompatible actions are absent, and
+   absent sometimes means all of them. */
+.hx-objmenu__empty {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--hx-text-faint);
+}
