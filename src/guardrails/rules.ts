@@ -67,10 +67,14 @@ export const GUARDRAILS: readonly Guardrail[] = [
     title: 'Read-only outside its own folders',
     rule: 'Helix never writes to your folders. Everything it keeps goes in its own data directory.',
     why: 'An assistant that can overwrite your work is one bug away from destroying it.',
-    enforcement: 'structure',
+    // Was 'structure', on the grounds that a browser page has no filesystem.
+    // The shell now reads the folders you nominate, so that ground is gone and
+    // the claim has to rest on code that actually refuses the violation.
+    enforcement: 'code',
     evidence:
-      'A browser page has no filesystem access at all. PathManager already refuses any path outside the workspace, ready for the shell.',
-    atRisk: 'Under the shell this becomes the only thing standing between Helix and your disk.',
+      'The shell offers one filesystem command and it only reads. Every path is resolved and checked to sit inside a configured root before it is opened, so a symlink pointing out of the vault reaches nothing - there is a test that builds exactly that symlink and proves it is not followed. No command writes, moves or deletes.',
+    atRisk:
+      'Adding any command that writes would move this back to a promise. The guarantee is the absence of one, not a check inside it.',
   },
   {
     id: 'memory-aloud',
