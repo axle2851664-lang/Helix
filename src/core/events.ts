@@ -85,6 +85,10 @@ export interface HelixEventMap {
   // --- Connectivity (spec 27) ---
   CONNECTIVITY_CHANGED: { mode: 'online' | 'offline' };
 
+  // --- Actions (spec 5). Every action Helix performs is announced, so the
+  //     user can see what it did without reading the log. ---
+  ACTION_PERFORMED: { action: string; status: string; reason?: string };
+
   // --- Permissions (spec 6). A capability is gated on a decision the user
   //     made, so the UI must be able to see both the asking and the answer. ---
   PERMISSION_REQUESTED: { permission: string; reason: string };

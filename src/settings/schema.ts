@@ -591,6 +591,14 @@ export const SETTINGS_SCHEMA = {
     description: 'Helix only saves what you explicitly ask it to remember.',
     default: true,
   },
+  quickActions: {
+    kind: 'boolean',
+    section: 'privacy',
+    label: 'Quick actions',
+    description:
+      'Skip the confirmation on destructive actions such as delete. Sending and exporting are always confirmed regardless.',
+    default: false,
+  },
   allowComputerControl: {
     kind: 'boolean',
     section: 'privacy',

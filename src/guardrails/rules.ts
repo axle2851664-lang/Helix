@@ -77,6 +77,28 @@ export const GUARDRAILS: readonly Guardrail[] = [
       'Adding any command that writes would move this back to a promise. The guarantee is the absence of one, not a check inside it.',
   },
   {
+    id: 'ask-before-anything-sensitive',
+    title: 'Nothing sensitive without your say-so',
+    rule: 'Every sensitive capability - your files, your mail, your phone, the camera, the microphone, this computer - is off until you allow it, and can be taken back at any time.',
+    why: 'An assistant that starts with everything switched on has already made the decision that was yours to make.',
+    enforcement: 'code',
+    evidence:
+      'PermissionManager holds all twenty-four capabilities at "not granted" until you answer a prompt. Every failure path - storage unreadable, prompt crashed, nothing able to ask - lands on not granted rather than assuming a past yes, and a stored grant naming a capability this build does not define is ignored rather than trusted.',
+    atRisk:
+      'A Helix permission is necessary, never sufficient. Your operating system still gates the camera and microphone, and Google still gates your mail. Helix cannot answer those on your behalf and does not try.',
+  },
+  {
+    id: 'confirm-before-destroying',
+    title: 'Ask before it cannot be undone',
+    rule: 'Deleting, exporting and sending are confirmed against a description of the specific thing being done.',
+    why: 'A confirmation that says "are you sure?" is one people learn to click through. A confirmation that names the thing is one they can actually judge.',
+    enforcement: 'code',
+    evidence:
+      'ActionRunner refuses to run a destructive action without a confirmation, and refuses outright when nothing is available to ask with. The description is built from the action\'s real parameters - forgetting a memory shows the memory, not its id. Quick actions can skip a deletion prompt only after you turn it on yourself, and cannot skip anything that leaves the machine.',
+    atRisk:
+      'Quick actions is the one switch that relaxes this. Helix cannot turn it on: it is excluded from the settings any action is allowed to change, so the confirmations cannot be switched off by the thing they constrain.',
+  },
+  {
     id: 'memory-aloud',
     title: 'Never remember silently',
     rule: 'Nothing is written to long-term memory without Helix saying so, and quoting it back.',

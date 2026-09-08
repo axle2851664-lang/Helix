@@ -4,6 +4,9 @@ import { ConsoleSink, Logger, MemorySink, type LogLevel } from './Logger.js';
 import { IndexedDbStore } from '../storage/IndexedDbStore.js';
 import { MemoryKeyValueStore, type KeyValueStore } from '../storage/KeyValueStore.js';
 import { PathManager } from '../storage/PathManager.js';
+import { ActionRegistry } from '../actions/ActionRegistry.js';
+import { ActionRunner } from '../actions/ActionRunner.js';
+import { builtinActions } from '../actions/builtin.js';
 import { PermissionManager } from '../security/PermissionManager.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { BrowserPlatform } from '../platform/BrowserPlatform.js';
@@ -72,6 +75,10 @@ export interface KernelServices {
   readonly settings: SettingsManager;
   /** The gate in front of every sensitive capability (spec 6). */
   readonly permissions: PermissionManager;
+  /** Everything Helix can do to its own application (spec 5). */
+  readonly actions: ActionRegistry;
+  /** The one path from an intended action to a performed one (spec 5). */
+  readonly runner: ActionRunner;
   readonly activity: ActivityManager;
   readonly conversations: ConversationStore;
   readonly projects: ProjectManager;
@@ -233,6 +240,20 @@ export class HelixKernel {
     const projects = new ProjectManager({ store, logger, paths, bus });
     const memory = new MemoryManager({ store, settings, logger, bus });
     const knowledge = new KnowledgeIndex({ store, projects, logger, bus });
+
+    // Registered here rather than at each screen, so that what Helix can do is
+    // one list rather than whatever happens to be reachable from the UI. The
+    // runner reads quick actions on every run, so turning it off takes effect
+    // at once.
+    const actions = new ActionRegistry();
+    actions.registerAll(builtinActions({ settings, knowledge, memory }));
+    const runner = new ActionRunner({
+      registry: actions,
+      permissions,
+      logger,
+      bus,
+      quickActions: () => settings.get('quickActions'),
+    });
 
     // Built after the subsystems it measures, then attached to the import
     // path. Attached here rather than left to a screen, so the ceiling holds
@@ -644,6 +665,8 @@ export class HelixKernel {
       store,
       settings,
       permissions,
+      actions,
+      runner,
       activity,
       conversations,
       projects,
