@@ -9,8 +9,17 @@ import { PathManager } from '../storage/PathManager.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { MemoryManager } from '../memory/MemoryManager.js';
 import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
+import { ActionRegistry } from '../actions/ActionRegistry.js';
+import { ActionRunner } from '../actions/ActionRunner.js';
+import { builtinActions } from '../actions/builtin.js';
+import { PermissionManager } from '../security/PermissionManager.js';
 
-async function makeContext() {
+/**
+ * `confirms` decides what the user says to the confirmation that forgetting
+ * now goes through. `null` builds the orchestrator with no action pipeline at
+ * all, which is the case where nothing can ask and deleting must not happen.
+ */
+async function makeContext(confirms: boolean | null = true) {
   const kv = new MemoryKeyValueStore();
   const logger = new Logger('test', { level: 'ERROR', sinks: [] });
   const settings = new SettingsManager({ store: kv, logger });
@@ -22,6 +31,18 @@ async function makeContext() {
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
+  const registry = new ActionRegistry();
+  registry.registerAll(builtinActions({ settings, knowledge, memory }));
+  const runner =
+    confirms === null
+      ? undefined
+      : new ActionRunner({
+          registry,
+          permissions: new PermissionManager({ store: kv, logger }),
+          logger,
+          confirmer: async () => confirms,
+        });
+
   const orchestrator = new HelixOrchestrator({
     settings,
     conversations,
@@ -30,6 +51,7 @@ async function makeContext() {
     memory,
     knowledge,
     logger,
+    ...(runner ? { runner } : {}),
   });
   const conversation = await conversations.create();
 
@@ -166,6 +188,40 @@ describe('orchestrator: memory tool', () => {
       expect(response.handled).toBe(true);
       expect(response.text).toContain('out of mind');
       expect(await context.memory.count()).toBe(0);
+    });
+
+    it('leaves it alone when the confirmation is declined', async () => {
+      const declining = await makeContext(false);
+      await declining.orchestrator.submit({
+        text: 'remember that my sister is called Mira',
+        conversationId: declining.conversation.id,
+      });
+
+      const response = await declining.orchestrator.submit({
+        text: 'forget about my sister',
+        conversationId: declining.conversation.id,
+      });
+
+      // Cancelling is an answer, not a failure: the tool asked and obeyed.
+      expect(response.handled).toBe(true);
+      expect(response.failure).toBeUndefined();
+      expect(await declining.memory.count()).toBe(1);
+    });
+
+    it('refuses to delete when there is no way to confirm', async () => {
+      const unasked = await makeContext(null);
+      await unasked.orchestrator.submit({
+        text: 'remember that my sister is called Mira',
+        conversationId: unasked.conversation.id,
+      });
+
+      const response = await unasked.orchestrator.submit({
+        text: 'forget about my sister',
+        conversationId: unasked.conversation.id,
+      });
+
+      expect(response.handled).toBe(false);
+      expect(await unasked.memory.count()).toBe(1);
     });
 
     it('says so when nothing matches', async () => {

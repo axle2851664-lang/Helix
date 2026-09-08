@@ -2474,3 +2474,83 @@
   background: var(--hx-accent-soft);
   color: var(--hx-text);
 }
+
+/* ------------------------------ consent ------------------------------
+   The dialog Helix asks through. Deliberately plain and deliberately in
+   the way: a permission prompt that can be missed is a permission prompt
+   that gets clicked through. */
+.hx-consent {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.hx-consent__panel {
+  width: min(460px, 100%);
+  background: var(--hx-panel);
+  border: 1px solid var(--hx-border-strong);
+  border-radius: 12px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.hx-consent__kind {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hx-text-faint);
+}
+
+.hx-consent__title {
+  margin: 0 0 10px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--hx-text);
+}
+
+.hx-consent__detail {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--hx-text-dim);
+}
+
+.hx-consent__reason,
+.hx-consent__note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.hx-consent__reason {
+  color: var(--hx-text-faint);
+}
+
+/* The note carries the thing that most often surprises people: that the
+   operating system will ask again, or that nothing brings this back. */
+.hx-consent__note {
+  color: var(--hx-text);
+  border-left: 2px solid var(--hx-accent-line);
+  padding-left: 10px;
+}
+
+.hx-consent__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.hx-consent__queued {
+  margin: 14px 0 0;
+  font-size: 11px;
+  color: var(--hx-text-faint);
+  text-align: right;
+}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ConsentGate } from './consent/ConsentGate.js';
 import { HelixMark } from './components/HelixMark.js';
 import { Sidebar } from './sidebar/Sidebar.js';
 import { TopBar } from './header/TopBar.js';
@@ -205,6 +206,11 @@ function HelixWorkspaceShell() {
       {statusOpen && (
         <StatusPanel onClose={() => setStatusOpen(false)} onOpenSystem={() => navigate('system')} />
       )}
+
+      {/* Mounted for the whole session: it is what lets Helix ask, and until
+          something can ask, every permission and every destructive action is
+          refused rather than assumed. */}
+      <ConsentGate />
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { resolveWorkspace, type WorkspaceId } from '../ui/workspaces/registry.js
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { formatContext, getModelOrDefault, resolveModel } from '../models/catalog.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
-import type { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
+import type { KnowledgeHit, KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import {
   allowAddressInReply,
   carriesAddress,
@@ -36,6 +36,7 @@ import { scanForInjection } from '../guardrails/untrusted.js';
 import type { WebResearch } from '../web/WebResearch.js';
 import { asEvidence } from '../web/WebResearch.js';
 import { researchCard } from '../tools/researchCard.js';
+import type { ActionRunner } from '../actions/ActionRunner.js';
 import type { AIRouter } from '../ai/AIRouter.js';
 import { classify } from '../ai/AIRouter.js';
 import { SYSTEM_PROMPT } from '../persona/systemPrompt.js';
@@ -130,6 +131,11 @@ export interface OrchestratorOptions {
   research?: WebResearch;
   /** The brain. Absent in tests that only exercise the tool routing. */
   ai?: AIRouter;
+  /**
+   * The action pipeline (spec 5). Anything that deletes goes through it, so
+   * absent means those requests are refused rather than performed unconfirmed.
+   */
+  runner?: ActionRunner;
 }
 
 export class HelixOrchestrator {
@@ -142,6 +148,7 @@ export class HelixOrchestrator {
   readonly #logger: Logger;
   readonly #ai: AIRouter | undefined;
   readonly #research: WebResearch | undefined;
+  readonly #runner: ActionRunner | undefined;
   readonly #tools: HelixTool[] = [];
 
   constructor(options: OrchestratorOptions) {
@@ -154,6 +161,7 @@ export class HelixOrchestrator {
     this.#logger = options.logger.child('orchestrator');
     this.#ai = options.ai;
     this.#research = options.research;
+    this.#runner = options.runner;
 
     // File search sits just below memory: "search my files for X" is explicit.
     this.registerTool(this.#fileSearchTool());
@@ -414,7 +422,29 @@ export class HelixOrchestrator {
           };
         }
 
-        const hits = await this.#knowledge.search(query, { limit: 4 });
+        // Reading the user's files is a permission, so the search goes through
+        // the action pipeline rather than straight to the index. No pipeline
+        // means no permission check, and a check that cannot happen is not a
+        // check to skip.
+        if (!this.#runner) {
+          return {
+            text: unavailable(
+              'I cannot search your files without checking that you have allowed it, and I have no way to check just now',
+            ),
+            handled: false,
+            failure: 'CAPABILITY_UNAVAILABLE',
+          };
+        }
+
+        const searched = await this.#runner.run('knowledge.search', { query, limit: 4 });
+        if (searched.status !== 'ok') {
+          return {
+            text: searched.message,
+            handled: false,
+            failure: searched.status === 'refused' ? 'PERMISSION_DENIED' : 'INTERNAL',
+          };
+        }
+        const hits = (Array.isArray(searched.data) ? searched.data : []) as KnowledgeHit[];
         if (hits.length === 0) {
           return {
             text: observe(
@@ -528,11 +558,40 @@ ${lines}${notice}`,
               failure: 'NOT_FOUND',
             };
           }
-          await this.#memory.delete(target.memory.id);
-          return {
-            text: confirm('That has been put out of mind') + `
+          // Deleting goes through the action pipeline, never straight to the
+          // store. That is what puts a confirmation in front of it, showing
+          // the memory itself rather than asking about "a memory".
+          if (!this.#runner) {
+            return {
+              text: unavailable(
+                'I can only forget something once you have confirmed it, and I have no way to ask you just now',
+              ),
+              handled: false,
+              failure: 'CAPABILITY_UNAVAILABLE',
+            };
+          }
+
+          const forgotten = await this.#runner.run('memory.forget', { id: target.memory.id });
+          if (forgotten.status === 'ok') {
+            return {
+              text: confirm('That has been put out of mind') + `
 "${target.memory.content}"`,
-            handled: true,
+              handled: true,
+            };
+          }
+          if (forgotten.status === 'refused' && forgotten.reason === 'not-confirmed') {
+            // A cancellation is an answer, not a failure. The tool ran, asked,
+            // and did what was asked of it.
+            return {
+              text: observe('Left as it was, then') + `
+"${target.memory.content}"`,
+              handled: true,
+            };
+          }
+          return {
+            text: forgotten.message,
+            handled: false,
+            failure: forgotten.status === 'refused' ? 'PERMISSION_DENIED' : 'INTERNAL',
           };
         }
 

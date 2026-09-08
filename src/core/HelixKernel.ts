@@ -443,6 +443,7 @@ export class HelixKernel {
       // "no language provider is configured" while a model sat running on the
       // machine. Wiring, not capability, was the whole of that fault.
       ai,
+      runner,
     });
 
     // Teach the registry what is actually installed.

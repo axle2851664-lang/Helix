@@ -9,10 +9,19 @@ import { PathManager } from '../storage/PathManager.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { MemoryManager } from '../memory/MemoryManager.js';
 import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
+import { ActionRegistry } from '../actions/ActionRegistry.js';
+import { ActionRunner } from '../actions/ActionRunner.js';
+import { builtinActions } from '../actions/builtin.js';
+import { PermissionManager } from '../security/PermissionManager.js';
 
 const encode = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;
 
-async function makeContext() {
+/**
+ * `filesAllowed` is the user's answer to the FILES_READ permission that
+ * searching their files now goes through: granted, refused, or never asked
+ * because no action pipeline is wired at all.
+ */
+async function makeContext(filesAllowed: boolean | null = true) {
   const kv = new MemoryKeyValueStore();
   const logger = new Logger('test', { level: 'ERROR', sinks: [] });
   const settings = new SettingsManager({ store: kv, logger });
@@ -24,6 +33,18 @@ async function makeContext() {
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
+  const permissions = new PermissionManager({
+    store: kv,
+    logger,
+    prompter: async () => (filesAllowed === true ? 'allow' : 'deny'),
+  });
+  const registry = new ActionRegistry();
+  registry.registerAll(builtinActions({ settings, knowledge, memory }));
+  const runner =
+    filesAllowed === null
+      ? undefined
+      : new ActionRunner({ registry, permissions, logger, confirmer: async () => true });
+
   const orchestrator = new HelixOrchestrator({
     settings,
     conversations,
@@ -32,10 +53,11 @@ async function makeContext() {
     memory,
     knowledge,
     logger,
+    ...(runner ? { runner } : {}),
   });
   const conversation = await conversations.create();
 
-  return { orchestrator, projects, knowledge, memory, settings, conversation };
+  return { orchestrator, projects, knowledge, memory, settings, permissions, conversation };
 }
 
 describe('orchestrator: file search tool', () => {
@@ -207,5 +229,60 @@ describe('orchestrator: file search tool', () => {
 
       expect(await context.projects.listProjects()).toHaveLength(1);
     });
+  });
+});
+
+describe('orchestrator: searching files needs permission', () => {
+  const encodeText = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;
+
+  async function withFile(context: Awaited<ReturnType<typeof makeContext>>) {
+    const project = await context.projects.createProject('Notes');
+    const asset = await context.projects.addFileToProject({
+      projectId: project.id,
+      file: { name: 'plan.md', size: 40, type: 'text/plain' },
+      data: encodeText('The deadline is Friday.'),
+    });
+    await context.knowledge.indexAsset(asset.id);
+  }
+
+  it('asks for permission to read files, and searches once it is given', async () => {
+    const context = await makeContext(true);
+    await withFile(context);
+
+    const response = await context.orchestrator.submit({
+      text: 'search my files for deadline',
+      conversationId: context.conversation.id,
+    });
+
+    expect(response.handled).toBe(true);
+    expect(context.permissions.isGranted('FILES_READ')).toBe(true);
+  });
+
+  it('does not search when reading files is refused', async () => {
+    const context = await makeContext(false);
+    await withFile(context);
+
+    const response = await context.orchestrator.submit({
+      text: 'search my files for deadline',
+      conversationId: context.conversation.id,
+    });
+
+    expect(response.handled).toBe(false);
+    expect(response.failure).toBe('PERMISSION_DENIED');
+    // Nothing from the file may appear in a reply that was refused.
+    expect(response.text).not.toContain('Friday');
+  });
+
+  it('refuses rather than searching unchecked when nothing can check', async () => {
+    const context = await makeContext(null);
+    await withFile(context);
+
+    const response = await context.orchestrator.submit({
+      text: 'search my files for deadline',
+      conversationId: context.conversation.id,
+    });
+
+    expect(response.handled).toBe(false);
+    expect(response.text).not.toContain('Friday');
   });
 });
