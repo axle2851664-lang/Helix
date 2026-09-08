@@ -85,6 +85,11 @@ export interface HelixEventMap {
   // --- Connectivity (spec 27) ---
   CONNECTIVITY_CHANGED: { mode: 'online' | 'offline' };
 
+  // --- Permissions (spec 6). A capability is gated on a decision the user
+  //     made, so the UI must be able to see both the asking and the answer. ---
+  PERMISSION_REQUESTED: { permission: string; reason: string };
+  PERMISSION_CHANGED: { permission: string; state: string };
+
   // --- Settings (spec 15) ---
   SETTINGS_CHANGED: { keys: string[] };
   /** Raised when settings can no longer be written to durable storage. */

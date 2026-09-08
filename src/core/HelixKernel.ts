@@ -4,6 +4,7 @@ import { ConsoleSink, Logger, MemorySink, type LogLevel } from './Logger.js';
 import { IndexedDbStore } from '../storage/IndexedDbStore.js';
 import { MemoryKeyValueStore, type KeyValueStore } from '../storage/KeyValueStore.js';
 import { PathManager } from '../storage/PathManager.js';
+import { PermissionManager } from '../security/PermissionManager.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { BrowserPlatform } from '../platform/BrowserPlatform.js';
 import { TauriPlatform, detectTauri, shellInstallRoot } from '../platform/TauriPlatform.js';
@@ -69,6 +70,8 @@ export interface KernelServices {
   readonly paths: PathManager;
   readonly store: KeyValueStore;
   readonly settings: SettingsManager;
+  /** The gate in front of every sensitive capability (spec 6). */
+  readonly permissions: PermissionManager;
   readonly activity: ActivityManager;
   readonly conversations: ConversationStore;
   readonly projects: ProjectManager;
@@ -204,6 +207,18 @@ export class HelixKernel {
     if (!settings.persistent) {
       this.#warnings.push('Settings could not be saved. Changes will be lost when Helix closes.');
       bus.emit('SETTINGS_PERSISTENCE_LOST', { reason: 'Settings store unavailable at startup.' });
+    }
+
+    // Loaded before anything that could want a capability, so no subsystem can
+    // start up in a state where "not yet loaded" reads as "not granted" and a
+    // permission the user already gave gets asked for again. Nothing is granted
+    // here: it starts empty and only a decision the user made fills it in.
+    const permissions = new PermissionManager({ store, logger, bus });
+    await permissions.load();
+    if (!permissions.persistent) {
+      this.#warnings.push(
+        'Permission choices could not be saved. Helix will ask again when it next starts.',
+      );
     }
 
     busLogger.debug('Event bus ready.');
@@ -628,6 +643,7 @@ export class HelixKernel {
       paths,
       store,
       settings,
+      permissions,
       activity,
       conversations,
       projects,
@@ -680,7 +696,8 @@ export class HelixKernel {
   /** Release resources. Flushes pending settings writes first (spec 28). */
   async shutdown(reason = 'user'): Promise<void> {
     if (!this.#services) return;
-    const { bus, settings, store, logger, activity, voice, camera } = this.#services;
+    const { bus, settings, permissions, store, logger, activity, voice, camera } =
+      this.#services;
 
     bus.emit('helix:shutdown', { reason });
     try {
@@ -688,6 +705,7 @@ export class HelixKernel {
       camera.shutdown();
       activity.reset();
       await settings.flush();
+      await permissions.flush();
       await store.close();
     } catch (error) {
       logger.error('Problem during shutdown.', error);
