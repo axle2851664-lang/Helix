@@ -6,7 +6,7 @@ import { MemoryKeyValueStore, type KeyValueStore } from '../storage/KeyValueStor
 import { PathManager } from '../storage/PathManager.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { BrowserPlatform } from '../platform/BrowserPlatform.js';
-import { TauriPlatform, detectTauri } from '../platform/TauriPlatform.js';
+import { TauriPlatform, detectTauri, shellInstallRoot } from '../platform/TauriPlatform.js';
 import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
 import { ActivityManager } from './ActivityManager.js';
 import { HelixOrchestrator } from './HelixOrchestrator.js';
@@ -178,8 +178,12 @@ export class HelixKernel {
     const inShell = this.#options.platform?.kind === 'tauri' || detectTauri();
 
     // The browser host has no installation path. A virtual root keeps path
-    // arithmetic honest and testable without implying a real filesystem.
-    const root = this.#options.root ?? (inShell ? '' : '/helix');
+    // arithmetic honest and testable without implying a real filesystem. In
+    // the shell there is a real one, and only the shell knows it - this branch
+    // used to be left empty, which PathManager rejects, so reaching it at all
+    // stopped Helix before it started.
+    const root =
+      this.#options.root ?? (inShell ? ((await shellInstallRoot()) ?? '') : '/helix');
     const paths = new PathManager({ root, portable: true });
 
     const platform =

@@ -92,6 +92,25 @@ function invoker(): TauriInvoke | null {
   return internals?.invoke ?? null;
 }
 
+/**
+ * Where the shell says Helix is installed, or null when there is no shell.
+ *
+ * Standalone because the kernel needs this answer *before* it can build a
+ * platform: the paths depend on the root, and TauriPlatform depends on the
+ * paths. Asking through the same bridge avoids resolving that ordering by
+ * guessing at either end.
+ */
+export async function shellInstallRoot(invoke?: TauriInvoke): Promise<string | null> {
+  const call = invoke ?? invoker();
+  if (!call) return null;
+
+  try {
+    return (await call<string | null>('install_root')) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export interface TauriPlatformOptions {
   /** Where Helix keeps its data, used to pick the right volume. */
   dataRoot: string;

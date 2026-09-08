@@ -117,6 +117,21 @@ fn shell_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+/// The directory Helix is installed in.
+///
+/// PathManager has always documented its root as "resolved by the host at
+/// runtime" and the browser has none to give, so the shell is the only thing
+/// that can answer. Returns None rather than a guess if the executable's own
+/// location cannot be determined: an invented root would put the user's data
+/// somewhere neither they nor Helix expects.
+#[tauri::command]
+fn install_root() -> Option<String> {
+    std::env::current_exe()
+        .ok()?
+        .parent()
+        .map(|parent| parent.to_string_lossy().to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -125,6 +140,7 @@ pub fn run() {
             total_memory,
             available_memory,
             shell_version,
+            install_root,
             inference::configured_inference_providers,
             inference::inference_request,
             google::google_status,

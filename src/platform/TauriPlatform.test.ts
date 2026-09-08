@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { TauriPlatform, detectTauri } from './TauriPlatform.js';
+import { TauriPlatform, detectTauri, shellInstallRoot } from './TauriPlatform.js';
 
 const dataRoot = 'E:/Helix/data';
 
@@ -48,6 +48,34 @@ describe('detectTauri', () => {
   it('is false in a plain page', () => {
     withWindow({ document: {} });
     expect(detectTauri()).toBe(false);
+  });
+});
+
+describe('shellInstallRoot', () => {
+  const call = (result: unknown) =>
+    (async () => {
+      if (result instanceof Error) throw result;
+      return result;
+    }) as <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
+
+  it('returns what the shell reports', async () => {
+    expect(await shellInstallRoot(call('C:/Program Files/Helix'))).toBe('C:/Program Files/Helix');
+  });
+
+  /**
+   * The kernel treats null as "no root from here" and falls through to its
+   * own error, which is better than starting with a root nobody chose.
+   */
+  it('is null when the shell cannot say', async () => {
+    expect(await shellInstallRoot(call(null))).toBeNull();
+  });
+
+  it('is null rather than throwing when the command fails', async () => {
+    expect(await shellInstallRoot(call(new Error('no such command')))).toBeNull();
+  });
+
+  it('is null with no bridge at all', async () => {
+    expect(await shellInstallRoot()).toBeNull();
   });
 });
 
