@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { useHelix, useSettings } from '../HelixProvider.js';
 import { endpointUrl, hostProblem, keyProblem, pairingText } from '../../relay/pairing.js';
+import { readinessChecks, readinessSummary, type ReadinessCheck } from '../../relay/readiness.js';
+import type { PhoneActivity } from '../../relay/PhoneListener.js';
 
 /**
  * Adding a phone.
@@ -27,14 +29,26 @@ import { endpointUrl, hostProblem, keyProblem, pairingText } from '../../relay/p
  *   writes the key from here.
  */
 export function AddDevicePanel() {
-  const { runner } = useHelix();
-  const config = useSettings(['phoneHost', 'phoneListenerPort', 'relaySecret']);
+  const { runner, platform, listener } = useHelix();
+  const config = useSettings([
+    'phoneHost',
+    'phoneListenerPort',
+    'relaySecret',
+    'phoneListenerEnabled',
+  ]);
 
   const [host, setHost] = useState(config.phoneHost);
   const [busy, setBusy] = useState<'pair' | 'unpair' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
+  const [checks, setChecks] = useState<ReadinessCheck[] | null>(null);
+  const [activity, setActivity] = useState<PhoneActivity | null>(() => listener?.lastActivity ?? null);
+
+  // The one proof that matters: a request that actually arrived. Watched for
+  // the life of the panel rather than behind a button, because the thing being
+  // waited for happens on the phone, not here.
+  useEffect(() => listener?.watch(setActivity), [listener]);
 
   const paired = keyProblem(config.relaySecret) === null;
   const details = {
@@ -102,6 +116,21 @@ export function AddDevicePanel() {
       setBusy(null);
     }
   }, [runner]);
+
+  const check = useCallback(() => {
+    setChecks(
+      readinessChecks({
+        inShell: platform.kind !== 'browser',
+        listenerEnabled: config.phoneListenerEnabled,
+        // Null rather than false where there is no listener to ask: "not
+        // running" and "nothing to ask" are different answers.
+        listenerRunning: listener ? listener.running : null,
+        key: config.relaySecret,
+        host: details.host,
+        port: config.phoneListenerPort,
+      }),
+    );
+  }, [platform, listener, config, details.host]);
 
   return (
     <div className="hx-pairing">
@@ -185,6 +214,57 @@ export function AddDevicePanel() {
           </dl>
         </div>
       )}
+
+      <div className="hx-pairing__test">
+        <div className="hx-field__actions">
+          <button type="button" className="hx-btn hx-btn--quiet" onClick={check}>
+            Check this side
+          </button>
+        </div>
+
+        {checks && (
+          <>
+            <p className="hx-pairing__summary" role="status">
+              {readinessSummary(checks)}
+            </p>
+            <ul className="hx-pairing__checks">
+              {checks.map((entry) => (
+                <li key={entry.label} className={`hx-pairing__check hx-pairing__check--${entry.state}`}>
+                  <span className={`hx-dot hx-dot--${entry.state === 'ok' ? 'ok' : entry.state === 'problem' ? 'bad' : 'off'}`} />
+                  <span>
+                    <strong>{entry.label}</strong>
+                    <br />
+                    <span className="hx-muted">{entry.detail}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        <p className="hx-pairing__waiting">
+          {activity === null ? (
+            <>
+              <span className="hx-dot hx-dot--off" /> No phone has reached Helix yet. Send
+              something from the Shortcut and this will say so.
+            </>
+          ) : (
+            <>
+              <span className={`hx-dot hx-dot--${activity.outcome === 'answered' ? 'ok' : 'bad'}`} />{' '}
+              A phone reached Helix at {new Date(activity.at).toLocaleTimeString()} and asked
+              &ldquo;{activity.text}&rdquo;
+              {activity.outcome === 'answered'
+                ? '. It was answered.'
+                : '. Helix could not answer it, but the connection itself works.'}
+            </>
+          )}
+        </p>
+        <p className="hx-settings__note">
+          A request turned away for a wrong key or a disallowed address is refused by the shell
+          before it reaches here, so silence can still mean either nothing was sent or something
+          was refused.
+        </p>
+      </div>
 
       <details className="hx-pairing__how">
         <summary>What to do on the iPhone</summary>

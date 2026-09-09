@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PhoneListener, type PhoneCommandEvent } from './PhoneListener.js';
+import { PhoneListener, type PhoneActivity, type PhoneCommandEvent } from './PhoneListener.js';
 import type { CommandSink } from './RelayWatcher.js';
 
 /** A stand-in for the shell: lets a test push a command and read the answer. */
@@ -185,5 +185,76 @@ describe('lifecycle', () => {
     listener.stop();
 
     expect(shell.unsubscribed).toBe(1);
+  });
+});
+
+describe('watching for a phone during setup', () => {
+  it('announces a request that was answered, with what was asked', async () => {
+    const shell = new FakeShell();
+    const listener = new PhoneListener({ sink: sink(), listen: shell.listen, reply: shell.reply });
+    const seen: PhoneActivity[] = [];
+    listener.watch((activity) => seen.push(activity));
+
+    await listener.start();
+    shell.send('req-1', 'what is on my calendar');
+    await settle();
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]?.text).toBe('what is on my calendar');
+    expect(seen[0]?.outcome).toBe('answered');
+    expect(listener.lastActivity?.outcome).toBe('answered');
+  });
+
+  it('announces one that failed too, because it still proves the connection', async () => {
+    const shell = new FakeShell();
+    const failing: CommandSink = {
+      submit: async () => {
+        throw new Error('the model is not loaded');
+      },
+    };
+    const listener = new PhoneListener({ sink: failing, listen: shell.listen, reply: shell.reply });
+    const seen: PhoneActivity[] = [];
+    listener.watch((activity) => seen.push(activity));
+
+    await listener.start();
+    shell.send('req-1', 'hello');
+    await settle();
+
+    expect(seen[0]?.outcome).toBe('failed');
+  });
+
+  it('reports nothing before a phone has ever reached Helix', () => {
+    const shell = new FakeShell();
+    const listener = new PhoneListener({ sink: sink(), listen: shell.listen, reply: shell.reply });
+    expect(listener.lastActivity).toBeNull();
+  });
+
+  it('stops announcing once the watcher lets go', async () => {
+    const shell = new FakeShell();
+    const listener = new PhoneListener({ sink: sink(), listen: shell.listen, reply: shell.reply });
+    const seen: PhoneActivity[] = [];
+    const stop = listener.watch((activity) => seen.push(activity));
+
+    await listener.start();
+    stop();
+    shell.send('req-1', 'hello');
+    await settle();
+
+    expect(seen).toHaveLength(0);
+  });
+
+  it('does not let a broken watcher break the phone connection', async () => {
+    const shell = new FakeShell();
+    const listener = new PhoneListener({ sink: sink(), listen: shell.listen, reply: shell.reply });
+    listener.watch(() => {
+      throw new Error('a broken watcher');
+    });
+
+    await listener.start();
+    shell.send('req-1', 'hello');
+    await settle();
+
+    // The phone still got its answer.
+    expect(shell.replies).toHaveLength(1);
   });
 });

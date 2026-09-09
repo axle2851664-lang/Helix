@@ -37,6 +37,14 @@ export interface PhoneListenerOptions {
   log?: (message: string, detail?: unknown) => void;
 }
 
+/** What happened to one request from the phone. */
+export interface PhoneActivity {
+  at: number;
+  /** The instruction, so setup can show that the right phone got through. */
+  text: string;
+  outcome: 'answered' | 'failed';
+}
+
 export class PhoneListener {
   readonly #options: Required<Omit<PhoneListenerOptions, 'log'>> & {
     log: (message: string, detail?: unknown) => void;
@@ -44,6 +52,8 @@ export class PhoneListener {
   #stop: (() => void) | null = null;
   /** Commands run in turn rather than at once. */
   #queue: Promise<void> = Promise.resolve();
+  readonly #watchers = new Set<(activity: PhoneActivity) => void>();
+  #last: PhoneActivity | null = null;
 
   constructor(options: PhoneListenerOptions) {
     this.#options = {
@@ -57,6 +67,36 @@ export class PhoneListener {
 
   get running(): boolean {
     return this.#stop !== null;
+  }
+
+  /** The most recent request, or null when none has arrived. */
+  get lastActivity(): PhoneActivity | null {
+    return this.#last;
+  }
+
+  /**
+   * Watch requests as they arrive.
+   *
+   * Setting a phone up is the one time somebody genuinely needs to see that a
+   * request landed, because until one does there is no way to tell a working
+   * connection from a silent one. Note the limit: a request refused for a bad
+   * key or a disallowed address is answered by the shell and never reaches
+   * here, so silence still has more than one cause.
+   */
+  watch(watcher: (activity: PhoneActivity) => void): () => void {
+    this.#watchers.add(watcher);
+    return () => this.#watchers.delete(watcher);
+  }
+
+  #announce(activity: PhoneActivity): void {
+    this.#last = activity;
+    for (const watcher of [...this.#watchers]) {
+      try {
+        watcher(activity);
+      } catch {
+        // A broken watcher must not break the phone connection.
+      }
+    }
   }
 
   async start(): Promise<void> {
@@ -91,10 +131,14 @@ export class PhoneListener {
         // anything directive-shaped before the real one is appended.
         const directive = matchPhoneAction(command.text, response.text);
         await this.#options.reply(command.id, composeReply(response.text, directive));
+        this.#announce({ at: Date.now(), text: command.text, outcome: 'answered' });
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         this.#options.log('A phone command failed.', reason);
         await this.#options.reply(command.id, reason).catch(() => {});
+        // Announced either way: a request that arrived and then failed still
+        // proves the connection, which is the question being asked at setup.
+        this.#announce({ at: Date.now(), text: command.text, outcome: 'failed' });
       }
     });
   }

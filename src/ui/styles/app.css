@@ -2638,3 +2638,54 @@
   font-size: 12px;
   color: var(--hx-text-dim);
 }
+
+/* A failed check reads as a problem, not a warning: the accent is the same
+   one the danger buttons use, so "this will not work" looks the same
+   everywhere. */
+.hx-dot--bad {
+  background: var(--hx-accent);
+  box-shadow: 0 0 7px rgba(224, 36, 60, 0.5);
+}
+
+.hx-pairing__test {
+  border-top: 1px solid var(--hx-border);
+  padding-top: 14px;
+}
+
+.hx-pairing__summary {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--hx-text);
+}
+
+.hx-pairing__checks {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hx-pairing__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Nudge the dot onto the first line of text rather than the top of the box. */
+.hx-pairing__check .hx-dot {
+  margin-top: 5px;
+}
+
+.hx-pairing__waiting {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 16px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--hx-text-dim);
+}
