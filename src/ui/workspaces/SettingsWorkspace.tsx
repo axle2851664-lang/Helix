@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useHelix, useSettings } from '../HelixProvider.js';
+import { AddDevicePanel } from '../relay/AddDevicePanel.js';
 import { RelayPanel } from '../relay/RelayPanel.js';
 import {
   SETTINGS_KEYS,
@@ -128,7 +129,12 @@ export function SettingsWorkspace() {
             does nothing on its own, and for a while nothing called the connect
             command at all - so a fully configured relay dead-ended in silence.
           */}
-          {section === 'relay' && <RelayPanel />}
+          {section === 'relay' && (
+            <>
+              <AddDevicePanel />
+              <RelayPanel />
+            </>
+          )}
         </section>
       ))}
     </div>

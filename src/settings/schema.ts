@@ -295,6 +295,22 @@ export const SETTINGS_SCHEMA = {
     description: 'Accept commands over Tailscale. Needs the desktop shell and a shared key.',
     default: false,
   },
+  /**
+   * Where the phone reaches this machine.
+   *
+   * Not discoverable from here: a web view cannot see the host's VPN address,
+   * and a guess would produce a pairing code that silently connects a phone to
+   * nothing. Remembered so it is asked once rather than at every pairing.
+   */
+  phoneHost: {
+    kind: 'string',
+    section: 'relay',
+    label: 'This machine\u2019s address',
+    description: "The name or IP your phone uses to reach this machine. Your VPN app shows it.",
+    placeholder: 'helix-desktop.tail1234.ts.net',
+    maxLength: 200,
+    default: '',
+  },
   phoneListenerPort: {
     kind: 'number',
     section: 'relay',

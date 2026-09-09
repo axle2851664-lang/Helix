@@ -184,6 +184,12 @@ describe('memory.forget', () => {
 describe('the registered set', () => {
   it('registers only actions that are wired to something real', async () => {
     const { registry } = await harness();
-    expect(registry.ids().sort()).toEqual(['knowledge.search', 'memory.forget', 'settings.change']);
+    expect(registry.ids().sort()).toEqual([
+      'knowledge.search',
+      'memory.forget',
+      'phone.pair',
+      'phone.unpair',
+      'settings.change',
+    ]);
   });
 });

@@ -9,6 +9,7 @@ import {
   type SettingsKey,
 } from '../settings/schema.js';
 import type { ActionDefinition } from './action.js';
+import { phoneActions } from './phone.js';
 import { optionalNumber, readString, readValue } from './action.js';
 
 /**
@@ -208,5 +209,6 @@ export function builtinActions(services: BuiltinActionServices): ActionDefinitio
     changeSetting(services.settings),
     searchFiles(services.knowledge),
     forgetMemory(services.memory),
+    ...phoneActions({ settings: services.settings }),
   ];
 }

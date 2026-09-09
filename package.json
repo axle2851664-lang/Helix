@@ -26,12 +26,14 @@
     "@mediapipe/tasks-vision": "1.0.1",
     "@tauri-apps/api": "^2.11.1",
     "pdfjs-dist": "^6.3.289",
+    "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4",
     "@types/node": "22.19.2",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "19.2.8",
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.1.1",

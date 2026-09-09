@@ -2564,3 +2564,77 @@
   font-size: 12px;
   color: var(--hx-text-faint);
 }
+
+/* ------------------------------ pairing ------------------------------
+   The pairing code is a credential, so it is styled to look like one:
+   revealed deliberately, warned about, and never a decorative flourish. */
+.hx-pairing {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hx-pairing__message {
+  margin: 0;
+  font-size: 13px;
+  color: var(--hx-text-dim);
+}
+
+.hx-pairing__code {
+  border: 1px solid var(--hx-border-strong);
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--hx-panel);
+}
+
+.hx-pairing__warning {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--hx-text);
+  border-left: 2px solid var(--hx-accent-line);
+  padding-left: 10px;
+}
+
+/* White behind the code whatever the theme: a scanner needs the contrast,
+   and a dark-on-dark QR is one that will not read. */
+.hx-pairing__qr {
+  width: 220px;
+  max-width: 100%;
+  padding: 10px;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.hx-pairing__qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.hx-pairing__values {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 16px 0 0;
+  font-size: 12px;
+}
+
+.hx-pairing__values dt {
+  color: var(--hx-text-faint);
+}
+
+.hx-pairing__values dd {
+  margin: 0;
+  color: var(--hx-text-dim);
+}
+
+.hx-pairing__key {
+  word-break: break-all;
+}
+
+.hx-pairing__how summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--hx-text-dim);
+}
