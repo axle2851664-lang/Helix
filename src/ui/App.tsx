@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ConsentGate } from './consent/ConsentGate.js';
+import { DropZone } from './intake/DropZone.js';
 import { HelixMark } from './components/HelixMark.js';
 import { Sidebar } from './sidebar/Sidebar.js';
 import { TopBar } from './header/TopBar.js';
@@ -211,6 +212,10 @@ function HelixWorkspaceShell() {
           something can ask, every permission and every destructive action is
           refused rather than assumed. */}
       <ConsentGate />
+
+      {/* Window-wide on purpose: "from anywhere" means not having to find the
+          right screen first. */}
+      <DropZone />
     </div>
   );
 }
