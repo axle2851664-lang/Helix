@@ -40,6 +40,7 @@ import type { ActionRunner } from '../actions/ActionRunner.js';
 import type { AIRouter } from '../ai/AIRouter.js';
 import { classify } from '../ai/AIRouter.js';
 import { SYSTEM_PROMPT } from '../persona/systemPrompt.js';
+import { slangPrompt, slangRequest } from '../persona/slang.js';
 import { repair } from '../persona/register.js';
 
 /**
@@ -181,6 +182,11 @@ export class HelixOrchestrator {
     this.registerTool(this.#planTool());
     this.registerTool(this.#inboxTool());
     this.registerTool(this.#sendingTool());
+    // Slang sits high because it is an explicit instruction, and because
+    // "say that in slang" must never fall through to a plain answer. It fires
+    // only on a request to produce slang - see slangRequest, whose job is
+    // mostly refusing.
+    this.registerTool(this.#slangTool());
     this.registerTool(this.#researchTool());
     this.registerTool(this.#navigationTool());
   }
@@ -1116,6 +1122,95 @@ ${lines}`,
           failure: 'PROVIDER_NOT_CONFIGURED',
           card: reply.card,
         };
+      },
+    };
+  }
+
+  /**
+   * Putting something into slang, and only when asked (spec: your standing
+   * instruction).
+   *
+   * The matcher does the important work, in `slangRequest`: almost every
+   * sentence containing the word is about slang rather than a request for it,
+   * so the rule is that a request must name the act. Helix never volunteers
+   * slang, and nothing else in the orchestrator produces it.
+   *
+   * Two things are refused rather than guessed:
+   *
+   * - **"Say that in slang" with nothing said yet.** The subject is whatever
+   *   Helix last replied, and if there is no such reply the honest answer is
+   *   to ask, not to translate the request itself.
+   * - **No model.** Slang is a rewrite, which needs one. Inventing a rewrite
+   *   from a table of substitutions would be a worse answer wearing the same
+   *   clothes.
+   */
+  #slangTool(): HelixTool {
+    return {
+      name: 'slang',
+      description: 'Rewrite something in slang, when asked to.',
+      priority: 430,
+      matches: (request) => slangRequest(request.text).asked,
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const asked = slangRequest(request.text);
+        if (!asked.asked) return null;
+
+        let subject = asked.subject;
+
+        if (subject === null) {
+          // Points at something already said: Helix's own last reply.
+          const conversation = await this.#conversations.get(request.conversationId);
+          const previous = [...(conversation?.messages ?? [])]
+            .reverse()
+            .find((message) => message.role === 'helix' && message.text.trim() !== '');
+
+          if (!previous) {
+            return {
+              text: enquire('What would you like me to put into slang'),
+              handled: false,
+              failure: 'VALIDATION_FAILED',
+            };
+          }
+          subject = previous.text;
+        }
+
+        if (!this.#ai) {
+          return {
+            text: unavailable(
+              'putting something into slang is a rewrite, and that needs a language model. None is configured',
+            ),
+            handled: false,
+            failure: 'PROVIDER_NOT_CONFIGURED',
+          };
+        }
+
+        const prompt = slangPrompt(subject);
+        const result = await this.#activity.track(
+          'thinking',
+          () =>
+            (this.#ai as AIRouter).generate(
+              [
+                { role: 'system', content: prompt.system },
+                { role: 'user', content: prompt.user },
+              ],
+              classify(prompt.user),
+            ),
+          { label: 'Rewriting...' },
+        );
+
+        const rewritten = result.text.trim();
+        if (rewritten === '') {
+          return {
+            text: regret('the model gave me nothing back for that'),
+            handled: false,
+            failure: 'INTERNAL',
+          };
+        }
+
+        // Deliberately not run through `repair`. That enforces Helix's own
+        // register, which is the opposite of what was asked for here - it
+        // would put the slang back into plain English.
+        return { text: rewritten, handled: true };
       },
     };
   }

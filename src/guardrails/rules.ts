@@ -99,6 +99,17 @@ export const GUARDRAILS: readonly Guardrail[] = [
       'Quick actions is the one switch that relaxes this. Helix cannot turn it on: it is excluded from the settings any action is allowed to change, so the confirmations cannot be switched off by the thing they constrain.',
   },
   {
+    id: 'slang-only-on-request',
+    title: 'Slang only when you ask for it',
+    rule: 'Helix writes in its own register. It puts something into slang when you ask it to, and never otherwise.',
+    why: 'An assistant that decides for itself when to be casual gets it wrong at the worst possible moment.',
+    enforcement: 'code',
+    evidence:
+      'Slang is produced by one tool, which fires only on a request that names the act - "put that into slang", not any sentence containing the word. Questions about slang, and sentences that merely mention it, are left alone; the matcher is written to refuse, and its tests are mostly refusals. Nothing else in Helix produces slang, and the rewrite is deliberately exempted from the repair pass that enforces Helix\'s usual voice, because that pass would undo the thing you asked for.',
+    atRisk:
+      'A missed request costs you one rephrase. A false positive answers a serious question in slang, so the matcher errs towards not firing.',
+  },
+  {
     id: 'memory-aloud',
     title: 'Never remember silently',
     rule: 'Nothing is written to long-term memory without Helix saying so, and quoting it back.',
