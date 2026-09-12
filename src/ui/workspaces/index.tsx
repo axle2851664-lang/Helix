@@ -5,6 +5,7 @@ import { SystemWorkspace } from './SystemWorkspace.js';
 import { ConversationsWorkspace } from './ConversationsWorkspace.js';
 import { HomeWorkspace } from '../chat/HomeWorkspace.js';
 import { ProjectsWorkspace } from '../projects/ProjectsWorkspace.js';
+import { CodingWorkspace } from '../coding/CodingWorkspace.js';
 import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
 import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
 import { StorageWorkspace } from '../storage/StorageWorkspace.js';
@@ -62,7 +63,7 @@ export function WorkspaceView({
     case 'web-research':
       return <WebResearchPending />;
     case 'coding':
-      return <CodingPending />;
+      return <CodingWorkspace />;
     case 'image-generation':
       return <ImageGenerationPending />;
     case 'earth':
@@ -107,24 +108,6 @@ function WebResearchPending() {
         `This host currently reports ${platform.isOnline() ? 'online' : 'offline'}.`,
       ]}
       blockedBy="No web search provider is configured, and the app's content security policy currently permits no external origins. Both are set up in phase 6."
-    />
-  );
-}
-
-function CodingPending() {
-  return (
-    <PendingWorkspace
-      descriptor={WORKSPACES.coding}
-      planned={[
-        'Read and explain code from an imported project.',
-        'Propose edits for review before anything is written.',
-        'Run project tests and report results.',
-      ]}
-      inPlace={[
-        'Workspace containment prevents Helix reading outside its own folder.',
-        'Generated code is never executed automatically.',
-      ]}
-      blockedBy="Requires a language provider, which is not configured."
     />
   );
 }

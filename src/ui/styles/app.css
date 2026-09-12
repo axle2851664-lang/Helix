@@ -2656,3 +2656,67 @@
   line-height: 1.5;
   color: var(--hx-text-dim);
 }
+
+/* ------------------------------ coding ------------------------------
+   Generated code is shown to be read, not run. Monospace, selectable,
+   and horizontally scrollable rather than wrapped: a wrapped line of
+   code reads as two statements. */
+.hx-code__prompt {
+  font: inherit;
+  resize: vertical;
+  min-height: 84px;
+}
+
+.hx-code__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.hx-code__lang {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hx-text-faint);
+}
+
+.hx-code__where {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: auto;
+  font-size: 11px;
+  color: var(--hx-text-faint);
+}
+
+.hx-code__block {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--hx-border);
+  border-radius: 9px;
+  background: var(--hx-bg-deep, rgba(0, 0, 0, 0.28));
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--hx-text);
+  white-space: pre;
+  tab-size: 2;
+}
+
+.hx-code__notes {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--hx-text-dim);
+}
+
+.hx-code__problem {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--hx-text);
+  border-left: 2px solid var(--hx-accent-line);
+  padding-left: 10px;
+}

@@ -92,10 +92,10 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   coding: {
     id: 'coding',
     title: 'Coding',
-    subtitle: 'Read, write and reason about code.',
-    aliases: ['code', 'programming', 'develop'],
+    subtitle: 'Write code, locally. Nothing is run.',
+    aliases: ['code', 'programming', 'develop', 'write code'],
     phase: 6,
-    implemented: false,
+    implemented: true,
     inSidebar: true,
   },
   'image-generation': {

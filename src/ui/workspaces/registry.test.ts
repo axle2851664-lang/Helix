@@ -45,6 +45,10 @@ describe('workspace registry', () => {
   it('marks only genuinely working workspaces as implemented', () => {
     const implemented = WORKSPACE_LIST.filter((w) => w.implemented).map((w) => w.id).sort();
     expect(implemented).toEqual([
+      // Coding writes code with a local model and shows it. It does not read
+      // a project or run anything, which is why the subtitle says what it
+      // does rather than what the workspace was once planned to do.
+      'coding',
       'conversations',
       'files',
       'gesture-control',
