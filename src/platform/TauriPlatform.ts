@@ -111,6 +111,40 @@ export async function shellInstallRoot(invoke?: TauriInvoke): Promise<string | n
   }
 }
 
+/** What the shell found when it asked Tailscale where this machine is. */
+export interface TailscaleLookup {
+  address: string | null;
+  /** Why not, in words the user can act on. Null when an address was found. */
+  reason: string | null;
+}
+
+/**
+ * This machine's tailnet address, asked of the shell.
+ *
+ * A browser gets `null` with the reason, rather than an error: running in a
+ * browser is a normal state for Helix, not a fault, and the pairing screen
+ * needs something to say either way.
+ */
+export async function shellTailscaleAddress(invoke?: TauriInvoke): Promise<TailscaleLookup> {
+  const call = invoke ?? invoker();
+  if (!call) {
+    return {
+      address: null,
+      reason: 'Finding your Tailscale address needs the desktop app. A browser cannot see it.',
+    };
+  }
+
+  try {
+    const found = await call<TailscaleLookup>('tailscale_address');
+    return { address: found?.address ?? null, reason: found?.reason ?? null };
+  } catch (error) {
+    return {
+      address: null,
+      reason: error instanceof Error ? error.message : 'Helix could not ask Tailscale.',
+    };
+  }
+}
+
 export interface TauriPlatformOptions {
   /** Where Helix keeps its data, used to pick the right volume. */
   dataRoot: string;

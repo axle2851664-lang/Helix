@@ -38,7 +38,7 @@ const SECTION_LABELS: Record<SettingsSection, string> = {
   vision: 'Vision',
   gestures: 'Hand tracking',
   providers: 'AI providers',
-  relay: 'Phone relay',
+  relay: 'Phone',
   storage: 'Storage',
   privacy: 'Privacy',
   advanced: 'Advanced',
@@ -64,9 +64,25 @@ const SECTION_NOTES: Partial<Record<SettingsSection, string>> = {
   providers:
     'Local inference works. Cloud providers need the desktop shell, because a key held in a web page is a leaked key.',
   relay:
-    'Needs the desktop shell and a connected Google account. Nothing is polled until you switch it on, and an address without a shared key is ignored.',
+    'Your phone talks to Helix over Tailscale, on your own private network. Nothing is exposed to the internet, and pairing is a code you scan. Needs the desktop app.',
   storage: 'Reported usage arrives with StorageManager. The ceiling is stored now.',
 };
+
+/**
+ * Which of the relay section's settings belong to the phone connection.
+ *
+ * The section holds two unrelated things - a phone on your own network, and a
+ * mailbox Helix reads - and `relaySecret` is shared by both. It is listed here
+ * because pairing writes it, and shown by the pairing panel rather than as a
+ * field somebody is expected to fill in.
+ */
+function isPhoneSetting(key: SettingsKey): boolean {
+  return (
+    key === 'phoneListenerEnabled' ||
+    key === 'phoneListenerPort' ||
+    key === 'phoneAllowedRanges'
+  );
+}
 
 export function SettingsWorkspace() {
   const { settings } = useHelix();
@@ -113,7 +129,7 @@ export function SettingsWorkspace() {
             <p className="helix-settings__note">{SECTION_NOTES[section]}</p>
           )}
 
-          {keys.map((key) => (
+          {(section === 'relay' ? keys.filter(isPhoneSetting) : keys).map((key) => (
             <SettingRow
               key={key}
               settingKey={key}
@@ -128,11 +144,36 @@ export function SettingsWorkspace() {
             The relay needs an action, not just fields. Storing a client id
             does nothing on its own, and for a while nothing called the connect
             command at all - so a fully configured relay dead-ended in silence.
+
+            Pairing over Tailscale is the way in, so it is the whole of what
+            this section shows. Commands by email still work and are still
+            configurable, but they are a second way in with a different threat
+            model - a mailbox - and putting the two side by side asked the user
+            to choose between them before they had connected anything at all.
           */}
           {section === 'relay' && (
             <>
               <AddDevicePanel />
-              <RelayPanel />
+
+              <details className="helix-settings__other">
+                <summary>Another way in: commands by email</summary>
+                <p className="helix-settings__note">
+                  A separate feature, not part of pairing a phone. Helix polls a mailbox for
+                  instructions from your own address. It needs a Google account connected, and it
+                  is off until you switch it on.
+                </p>
+                {keys.filter((key) => !isPhoneSetting(key)).map((key) => (
+                  <SettingRow
+                    key={key}
+                    settingKey={key}
+                    field={SETTINGS_SCHEMA[key] as SettingsField}
+                    value={values[key]}
+                    busy={busyKey === key}
+                    onChange={(next) => void update(key, next)}
+                  />
+                ))}
+                <RelayPanel />
+              </details>
             </>
           )}
         </section>

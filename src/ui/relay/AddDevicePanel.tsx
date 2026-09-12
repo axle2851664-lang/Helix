@@ -4,6 +4,7 @@ import { useHelix, useSettings } from '../HelixProvider.js';
 import { endpointUrl, hostProblem, keyProblem, pairingText } from '../../relay/pairing.js';
 import { readinessChecks, readinessSummary, type ReadinessCheck } from '../../relay/readiness.js';
 import type { PhoneActivity } from '../../relay/PhoneListener.js';
+import { shellTailscaleAddress } from '../../platform/TauriPlatform.js';
 
 /**
  * Adding a phone.
@@ -43,7 +44,33 @@ export function AddDevicePanel() {
   const [revealed, setRevealed] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
   const [checks, setChecks] = useState<ReadinessCheck[] | null>(null);
+  const [lookup, setLookup] = useState<{ address: string | null; reason: string | null } | null>(null);
+  const [finding, setFinding] = useState(false);
   const [activity, setActivity] = useState<PhoneActivity | null>(() => listener?.lastActivity ?? null);
+
+  /**
+   * Ask Tailscale where this machine is, rather than asking the user.
+   *
+   * Copying a hostname out of one app to paste into another is exactly the
+   * step that gets copied wrong, and a wrong address produces a pairing code
+   * that fails silently on the phone with nothing to point at.
+   */
+  const findAddress = useCallback(async () => {
+    setFinding(true);
+    try {
+      const found = await shellTailscaleAddress();
+      setLookup(found);
+      if (found.address !== null) setHost(found.address);
+      return found;
+    } finally {
+      setFinding(false);
+    }
+  }, []);
+
+  // Looked up once on arrival, so the common case needs no button at all.
+  useEffect(() => {
+    void findAddress();
+  }, [findAddress]);
 
   // The one proof that matters: a request that actually arrived. Watched for
   // the life of the panel rather than behind a button, because the thing being
@@ -134,20 +161,50 @@ export function AddDevicePanel() {
 
   return (
     <div className="hx-pairing">
-      <label className="hx-field" htmlFor="hx-pair-host">
-        <span className="hx-field__label">This machine&rsquo;s address</span>
-        <input
-          id="hx-pair-host"
-          className="hx-input"
-          value={host}
-          placeholder="helix-desktop.tail1234.ts.net"
-          onChange={(event) => setHost(event.target.value)}
-        />
-        <span className="hx-field__hint">
-          The name your phone uses to reach this machine. Your VPN app shows it &mdash; in
-          Tailscale it is this machine&rsquo;s name in the device list.
-        </span>
-      </label>
+      <div className="hx-pairing__address">
+        {finding && <p className="hx-muted">Asking Tailscale where this machine is&hellip;</p>}
+
+        {!finding && lookup?.address !== null && lookup !== null && (
+          <p className="hx-pairing__found">
+            <span className="hx-dot hx-dot--ok" /> Tailscale says this machine is{' '}
+            <strong>{lookup.address}</strong>
+          </p>
+        )}
+
+        {!finding && lookup !== null && lookup.address === null && (
+          <>
+            <p className="hx-pairing__problem" role="alert">
+              {lookup.reason}
+            </p>
+            {/* Typing it stays possible, because a working setup should not be
+                blocked by a lookup that failed for a reason we cannot see. */}
+            <label className="hx-field" htmlFor="hx-pair-host">
+              <span className="hx-field__label">Or type this machine&rsquo;s Tailscale name</span>
+              <input
+                id="hx-pair-host"
+                className="hx-input"
+                value={host}
+                placeholder="helix-desktop.tail1234.ts.net"
+                onChange={(event) => setHost(event.target.value)}
+              />
+              <span className="hx-field__hint">
+                The Tailscale app shows it as this computer&rsquo;s name in the device list.
+              </span>
+            </label>
+          </>
+        )}
+
+        <div className="hx-field__actions">
+          <button
+            type="button"
+            className="hx-btn hx-btn--quiet"
+            disabled={finding}
+            onClick={() => void findAddress()}
+          >
+            {finding ? 'Looking…' : 'Look again'}
+          </button>
+        </div>
+      </div>
 
       <div className="hx-field__actions">
         <button

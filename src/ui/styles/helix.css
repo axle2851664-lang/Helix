@@ -223,3 +223,17 @@ body {
   color: var(--helix-text-faint);
   text-align: center;
 }
+
+/* The second way in, folded away. Present for anyone who wants it, absent
+   for everyone setting up a phone. */
+.helix-settings__other {
+  margin-top: 18px;
+  border-top: 1px solid var(--hx-border, rgba(255, 255, 255, 0.08));
+  padding-top: 14px;
+}
+
+.helix-settings__other summary {
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.75;
+}

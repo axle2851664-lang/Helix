@@ -26,6 +26,7 @@ mod google;
 mod web;
 mod inference;
 mod listen;
+mod tailscale;
 mod vault;
 
 use serde::Serialize;
@@ -151,7 +152,8 @@ pub fn run() {
             web::configured_web_providers,
             listen::start_phone_listener,
             listen::phone_reply,
-            vault::vault_documents
+            vault::vault_documents,
+            tailscale::tailscale_address
         ])
         .run(tauri::generate_context!())
         .expect("error while running Helix");
