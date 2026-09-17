@@ -120,18 +120,44 @@ fn check_url(raw: &str) -> Result<url::Url, String> {
 /// project's settings schema says in its own header that secrets are not
 /// settings; a Brave key briefly went in there anyway, which would have put it
 /// in the web view's storage where everything in the page can read it.
-const KEYED_HOSTS: &[(&str, &str, &str)] = &[
-    // host, header name, environment variable
-    ("api.search.brave.com", "X-Subscription-Token", "BRAVE_API_KEY"),
+const KEYED_HOSTS: &[(&str, &str, &str, &str)] = &[
+    // host, header name, value prefix, environment variable
+    ("api.search.brave.com", "X-Subscription-Token", "", "BRAVE_API_KEY"),
+    // Unsplash wants the key introduced rather than sent bare.
+    ("api.unsplash.com", "Authorization", "Client-ID ", "UNSPLASH_ACCESS_KEY"),
+    ("api.pexels.com", "Authorization", "", "PEXELS_API_KEY"),
 ];
+
+/// Hosts whose key belongs in the query string rather than a header.
+///
+/// Google's Custom Search API takes `key=` as a parameter. The page builds the
+/// URL without it and this appends it at the moment of the request, so the key
+/// is never in anything the web view can read - including the `url` reported
+/// back, which is deliberately the version without it.
+const KEYED_QUERY_HOSTS: &[(&str, &str, &str)] = &[
+    // host, query parameter, environment variable
+    ("customsearch.googleapis.com", "key", "GOOGLE_SEARCH_API_KEY"),
+];
+
+/// Add a credential to a URL's query string without disturbing the rest.
+///
+/// Separated from the request so it can be tested: a key silently appended to
+/// the wrong place is the kind of mistake that only shows up as a 403.
+fn with_query_key(url: &url::Url, param: &str, key: &str) -> url::Url {
+    let mut keyed = url.clone();
+    keyed.query_pairs_mut().append_pair(param, key);
+    keyed
+}
 
 /// Which keyed providers actually have a key. Ids only, never values.
 #[tauri::command]
 pub fn configured_web_providers() -> Vec<String> {
     KEYED_HOSTS
         .iter()
-        .filter(|(_, _, var)| std::env::var(var).map(|v| !v.trim().is_empty()).unwrap_or(false))
-        .map(|(host, _, _)| (*host).to_string())
+        .map(|(host, _, _, var)| (*host, *var))
+        .chain(KEYED_QUERY_HOSTS.iter().map(|(host, _, var)| (*host, *var)))
+        .filter(|(_, var)| std::env::var(var).map(|v| !v.trim().is_empty()).unwrap_or(false))
+        .map(|(host, _)| host.to_string())
         .collect()
 }
 
@@ -159,11 +185,24 @@ pub async fn web_fetch(url: String) -> Result<WebResponse, String> {
         // loop and does not carry it - which is the whole reason the match is
         // inside the loop rather than outside it.
         if let Some(host) = current.host_str() {
-            for (keyed_host, header, var) in KEYED_HOSTS {
+            for (keyed_host, header, prefix, var) in KEYED_HOSTS {
                 if host == *keyed_host {
                     if let Ok(key) = std::env::var(var) {
                         if !key.trim().is_empty() {
-                            request = request.header(*header, key);
+                            request = request.header(*header, format!("{prefix}{key}"));
+                        }
+                    }
+                }
+            }
+
+            // A query-string key replaces the request's URL for this hop only.
+            // `current` keeps the version without it, so neither the redirect
+            // handling nor the reported url ever carries the credential.
+            for (keyed_host, param, var) in KEYED_QUERY_HOSTS {
+                if host == *keyed_host {
+                    if let Ok(key) = std::env::var(var) {
+                        if !key.trim().is_empty() {
+                            request = client.get(with_query_key(&current, param, key.trim()));
                         }
                     }
                 }

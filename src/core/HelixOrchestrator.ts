@@ -41,6 +41,7 @@ import type { AIRouter } from '../ai/AIRouter.js';
 import { classify } from '../ai/AIRouter.js';
 import { SYSTEM_PROMPT } from '../persona/systemPrompt.js';
 import { slangPrompt, slangRequest } from '../persona/slang.js';
+import { imageIntent } from '../images/query.js';
 import { repair } from '../persona/register.js';
 
 /**
@@ -186,6 +187,10 @@ export class HelixOrchestrator {
     // "say that in slang" must never fall through to a plain answer. It fires
     // only on a request to produce slang - see slangRequest, whose job is
     // mostly refusing.
+    // Image search sits beside slang: both are explicit instructions that
+    // must not fall through to a plain answer. "Show me pictures of X" is
+    // useless answered in prose.
+    this.registerTool(this.#imageTool());
     this.registerTool(this.#slangTool());
     this.registerTool(this.#researchTool());
     this.registerTool(this.#navigationTool());
@@ -1121,6 +1126,79 @@ ${lines}`,
           handled: false,
           failure: 'PROVIDER_NOT_CONFIGURED',
           card: reply.card,
+        };
+      },
+    };
+  }
+
+  /**
+   * Finding pictures on the web.
+   *
+   * The phrasing is matched in `imageIntent` rather than by the model, for the
+   * same reason the phone directives are: a structured command assembled from
+   * generated text is generated text being executed, and a 3B local model
+   * produces malformed tool calls often enough to matter.
+   *
+   * The search itself goes through the action runner, so it inherits the web
+   * permission and the off switch without this tool knowing about either.
+   */
+  #imageTool(): HelixTool {
+    return {
+      name: 'imageSearch',
+      description: 'Search the web for pictures.',
+      priority: 435,
+      matches: (request) => imageIntent(request.text) !== null,
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const intent = imageIntent(request.text);
+        if (!intent) return null;
+
+        if (intent.referencesSelection && intent.query === '') {
+          // "Find images of this" needs a this. Reverse image search would be
+          // a different provider Helix does not have, and guessing a query
+          // from the conversation would search for something nobody asked for.
+          return {
+            text: unavailable(
+              'I cannot search by an image itself - that needs a reverse-image provider, and none is configured. Tell me what it is and I will search for the words',
+            ),
+            handled: false,
+            failure: 'PROVIDER_NOT_CONFIGURED',
+          };
+        }
+
+        if (!this.#runner) {
+          return {
+            text: unavailable('I have no way to check that searching the web is allowed just now'),
+            handled: false,
+            failure: 'CAPABILITY_UNAVAILABLE',
+          };
+        }
+
+        const found = await this.#activity.track(
+          'thinking',
+          () =>
+            (this.#runner as ActionRunner).run('images.search', {
+              query: intent.query,
+              ...(intent.count !== undefined ? { count: intent.count } : {}),
+              ...(intent.provider !== undefined ? { provider: intent.provider } : {}),
+            }),
+          { label: 'Looking for images...', detail: intent.query },
+        );
+
+        if (found.status === 'ok') {
+          return {
+            // The message names the provider that actually answered, which is
+            // the whole point of the fallback reporting.
+            text: confirm(found.message.replace(/\.$/, '')),
+            handled: true,
+            workspace: 'image-search',
+          };
+        }
+
+        return {
+          text: found.message,
+          handled: false,
+          failure: found.status === 'refused' ? 'PERMISSION_DENIED' : 'PROVIDER_UNREACHABLE',
         };
       },
     };

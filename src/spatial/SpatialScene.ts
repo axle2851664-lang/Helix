@@ -25,6 +25,14 @@ export interface SpatialObject {
   projectId?: string;
   /** Object-URL or data source for rendering. */
   src?: string;
+  /**
+   * The page an image came from, when it came from a search.
+   *
+   * Kept on the object so the palm-out menu can offer to open it. An image
+   * separated from its page cannot be credited or checked, and the stage is
+   * exactly where that separation would otherwise happen.
+   */
+  sourceUrl?: string;
 }
 
 function newId(): string {
@@ -91,6 +99,7 @@ export class SpatialScene {
       ...(object.assetId !== undefined ? { assetId: object.assetId } : {}),
       ...(object.projectId !== undefined ? { projectId: object.projectId } : {}),
       ...(object.src !== undefined ? { src: object.src } : {}),
+      ...(object.sourceUrl !== undefined ? { sourceUrl: object.sourceUrl } : {}),
     };
     this.#objects = [...this.#objects, created];
     this.#notify();

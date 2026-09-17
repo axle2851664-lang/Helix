@@ -6,6 +6,7 @@ import { ConversationsWorkspace } from './ConversationsWorkspace.js';
 import { HomeWorkspace } from '../chat/HomeWorkspace.js';
 import { ProjectsWorkspace } from '../projects/ProjectsWorkspace.js';
 import { CodingWorkspace } from '../coding/CodingWorkspace.js';
+import { ImageSearchWorkspace } from '../images/ImageSearchWorkspace.js';
 import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
 import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
 import { StorageWorkspace } from '../storage/StorageWorkspace.js';
@@ -64,6 +65,8 @@ export function WorkspaceView({
       return <WebResearchPending />;
     case 'coding':
       return <CodingWorkspace />;
+    case 'image-search':
+      return <ImageSearchWorkspace />;
     case 'image-generation':
       return <ImageGenerationPending />;
     case 'earth':

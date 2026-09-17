@@ -4,6 +4,15 @@ import { ConsoleSink, Logger, MemorySink, type LogLevel } from './Logger.js';
 import { IndexedDbStore } from '../storage/IndexedDbStore.js';
 import { MemoryKeyValueStore, type KeyValueStore } from '../storage/KeyValueStore.js';
 import { PathManager } from '../storage/PathManager.js';
+import { ImageResultsStore } from '../images/ImageResultsStore.js';
+import { ImageSearch } from '../images/ImageSearch.js';
+import {
+  GoogleImageProvider,
+  OpenverseImageProvider,
+  PexelsImageProvider,
+  UnsplashImageProvider,
+  WikimediaImageProvider,
+} from '../images/providers.js';
 import { ActionRegistry } from '../actions/ActionRegistry.js';
 import { ActionRunner } from '../actions/ActionRunner.js';
 import { builtinActions } from '../actions/builtin.js';
@@ -75,6 +84,10 @@ export interface KernelServices {
   readonly settings: SettingsManager;
   /** The gate in front of every sensitive capability (spec 6). */
   readonly permissions: PermissionManager;
+  /** Searching the web for pictures. */
+  readonly images: ImageSearch;
+  /** The most recent image search, shared between the panel and the stage. */
+  readonly imageResults: ImageResultsStore;
   /** Everything Helix can do to its own application (spec 5). */
   readonly actions: ActionRegistry;
   /** The one path from an intended action to a performed one (spec 5). */
@@ -241,19 +254,6 @@ export class HelixKernel {
     const memory = new MemoryManager({ store, settings, logger, bus });
     const knowledge = new KnowledgeIndex({ store, projects, logger, bus });
 
-    // Registered here rather than at each screen, so that what Helix can do is
-    // one list rather than whatever happens to be reachable from the UI. The
-    // runner reads quick actions on every run, so turning it off takes effect
-    // at once.
-    const actions = new ActionRegistry();
-    actions.registerAll(builtinActions({ settings, knowledge, memory }));
-    const runner = new ActionRunner({
-      registry: actions,
-      permissions,
-      logger,
-      bus,
-      quickActions: () => settings.get('quickActions'),
-    });
 
     // Built after the subsystems it measures, then attached to the import
     // path. Attached here rather than left to a screen, so the ceiling holds
@@ -426,6 +426,56 @@ export class HelixKernel {
           allowBilling: settings.get('allowPaidSearch'),
         }),
       ],
+    });
+
+    /**
+     * Image providers.
+     *
+     * The keyless pair work with nothing configured; the rest ask the shell
+     * whether it holds their key, without ever receiving it. Google also needs
+     * an engine id, which is not a secret and so lives in settings.
+     */
+    const imageProviderOptions = {
+      transport: webTransport,
+      hasKeyFor: (host: string) =>
+        webTransport instanceof TauriWebTransport && webTransport.hasKeyFor(host),
+    };
+
+    const images = new ImageSearch({
+      providers: [
+        new OpenverseImageProvider(imageProviderOptions),
+        new WikimediaImageProvider(imageProviderOptions),
+        new GoogleImageProvider({
+          ...imageProviderOptions,
+          engineId: settings.get('googleSearchEngineId'),
+        }),
+        new UnsplashImageProvider(imageProviderOptions),
+        new PexelsImageProvider(imageProviderOptions),
+      ],
+      logger,
+      defaultProvider: () => settings.get('imageProvider'),
+    });
+    const imageResults = new ImageResultsStore();
+
+    // Registered here rather than at each screen, so that what Helix can do is
+    // one list rather than whatever happens to be reachable from the UI. The
+    // runner reads quick actions on every run, so turning it off takes effect
+    // at once.
+    const actions = new ActionRegistry();
+    actions.registerAll(
+      builtinActions({
+        settings,
+        knowledge,
+        memory,
+        images: { search: images, results: imageResults },
+      }),
+    );
+    const runner = new ActionRunner({
+      registry: actions,
+      permissions,
+      logger,
+      bus,
+      quickActions: () => settings.get('quickActions'),
     });
 
     const orchestrator = new HelixOrchestrator({
@@ -666,6 +716,8 @@ export class HelixKernel {
       store,
       settings,
       permissions,
+      images,
+      imageResults,
       actions,
       runner,
       activity,

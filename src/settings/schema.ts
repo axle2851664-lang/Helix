@@ -439,6 +439,52 @@ export const SETTINGS_SCHEMA = {
     default: 5,
   },
 
+  // -------------------------------------------------------------- image search
+  imageSearchEnabled: {
+    kind: 'boolean',
+    section: 'providers',
+    label: 'Image search',
+    description: 'Let Helix search the web for pictures. Off stops it entirely.',
+    default: true,
+  },
+  imageProvider: {
+    kind: 'enum',
+    section: 'providers',
+    label: 'Preferred image source',
+    description:
+      'Tried first. Wikimedia and Openverse need no account; the others need a key. Helix falls back to whatever is ready and always says which one answered.',
+    options: ['openverse', 'wikimedia', 'google', 'unsplash', 'pexels'],
+    optionLabels: {
+      openverse: 'Openverse (no account)',
+      wikimedia: 'Wikimedia Commons (no account)',
+      google: 'Google',
+      unsplash: 'Unsplash',
+      pexels: 'Pexels',
+    },
+    default: 'openverse',
+  },
+  /**
+   * Not a secret: an engine id identifies a search configuration, not an
+   * account, and is useless without the key that stays in the shell.
+   */
+  googleSearchEngineId: {
+    kind: 'string',
+    section: 'providers',
+    label: 'Google Custom Search engine id',
+    description:
+      'From programmablesearchengine.google.com. Turn on Image search and "Search the entire web". The key itself is an environment variable, not this.',
+    placeholder: 'a1b2c3d4e5f6g7h8i',
+    maxLength: 60,
+    default: '',
+  },
+  imageSafeSearch: {
+    kind: 'boolean',
+    section: 'providers',
+    label: 'Filter adult content',
+    description: 'Applied by each provider that supports it. Not every one does.',
+    default: true,
+  },
+
   // ----------------------------------------------------------------- providers
   languageProvider: {
     kind: 'enum',

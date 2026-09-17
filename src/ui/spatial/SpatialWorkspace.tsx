@@ -22,7 +22,7 @@ import type { ActionDefinition } from '../../actions/action.js';
  * works throughout, whether tracking is on or not.
  */
 export function SpatialWorkspace() {
-  const { camera, projects, logger, bus, actions, runner } = useHelix();
+  const { camera, projects, logger, bus, actions, runner, imageResults } = useHelix();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const providerRef = useRef<MediaPipeGestureProvider | null>(null);
@@ -142,6 +142,39 @@ export function SpatialWorkspace() {
     }
   };
 
+  /**
+   * Put the last image search onto the stage.
+   *
+   * Reuses the scene, the pinch gesture and the palm-out menu exactly as a
+   * project's images do - an image result is a spatial object like any other,
+   * which is what stops this being a second spatial system. The source page is
+   * kept on the object so the menu can offer to open it.
+   */
+  const placeSearchResults = () => {
+    const outcome = imageResults.outcome;
+    if (!outcome || outcome.results.length === 0) {
+      say('There are no image results to place. Search for some first, sir.');
+      return;
+    }
+
+    let index = 0;
+    // Thumbnails, not full files: a stage of full-resolution images is tens of
+    // megabytes and stutters when dragged.
+    for (const result of outcome.results.slice(0, 12)) {
+      scene.add({
+        label: result.title,
+        x: 0.2 + (index % 4) * 0.2,
+        y: 0.25 + Math.floor(index / 4) * 0.25,
+        scale: 1,
+        rotation: 0,
+        src: result.thumbnailUrl,
+        sourceUrl: result.sourceUrl,
+      });
+      index += 1;
+    }
+    say(`${index} placed on the stage. Pinch to move them.`);
+  };
+
   /** Put a project's images onto the stage so there is something to grab. */
   const loadProject = async (projectId: string) => {
     const assets = await projects.listAssets(projectId);
@@ -213,6 +246,10 @@ export function SpatialWorkspace() {
           >
             <Icon name="gesture" size={15} />
             {loadingModel ? 'Loading model...' : tracking ? 'Stop hand tracking' : 'Start hand tracking'}
+          </button>
+
+          <button type="button" className="hx-btn hx-btn--quiet" onClick={placeSearchResults}>
+            <Icon name="image" size={15} /> Place image results
           </button>
 
           <button

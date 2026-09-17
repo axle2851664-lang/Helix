@@ -91,6 +91,37 @@ export function spatialActions(scene: SpatialScene): ActionDefinition[] {
     },
 
     {
+      id: 'spatial.openSource',
+      label: 'Open source',
+      group: 'workspace',
+      summary: "Open the page an image came from, in the system browser.",
+      parameters: objectIdParam,
+      permission: null,
+      confirmation: 'none',
+      reversible: true,
+      // Only offered for objects that carry a page. An image on the stage with
+      // no source is one Helix cannot credit, and a menu item that does
+      // nothing is worse than a missing one.
+      appliesTo: ['spatial-object'],
+      describe: (params) => {
+        const object = scene.get(readString(params, 'objectId'));
+        return object?.sourceUrl === undefined
+          ? 'This one has no source page to open.'
+          : `Open ${object.sourceUrl}`;
+      },
+      run: async (params) => {
+        const object = objectOr404(scene, readString(params, 'objectId'));
+        if (object.sourceUrl === undefined) {
+          throw new HelixError('NOT_FOUND', 'That image did not come with a source page.');
+        }
+        // Opened in the browser rather than inside Helix: a page fetched into
+        // the app is a page whose scripts run next to your notes.
+        window.open(object.sourceUrl, '_blank', 'noopener,noreferrer');
+        return { message: `Opened ${object.sourceUrl}` };
+      },
+    },
+
+    {
       id: 'spatial.bringToFront',
       label: 'Bring to front',
       group: 'workspace',
@@ -136,6 +167,7 @@ export function spatialActions(scene: SpatialScene): ActionDefinition[] {
 export const SPATIAL_ACTION_IDS: readonly string[] = [
   'spatial.duplicate',
   'spatial.delete',
+  'spatial.openSource',
   'spatial.bringToFront',
   'spatial.resetSize',
 ];

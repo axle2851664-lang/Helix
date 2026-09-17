@@ -19,6 +19,7 @@ const ICONS: Record<WorkspaceId, IconName> = {
   'web-research': 'globe',
   coding: 'code',
   'image-generation': 'image',
+  'image-search': 'image',
   earth: 'earth',
   storage: 'drive',
   'upload-project': 'upload',

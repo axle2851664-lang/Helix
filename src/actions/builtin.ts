@@ -1,6 +1,8 @@
 import type { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import { HelixError } from '../core/HelixError.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
+import type { ImageSearch } from '../images/ImageSearch.js';
+import type { ImageResultsStore } from '../images/ImageResultsStore.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import {
   SETTINGS_KEYS,
@@ -9,6 +11,7 @@ import {
   type SettingsKey,
 } from '../settings/schema.js';
 import type { ActionDefinition } from './action.js';
+import { imageActions } from './images.js';
 import { phoneActions } from './phone.js';
 import { optionalNumber, readString, readValue } from './action.js';
 
@@ -52,6 +55,8 @@ export interface BuiltinActionServices {
   settings: SettingsManager;
   knowledge: KnowledgeIndex;
   memory: MemoryManager;
+  /** Absent in tests that do not exercise image search. */
+  images?: { search: ImageSearch; results: ImageResultsStore };
 }
 
 function changeSetting(settings: SettingsManager): ActionDefinition {
@@ -210,5 +215,12 @@ export function builtinActions(services: BuiltinActionServices): ActionDefinitio
     searchFiles(services.knowledge),
     forgetMemory(services.memory),
     ...phoneActions({ settings: services.settings }),
+    ...(services.images
+      ? imageActions({
+          search: services.images.search,
+          results: services.images.results,
+          settings: services.settings,
+        })
+      : []),
   ];
 }
