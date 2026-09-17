@@ -1191,7 +1191,7 @@ ${lines}`,
             // the whole point of the fallback reporting.
             text: confirm(found.message.replace(/\.$/, '')),
             handled: true,
-            workspace: 'image-search',
+            navigateTo: 'image-search',
           };
         }
 

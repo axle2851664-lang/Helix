@@ -109,7 +109,7 @@ describe('asking Helix for pictures', () => {
 
   it('sends the user to the results rather than describing them in prose', async () => {
     const context = await makeContext();
-    expect((await ask(context, 'find images of modern gaming setups')).workspace).toBe(
+    expect((await ask(context, 'find images of modern gaming setups')).navigateTo).toBe(
       'image-search',
     );
   });
