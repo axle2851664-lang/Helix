@@ -23,11 +23,21 @@ struct ProviderSpec {
     env_var: &'static str,
     /// How the key is presented. They differ, and guessing wrong is a 401.
     auth: AuthStyle,
+    /// The path prefix this provider's requests must start with.
+    ///
+    /// Per provider rather than derived from the auth style, because Google's
+    /// generative API lives under /v1beta/ while the others are /v1/. Deriving
+    /// it meant one provider could only be added by loosening the check for
+    /// every provider, which is the wrong direction for a rule whose job is to
+    /// stop a request going somewhere nobody intended.
+    path_prefix: &'static str,
 }
 
 enum AuthStyle {
     Bearer,
     XApiKey,
+    /// Google's generative API: the key rides in its own header.
+    GoogleApiKey,
     /// A service on this machine. No credential exists and none is wanted.
     None,
 }
@@ -41,18 +51,28 @@ const PROVIDERS: &[ProviderSpec] = &[
         base_url: "http://127.0.0.1:11434",
         env_var: "",
         auth: AuthStyle::None,
+        path_prefix: "/api/",
     },
     ProviderSpec {
         id: "cerebras",
         base_url: "https://api.cerebras.ai",
         env_var: "CEREBRAS_API_KEY",
         auth: AuthStyle::Bearer,
+        path_prefix: "/v1/",
+    },
+    ProviderSpec {
+        id: "gemini",
+        base_url: "https://generativelanguage.googleapis.com",
+        env_var: "GEMINI_API_KEY",
+        auth: AuthStyle::GoogleApiKey,
+        path_prefix: "/v1beta/",
     },
     ProviderSpec {
         id: "anthropic",
         base_url: "https://api.anthropic.com",
         env_var: "ANTHROPIC_API_KEY",
         auth: AuthStyle::XApiKey,
+        path_prefix: "/v1/",
     },
 ];
 
@@ -130,10 +150,7 @@ pub async fn inference_request(
     // Only paths Helix constructs are allowed through. Joining an arbitrary
     // caller-supplied path onto a base URL is how a request ends up somewhere
     // nobody intended.
-    let allowed_prefix = match provider.auth {
-        AuthStyle::None => "/api/",
-        _ => "/v1/",
-    };
+    let allowed_prefix = provider.path_prefix;
     if !request.path.starts_with(allowed_prefix) || request.path.contains("..") {
         return Err(InferenceError::from(format!(
             "Refused an unexpected inference path: {}",
@@ -157,6 +174,11 @@ pub async fn inference_request(
         AuthStyle::XApiKey => {
             headers.insert("x-api-key", key.clone());
             headers.insert("anthropic-version", "2023-06-01".to_string());
+        }
+        AuthStyle::GoogleApiKey => {
+            // In the header rather than as ?key=, so the credential never
+            // appears in a URL that might be logged or reported back.
+            headers.insert("x-goog-api-key", key.clone());
         }
         // Nothing to attach. A local service on the loopback interface is not
         // authenticated and should not be handed a credential it never asked

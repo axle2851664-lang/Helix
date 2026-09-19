@@ -36,6 +36,7 @@ import { LocalWhisperProvider } from '../voice/LocalWhisperProvider.js';
 import { SpeechChain } from '../voice/SpeechChain.js';
 import { AIRouter } from '../ai/AIRouter.js';
 import { OllamaProvider } from '../ai/OllamaProvider.js';
+import { GeminiProvider } from '../ai/GeminiProvider.js';
 import { CerebrasProvider } from '../ai/CerebrasProvider.js';
 import { assessInstalledModels, preferredLocalModel } from '../ai/localModels.js';
 import { assessDiskPressure } from '../storage/pressure.js';
@@ -385,6 +386,7 @@ export class HelixKernel {
     const ai = new AIRouter({
       providers: [
         new OllamaProvider({ transport: inferenceTransport }),
+        new GeminiProvider({ transport: inferenceTransport }),
         new CerebrasProvider({ transport: inferenceTransport }),
       ],
       preferLocal: settings.get('preferLocalInference'),

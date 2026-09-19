@@ -21,6 +21,35 @@ import type { Capability, ModelInfo } from './types.js';
  */
 
 export const MODEL_REGISTRY: readonly ModelInfo[] = [
+  // -------------------------------------------------------- Gemini (cloud)
+  //
+  // Seeds only. Google's own model list is fetched at startup and replaces
+  // these entirely, which is why they are `unverified` - the ids here are
+  // written from documentation and the live list is the authority.
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    family: 'Gemini',
+    author: 'Google',
+    inferenceProvider: 'gemini',
+    capabilities: ['chat', 'reasoning', 'coding', 'fast', 'long-context', 'vision'],
+    contextLength: 1_000_000,
+    maxOutputTokens: null,
+    status: 'unverified',
+    note: 'Written from Google\u2019s documentation. The live model list replaces this at startup.',
+  },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    family: 'Gemini',
+    author: 'Google',
+    inferenceProvider: 'gemini',
+    capabilities: ['chat', 'reasoning', 'coding', 'long-context', 'vision'],
+    contextLength: 1_000_000,
+    maxOutputTokens: null,
+    status: 'unverified',
+    note: 'Written from Google\u2019s documentation. The live model list replaces this at startup.',
+  },
   // ------------------------------------------------------ Cerebras (cloud)
   {
     id: 'gpt-oss-120b',
