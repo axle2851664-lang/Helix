@@ -3,6 +3,7 @@ import { HelixError } from '../core/HelixError.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
 import type { ImageSearch } from '../images/ImageSearch.js';
 import type { ImageResultsStore } from '../images/ImageResultsStore.js';
+import type { DocsProvider } from '../integrations/google/DocsProvider.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import {
   SETTINGS_KEYS,
@@ -11,6 +12,7 @@ import {
   type SettingsKey,
 } from '../settings/schema.js';
 import type { ActionDefinition } from './action.js';
+import { docsActions } from './docs.js';
 import { imageActions } from './images.js';
 import { phoneActions } from './phone.js';
 import { optionalNumber, readString, readValue } from './action.js';
@@ -57,6 +59,8 @@ export interface BuiltinActionServices {
   memory: MemoryManager;
   /** Absent in tests that do not exercise image search. */
   images?: { search: ImageSearch; results: ImageResultsStore };
+  /** Absent in tests that do not exercise Google Docs. */
+  docs?: DocsProvider;
 }
 
 function changeSetting(settings: SettingsManager): ActionDefinition {
@@ -222,5 +226,6 @@ export function builtinActions(services: BuiltinActionServices): ActionDefinitio
           settings: services.settings,
         })
       : []),
+    ...(services.docs ? docsActions({ docs: services.docs }) : []),
   ];
 }

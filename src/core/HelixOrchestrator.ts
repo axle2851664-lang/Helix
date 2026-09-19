@@ -42,6 +42,7 @@ import { classify } from '../ai/AIRouter.js';
 import { SYSTEM_PROMPT } from '../persona/systemPrompt.js';
 import { slangPrompt, slangRequest } from '../persona/slang.js';
 import { imageIntent } from '../images/query.js';
+import { docsIntent, draftPrompt } from '../integrations/google/docsIntent.js';
 import { repair } from '../persona/register.js';
 
 /**
@@ -190,6 +191,7 @@ export class HelixOrchestrator {
     // Image search sits beside slang: both are explicit instructions that
     // must not fall through to a plain answer. "Show me pictures of X" is
     // useless answered in prose.
+    this.registerTool(this.#docsTool());
     this.registerTool(this.#imageTool());
     this.registerTool(this.#slangTool());
     this.registerTool(this.#researchTool());
@@ -1126,6 +1128,87 @@ ${lines}`,
           handled: false,
           failure: 'PROVIDER_NOT_CONFIGURED',
           card: reply.card,
+        };
+      },
+    };
+  }
+
+  /**
+   * Drafting a document into Google Docs.
+   *
+   * Two steps, and the order matters: the model writes the text, then the
+   * action puts it in Drive. The confirmation therefore shows the real
+   * opening of the real document rather than a promise about one, which is
+   * the difference between agreeing to this document and agreeing to the idea
+   * of a document.
+   */
+  #docsTool(): HelixTool {
+    return {
+      name: 'googleDocs',
+      description: 'Draft and format a document in Google Docs.',
+      priority: 428,
+      matches: (request) => docsIntent(request.text) !== null,
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const intent = docsIntent(request.text);
+        if (!intent) return null;
+
+        if (!this.#runner) {
+          return {
+            text: unavailable('I have no way to check that writing to your Drive is allowed'),
+            handled: false,
+            failure: 'CAPABILITY_UNAVAILABLE',
+          };
+        }
+
+        if (!this.#ai) {
+          return {
+            text: unavailable(
+              'writing a document needs a language model to write it, and none is configured',
+            ),
+            handled: false,
+            failure: 'PROVIDER_NOT_CONFIGURED',
+          };
+        }
+
+        const prompt = draftPrompt(intent.subject);
+        const drafted = await this.#activity.track(
+          'thinking',
+          () =>
+            (this.#ai as AIRouter).generate(
+              [
+                { role: 'system', content: prompt.system },
+                { role: 'user', content: prompt.user },
+              ],
+              classify(prompt.user),
+            ),
+          { label: 'Drafting...', detail: intent.subject },
+        );
+
+        const markdown = drafted.text.trim();
+        if (markdown === '') {
+          return {
+            text: regret('the model gave me nothing to put in the document'),
+            handled: false,
+            failure: 'INTERNAL',
+          };
+        }
+
+        const written = await this.#runner.run('docs.create', {
+          content: markdown,
+          ...(intent.title !== undefined ? { title: intent.title } : {}),
+        });
+
+        if (written.status === 'ok') {
+          return { text: confirm(written.message.replace(/\.$/, '')), handled: true };
+        }
+
+        return {
+          text: written.message,
+          handled: written.status === 'refused' && written.reason === 'not-confirmed',
+          ...(written.status === 'refused' && written.reason === 'not-confirmed'
+            ? {}
+            : { failure: written.status === 'refused' ? 'PERMISSION_DENIED' : 'INTERNAL' }),
         };
       },
     };

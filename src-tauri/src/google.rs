@@ -40,6 +40,7 @@ const AUTH_ENDPOINT: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT: &str = "https://oauth2.googleapis.com/token";
 const API_BASE: &str = "https://gmail.googleapis.com";
 const CALENDAR_BASE: &str = "https://www.googleapis.com";
+const DOCS_BASE: &str = "https://docs.googleapis.com";
 
 /// Exactly what Helix asks for. Mirrors `src/integrations/google/scopes.ts`,
 /// and a test on that side asserts the full-mailbox scope is never among them.
@@ -440,8 +441,25 @@ fn allowed(path: &str) -> bool {
         "/gmail/v1/users/me/profile",
         "/calendar/v3/calendars/",
         "/calendar/v3/users/me/calendarList",
+        // Creating a document, and editing one Helix created. The drive.file
+        // scope is the second wall: it covers nothing else in the account.
+        "/v1/documents",
     ];
     PREFIXES.iter().any(|prefix| path.starts_with(prefix))
+}
+
+/// Which Google host serves this path.
+///
+/// Split out so it can be tested: routing a Docs path to the Gmail host does
+/// not fail loudly, it 404s with a message about a message id.
+fn base_for(path: &str) -> &'static str {
+    if path.starts_with("/calendar") {
+        CALENDAR_BASE
+    } else if path.starts_with("/v1/documents") {
+        DOCS_BASE
+    } else {
+        API_BASE
+    }
 }
 
 /// Make a Google API request with the token attached here, never there.
@@ -457,11 +475,7 @@ pub async fn google_request(
     let client = reqwest::Client::new();
     let token = access_token(&client).await?;
 
-    let base = if path.starts_with("/calendar") {
-        CALENDAR_BASE
-    } else {
-        API_BASE
-    };
+    let base = base_for(&path);
     let url = format!("{base}{path}");
 
     let request = match &body {

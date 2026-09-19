@@ -37,6 +37,7 @@ import { SpeechChain } from '../voice/SpeechChain.js';
 import { AIRouter } from '../ai/AIRouter.js';
 import { OllamaProvider } from '../ai/OllamaProvider.js';
 import { GeminiProvider } from '../ai/GeminiProvider.js';
+import { DocsProvider } from '../integrations/google/DocsProvider.js';
 import { CerebrasProvider } from '../ai/CerebrasProvider.js';
 import { assessInstalledModels, preferredLocalModel } from '../ai/localModels.js';
 import { assessDiskPressure } from '../storage/pressure.js';
@@ -431,6 +432,18 @@ export class HelixKernel {
     });
 
     /**
+     * Google Docs.
+     *
+     * The account is read at the moment of use rather than captured here:
+     * OAuth completes after the kernel is built, so a value frozen now would
+     * be null forever.
+     */
+    const docs = new DocsProvider({
+      transport: googleTransport ?? inferenceTransport,
+      account: () => googleTransport?.account ?? null,
+    });
+
+    /**
      * Image providers.
      *
      * The keyless pair work with nothing configured; the rest ask the shell
@@ -470,6 +483,7 @@ export class HelixKernel {
         knowledge,
         memory,
         images: { search: images, results: imageResults },
+        docs,
       }),
     );
     const runner = new ActionRunner({

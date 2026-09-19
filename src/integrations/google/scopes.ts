@@ -75,12 +75,46 @@ export const GMAIL_SEND: GoogleScope = {
     'Mailing anyone at all. Helix will only reply to the configured owner address; any other recipient needs your confirmation at the machine.',
 };
 
+/**
+ * Writing documents, with the narrowest scope that can do it.
+ *
+ * There is a wider one and it is tempting for the same reason
+ * `https://mail.google.com/` was: `auth/documents` makes everything work and
+ * grants access to every document in the account, including ones written years
+ * before Helix existed. `drive.file` grants access only to files this
+ * application itself created, or ones the user explicitly hands it through
+ * Google's own picker. The Docs API accepts it for creating and editing, which
+ * is everything Helix has been asked to do.
+ *
+ * The cost of the narrow scope is real and worth stating plainly: Helix cannot
+ * open a document you already have. Asked to edit last year's report, it can
+ * only say it has no access to it. That is the correct trade - the alternative
+ * is holding a key to every document you own in order to occasionally write a
+ * new one.
+ */
+export const DRIVE_FILE: GoogleScope = {
+  url: 'https://www.googleapis.com/auth/drive.file',
+  grants: 'Create documents, and edit the ones Helix created.',
+  because: 'Drafting and formatting a document in Google Docs.',
+  alsoPermits:
+    'Nothing beyond files Helix made. Documents you already had are invisible to it, which is why this scope was chosen over auth/documents.',
+};
+
 export const REQUESTED_SCOPES: readonly GoogleScope[] = [
   GMAIL_READ,
   GMAIL_MODIFY,
   GMAIL_SEND,
   CALENDAR_READ,
+  DRIVE_FILE,
 ];
+
+/**
+ * The all-documents scope, named so a test can assert it is never requested.
+ *
+ * The same guard as FULL_MAILBOX_SCOPE, for the same reason: the wide scope is
+ * one line away at every future change, and a test is what notices.
+ */
+export const ALL_DOCUMENTS_SCOPE = 'https://www.googleapis.com/auth/documents';
 
 /** The full-mailbox scope, named so a test can assert it is never requested. */
 export const FULL_MAILBOX_SCOPE = 'https://mail.google.com/';
