@@ -38,6 +38,7 @@ import { AIRouter } from '../ai/AIRouter.js';
 import { OllamaProvider } from '../ai/OllamaProvider.js';
 import { GeminiProvider } from '../ai/GeminiProvider.js';
 import { DocsProvider } from '../integrations/google/DocsProvider.js';
+import { CalendarProvider } from '../integrations/google/CalendarProvider.js';
 import { CerebrasProvider } from '../ai/CerebrasProvider.js';
 import { assessInstalledModels, preferredLocalModel } from '../ai/localModels.js';
 import { assessDiskPressure } from '../storage/pressure.js';
@@ -438,10 +439,12 @@ export class HelixKernel {
      * OAuth completes after the kernel is built, so a value frozen now would
      * be null forever.
      */
-    const docs = new DocsProvider({
-      transport: googleTransport ?? inferenceTransport,
-      account: () => googleTransport?.account ?? null,
-    });
+    const googleAccount = () => googleTransport?.account ?? null;
+    const googleApi = googleTransport ?? inferenceTransport;
+
+    const docs = new DocsProvider({ transport: googleApi, account: googleAccount });
+    const calendar = new CalendarProvider({ transport: googleApi, account: googleAccount });
+    const mail = new GmailProvider({ transport: googleApi, account: googleAccount });
 
     /**
      * Image providers.
@@ -484,6 +487,7 @@ export class HelixKernel {
         memory,
         images: { search: images, results: imageResults },
         docs,
+        google: { gmail: mail, calendar },
       }),
     );
     const runner = new ActionRunner({

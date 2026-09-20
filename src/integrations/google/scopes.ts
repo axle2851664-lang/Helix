@@ -100,11 +100,31 @@ export const DRIVE_FILE: GoogleScope = {
     'Nothing beyond files Helix made. Documents you already had are invisible to it, which is why this scope was chosen over auth/documents.',
 };
 
+/**
+ * Putting something on the calendar.
+ *
+ * `calendar.events` is narrower than `calendar`: it covers events and not the
+ * calendars themselves, so Helix cannot create, rename or delete a calendar.
+ *
+ * It does permit changing and deleting existing events, and Helix offers
+ * neither - `CalendarProvider` exposes only reading and creating. That gap is
+ * deliberate and is the same shape as `gmail.modify` permitting deletion while
+ * `GmailProvider` exposes none. A scope is a ceiling, not a plan.
+ */
+export const CALENDAR_EVENTS: GoogleScope = {
+  url: 'https://www.googleapis.com/auth/calendar.events',
+  grants: 'Create events on your calendars.',
+  because: 'Adding something you asked to be added.',
+  alsoPermits:
+    'Changing and deleting events that are already there. Helix exposes neither, and creates without attendees so nothing invites anybody.',
+};
+
 export const REQUESTED_SCOPES: readonly GoogleScope[] = [
   GMAIL_READ,
   GMAIL_MODIFY,
   GMAIL_SEND,
   CALENDAR_READ,
+  CALENDAR_EVENTS,
   DRIVE_FILE,
 ];
 

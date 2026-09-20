@@ -4,6 +4,8 @@ import type { MemoryManager } from '../memory/MemoryManager.js';
 import type { ImageSearch } from '../images/ImageSearch.js';
 import type { ImageResultsStore } from '../images/ImageResultsStore.js';
 import type { DocsProvider } from '../integrations/google/DocsProvider.js';
+import type { GmailProvider } from '../integrations/google/GmailProvider.js';
+import type { CalendarProvider } from '../integrations/google/CalendarProvider.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import {
   SETTINGS_KEYS,
@@ -13,6 +15,7 @@ import {
 } from '../settings/schema.js';
 import type { ActionDefinition } from './action.js';
 import { docsActions } from './docs.js';
+import { googleActions } from './google.js';
 import { imageActions } from './images.js';
 import { phoneActions } from './phone.js';
 import { optionalNumber, readString, readValue } from './action.js';
@@ -61,6 +64,8 @@ export interface BuiltinActionServices {
   images?: { search: ImageSearch; results: ImageResultsStore };
   /** Absent in tests that do not exercise Google Docs. */
   docs?: DocsProvider;
+  /** Absent in tests that do not exercise mail or calendar. */
+  google?: { gmail: GmailProvider; calendar: CalendarProvider };
 }
 
 function changeSetting(settings: SettingsManager): ActionDefinition {
@@ -227,5 +232,6 @@ export function builtinActions(services: BuiltinActionServices): ActionDefinitio
         })
       : []),
     ...(services.docs ? docsActions({ docs: services.docs }) : []),
+    ...(services.google ? googleActions(services.google) : []),
   ];
 }

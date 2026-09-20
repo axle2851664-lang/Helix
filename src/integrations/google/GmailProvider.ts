@@ -55,17 +55,26 @@ const NOT_CONNECTED =
 export interface GmailProviderOptions {
   transport: InferenceTransport;
   /** Set once OAuth has completed in the shell. Absent means not connected. */
-  account?: string;
+  /**
+   * The connected account, read at the moment of use.
+   *
+   * A function rather than a value: OAuth completes after the kernel has been
+   * built, so a string captured at construction stays null forever and Gmail
+   * reports itself disconnected for an account it is in fact connected to.
+   */
+  account?: string | (() => string | null | undefined);
 }
 
 export class GmailProvider {
   readonly id = 'google';
   readonly #transport: InferenceTransport;
-  #account: string | null;
+  readonly #account: () => string | null;
 
   constructor(options: GmailProviderOptions) {
     this.#transport = options.transport;
-    this.#account = options.account ?? null;
+    const given = options.account;
+    this.#account =
+      typeof given === 'function' ? () => given() ?? null : () => given ?? null;
   }
 
   /**
@@ -85,7 +94,8 @@ export class GmailProvider {
       };
     }
 
-    if (this.#account === null) {
+    const account = this.#account();
+    if (account === null || account === '') {
       return {
         connected: false,
         address: null,
@@ -96,8 +106,8 @@ export class GmailProvider {
 
     return {
       connected: true,
-      address: this.#account,
-      message: `Connected to ${this.#account}.`,
+      address: account,
+      message: `Connected to ${account}.`,
     };
   }
 
@@ -143,17 +153,72 @@ export class GmailProvider {
    * ones and confirms them first.
    */
   async markRead(ids: readonly string[]): Promise<{ changed: number }> {
+    return this.#relabel(ids, { remove: ['UNREAD'] });
+  }
+
+  /**
+   * Change labels on messages, which is all any of these actually do.
+   *
+   * Archiving is removing INBOX; starring is adding STARRED. Gmail has no
+   * separate verbs for them, and writing it this way keeps the one thing that
+   * must stay true visible in one place: nothing here deletes. The scope
+   * permits deletion, `batchModify` can do it by adding TRASH, and neither
+   * this method nor any caller offers it.
+   */
+  async #relabel(
+    ids: readonly string[],
+    change: { add?: readonly string[]; remove?: readonly string[] },
+  ): Promise<{ changed: number }> {
     const status = this.status();
     if (!status.connected) throw new Error(status.message ?? NOT_CONNECTED);
     if (ids.length === 0) return { changed: 0 };
 
+    // TRASH and SPAM are the two labels that make a relabel a disappearance.
+    // Refused here rather than trusted not to be asked for.
+    const requested = [...(change.add ?? []), ...(change.remove ?? [])];
+    if (requested.some((label) => label === 'TRASH' || label === 'SPAM')) {
+      throw new Error('Helix does not move mail to Trash or Spam.');
+    }
+
     await this.#transport.request({
       providerId: this.id,
       path: '/gmail/v1/users/me/messages/batchModify',
-      body: { ids, removeLabelIds: ['UNREAD'] },
+      body: {
+        ids,
+        ...(change.add ? { addLabelIds: change.add } : {}),
+        ...(change.remove ? { removeLabelIds: change.remove } : {}),
+      },
     });
 
     return { changed: ids.length };
+  }
+
+  /**
+   * Archive: out of the inbox, still in All Mail.
+   *
+   * Reversible in one click from Gmail, which is why it needs no confirmation
+   * of its own beyond the permission.
+   */
+  async archive(ids: readonly string[]): Promise<{ changed: number }> {
+    return this.#relabel(ids, { remove: ['INBOX'] });
+  }
+
+  /** Back into the inbox. The undo for archive, so it exists. */
+  async unarchive(ids: readonly string[]): Promise<{ changed: number }> {
+    return this.#relabel(ids, { add: ['INBOX'] });
+  }
+
+  async star(ids: readonly string[]): Promise<{ changed: number }> {
+    return this.#relabel(ids, { add: ['STARRED'] });
+  }
+
+  async unstar(ids: readonly string[]): Promise<{ changed: number }> {
+    return this.#relabel(ids, { remove: ['STARRED'] });
+  }
+
+  /** The undo for markRead, which otherwise could not be taken back. */
+  async markUnread(ids: readonly string[]): Promise<{ changed: number }> {
+    return this.#relabel(ids, { add: ['UNREAD'] });
   }
 
   /**
