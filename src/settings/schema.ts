@@ -19,6 +19,7 @@ export type SettingsSection =
   | 'vision'
   | 'gestures'
   | 'providers'
+  | 'google'
   | 'relay'
   | 'storage'
   | 'privacy'
@@ -367,7 +368,7 @@ export const SETTINGS_SCHEMA = {
   },
   googleClientId: {
     kind: 'string',
-    section: 'relay',
+    section: 'google',
     label: 'Google client ID',
     description: 'From the OAuth client you created in Google Cloud.',
     placeholder: '000000000000-xxxxxxxx.apps.googleusercontent.com',
@@ -376,7 +377,7 @@ export const SETTINGS_SCHEMA = {
   },
   googleClientSecret: {
     kind: 'string',
-    section: 'relay',
+    section: 'google',
     label: 'Google client secret',
     description: 'Not confidential for a desktop client - PKCE is what secures this.',
     maxLength: 300,

@@ -25,6 +25,7 @@ const SECTION_ORDER: readonly SettingsSection[] = [
   'vision',
   'gestures',
   'providers',
+  'google',
   'relay',
   'storage',
   'privacy',
@@ -38,6 +39,7 @@ const SECTION_LABELS: Record<SettingsSection, string> = {
   vision: 'Vision',
   gestures: 'Hand tracking',
   providers: 'AI providers',
+  google: 'Google account',
   relay: 'Phone',
   storage: 'Storage',
   privacy: 'Privacy',
@@ -63,6 +65,8 @@ const SECTION_NOTES: Partial<Record<SettingsSection, string>> = {
   gestures: 'Hand tracking arrives in phase 9.',
   providers:
     'Local inference works. Cloud providers need the desktop shell, because a key held in a web page is a leaked key.',
+  google:
+    'One connection, used by mail, calendar and documents. Helix asks for the narrowest scope that does each job - it cannot open documents you already have, and it has no way to delete mail. Needs the desktop app.',
   relay:
     'Your phone talks to Helix over Tailscale, on your own private network. Nothing is exposed to the internet, and pairing is a code you scan. Needs the desktop app.',
   storage: 'Reported usage arrives with StorageManager. The ceiling is stored now.',
@@ -151,6 +155,8 @@ export function SettingsWorkspace() {
             model - a mailbox - and putting the two side by side asked the user
             to choose between them before they had connected anything at all.
           */}
+          {section === 'google' && <RelayPanel />}
+
           {section === 'relay' && (
             <>
               <AddDevicePanel />
@@ -172,7 +178,6 @@ export function SettingsWorkspace() {
                     onChange={(next) => void update(key, next)}
                   />
                 ))}
-                <RelayPanel />
               </details>
             </>
           )}
