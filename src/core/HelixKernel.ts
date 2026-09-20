@@ -19,7 +19,12 @@ import { builtinActions } from '../actions/builtin.js';
 import { PermissionManager } from '../security/PermissionManager.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { BrowserPlatform } from '../platform/BrowserPlatform.js';
-import { TauriPlatform, detectTauri, shellInstallRoot } from '../platform/TauriPlatform.js';
+import {
+  TauriPlatform,
+  detectTauri,
+  shellInstallRoot,
+  tauriInvoke,
+} from '../platform/TauriPlatform.js';
 import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
 import { ActivityManager } from './ActivityManager.js';
 import { HelixOrchestrator } from './HelixOrchestrator.js';
@@ -353,10 +358,14 @@ export class HelixKernel {
      * putting it after them was a temporal dead zone waiting to happen.
      */
     const shellInvoke = <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
-      const global = (window as unknown as Record<string, unknown>)['__TAURI__'] as
-        | { core?: { invoke?: (c: string, a?: Record<string, unknown>) => Promise<unknown> } }
-        | undefined;
-      const invoke = global?.core?.invoke;
+      // Asked for through the platform's own resolver rather than reading a
+      // global here. This file looked for `window.__TAURI__` alone, which
+      // Tauri 2 does not define unless `withGlobalTauri` is turned on - so
+      // every shell command failed with "the bridge did not load" inside a
+      // window that was demonstrably the desktop app. The platform already
+      // had the working lookup; having a second copy here is what let the two
+      // disagree.
+      const invoke = tauriInvoke();
       if (!invoke) return Promise.reject(new Error('The shell command bridge did not load.'));
       return invoke(command, args) as Promise<T>;
     };

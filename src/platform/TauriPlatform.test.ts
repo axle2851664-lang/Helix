@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { TauriPlatform, detectTauri, shellInstallRoot } from './TauriPlatform.js';
+import { TauriPlatform, detectTauri, shellInstallRoot, tauriInvoke } from './TauriPlatform.js';
 
 const dataRoot = 'E:/Helix/data';
 
@@ -289,5 +289,42 @@ describe('the shell configuration', () => {
 
     expect(config.build.devUrl).toBe('http://localhost:5173');
     expect(config.build.frontendDist).toBe('../dist');
+  });
+});
+
+describe('one way to reach the shell', () => {
+  const original = globalThis.window;
+
+  afterEach(() => {
+    if (original === undefined) {
+      delete (globalThis as { window?: unknown }).window;
+    } else {
+      (globalThis as { window?: unknown }).window = original;
+    }
+  });
+
+  /**
+   * The kernel had its own copy of this lookup that read `window.__TAURI__`
+   * alone. Tauri 2 does not define that unless `withGlobalTauri` is on, so
+   * every shell command failed with "the bridge did not load" inside a window
+   * that was demonstrably the desktop app - while the platform, using the
+   * internals path, correctly reported itself as Tauri. Two copies is what let
+   * them disagree; this asserts the surviving one handles both.
+   */
+  it('finds the bridge where Tauri 2 actually puts it', () => {
+    const invoke = async () => 'ok';
+    (globalThis as { window?: unknown }).window = { __TAURI_INTERNALS__: { invoke } };
+    expect(tauriInvoke()).toBe(invoke);
+  });
+
+  it('still finds it when withGlobalTauri is turned on', () => {
+    const invoke = async () => 'ok';
+    (globalThis as { window?: unknown }).window = { __TAURI__: { core: { invoke } } };
+    expect(tauriInvoke()).toBe(invoke);
+  });
+
+  it('reports no bridge in a plain browser rather than throwing', () => {
+    (globalThis as { window?: unknown }).window = {};
+    expect(tauriInvoke()).toBeNull();
   });
 });

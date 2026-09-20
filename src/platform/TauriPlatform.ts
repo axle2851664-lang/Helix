@@ -79,6 +79,10 @@ export function detectTauri(): boolean {
   return present(global['__TAURI_INTERNALS__']) || present(global['__TAURI__']);
 }
 
+export function tauriInvoke(): TauriInvoke | null {
+  return invoker();
+}
+
 function invoker(): TauriInvoke | null {
   if (typeof window === 'undefined') return null;
   const window_ = window as unknown as Record<string, unknown>;
