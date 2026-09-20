@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useHelix, useSettings } from '../HelixProvider.js';
 import { AddDevicePanel } from '../relay/AddDevicePanel.js';
+import { PhoneListenerStatus } from '../relay/PhoneListenerStatus.js';
 import { RelayPanel } from '../relay/RelayPanel.js';
 import {
   SETTINGS_KEYS,
@@ -160,6 +161,7 @@ export function SettingsWorkspace() {
           {section === 'relay' && (
             <>
               <AddDevicePanel />
+              <PhoneListenerStatus />
 
               <details className="helix-settings__other">
                 <summary>Another way in: commands by email</summary>
