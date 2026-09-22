@@ -37,12 +37,15 @@ import type { WebResearch } from '../web/WebResearch.js';
 import { asEvidence } from '../web/WebResearch.js';
 import { researchCard } from '../tools/researchCard.js';
 import type { ActionRunner } from '../actions/ActionRunner.js';
+import type { GmailProvider } from '../integrations/google/GmailProvider.js';
+import type { CalendarProvider } from '../integrations/google/CalendarProvider.js';
 import type { AIRouter } from '../ai/AIRouter.js';
 import { classify } from '../ai/AIRouter.js';
 import { SYSTEM_PROMPT } from '../persona/systemPrompt.js';
 import { slangPrompt, slangRequest } from '../persona/slang.js';
 import { imageIntent } from '../images/query.js';
 import { docsIntent, draftPrompt } from '../integrations/google/docsIntent.js';
+import { calendarIntent } from '../integrations/google/calendarIntent.js';
 import { repair } from '../persona/register.js';
 
 /**
@@ -139,6 +142,10 @@ export interface OrchestratorOptions {
    * absent means those requests are refused rather than performed unconfirmed.
    */
   runner?: ActionRunner;
+  /** Reading the inbox. Absent means the requirement card is the honest answer. */
+  gmail?: GmailProvider;
+  /** Reading the calendar. Absent means the same. */
+  calendar?: CalendarProvider;
 }
 
 export class HelixOrchestrator {
@@ -152,6 +159,8 @@ export class HelixOrchestrator {
   readonly #ai: AIRouter | undefined;
   readonly #research: WebResearch | undefined;
   readonly #runner: ActionRunner | undefined;
+  readonly #gmail: GmailProvider | undefined;
+  readonly #calendar: CalendarProvider | undefined;
   readonly #tools: HelixTool[] = [];
 
   constructor(options: OrchestratorOptions) {
@@ -165,6 +174,8 @@ export class HelixOrchestrator {
     this.#ai = options.ai;
     this.#research = options.research;
     this.#runner = options.runner;
+    this.#gmail = options.gmail;
+    this.#calendar = options.calendar;
 
     // File search sits just below memory: "search my files for X" is explicit.
     this.registerTool(this.#fileSearchTool());
@@ -191,6 +202,7 @@ export class HelixOrchestrator {
     // Image search sits beside slang: both are explicit instructions that
     // must not fall through to a plain answer. "Show me pictures of X" is
     // useless answered in prose.
+    this.registerTool(this.#calendarTool());
     this.registerTool(this.#docsTool());
     this.registerTool(this.#imageTool());
     this.registerTool(this.#slangTool());
@@ -1054,7 +1066,7 @@ ${lines}`,
 
     return {
       name: 'readInbox',
-      description: 'Read the inbox. Not built - reports what it would require.',
+      description: 'Read the unread mail, once Gmail is connected.',
       priority: 250,
       matches: (request) => {
         const lower = request.text.toLowerCase();
@@ -1062,12 +1074,56 @@ ${lines}`,
       },
       unavailableReason: () => null,
       execute: async () => {
-        const reply = inboxRequirement();
+        // The requirement card was the honest answer when no mail provider
+        // existed. One does now, so returning it unconditionally had Helix
+        // telling the user a capability was "not written" while the code to
+        // do it sat one call away - a stale claim, which is the same fault as
+        // an optimistic one and fails in the direction nobody checks.
+        const gmail = this.#gmail;
+        const status = gmail?.status();
+        if (gmail === undefined || status === undefined || !status.connected) {
+          const reply = inboxRequirement(status?.message);
+          return {
+            text: reply.spoken,
+            handled: false,
+            failure: 'PROVIDER_NOT_CONFIGURED',
+            card: reply.card,
+          };
+        }
+
+        // A mailbox call fails for ordinary reasons - an expired token, a
+        // network that is down. Those are reported as themselves; none of
+        // them is a reason to show a made-up inbox.
+        let summary;
+        try {
+          summary = await this.#activity.track('thinking', () => gmail.unread(10), {
+            label: 'Reading your mail...',
+          });
+        } catch (error) {
+          return {
+            text: regret(
+              `I could not read your mail: ${error instanceof Error ? error.message : 'the request failed'}`,
+            ),
+            handled: false,
+            failure: 'PROVIDER_FAILED',
+          };
+        }
+
+        if (summary.total === 0) {
+          return { text: observe('Nothing unread'), handled: true };
+        }
+
+        const lines = summary.messages
+          .slice(0, 5)
+          .map((message) => `- ${message.from}: ${message.subject}`)
+          .join('\n');
+        const more = summary.total > 5 ? `\n...and ${summary.total - 5} more.` : '';
+
         return {
-          text: reply.spoken,
-          handled: false,
-          failure: 'PROVIDER_NOT_CONFIGURED',
-          card: reply.card,
+          text:
+            observe(`${summary.total} unread`) + `
+${lines}${more}`,
+          handled: true,
         };
       },
     };
@@ -1128,6 +1184,107 @@ ${lines}`,
           handled: false,
           failure: 'PROVIDER_NOT_CONFIGURED',
           card: reply.card,
+        };
+      },
+    };
+  }
+
+  /**
+   * The calendar: reading what is coming, and putting something on it.
+   *
+   * Reading goes straight to the provider - it changes nothing and needs no
+   * confirmation. Creating goes through `calendar.create`, so it inherits the
+   * write permission and the always-confirm rule rather than re-deciding
+   * them here; an event lands at a specific time in a place Helix does not
+   * control, and the confirmation is where a misread day gets caught.
+   */
+  #calendarTool(): HelixTool {
+    return {
+      name: 'calendar',
+      description: 'Read what is on the calendar, and add an event once confirmed.',
+      priority: 430,
+      matches: (request) => calendarIntent(request.text) !== null,
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const intent = calendarIntent(request.text);
+        if (!intent) return null;
+
+        if (intent.kind === 'create') {
+          if (!this.#runner) {
+            return {
+              text: unavailable('I have no way to check that writing to your calendar is allowed'),
+              handled: false,
+              failure: 'CAPABILITY_UNAVAILABLE',
+            };
+          }
+
+          const created = await this.#runner.run('calendar.create', {
+            summary: intent.summary,
+            when: intent.when,
+            ...(intent.location !== undefined ? { location: intent.location } : {}),
+          });
+
+          if (created.status === 'ok') {
+            return { text: confirm(created.message.replace(/\.$/, '')), handled: true };
+          }
+
+          const declined = created.status === 'refused' && created.reason === 'not-confirmed';
+          return {
+            text: created.message,
+            handled: declined,
+            ...(declined
+              ? {}
+              : { failure: created.status === 'refused' ? 'PERMISSION_DENIED' : 'INTERNAL' }),
+          };
+        }
+
+        const calendar = this.#calendar;
+        // `??` would be wrong here: `unavailableReason()` returns null to mean
+        // "available", and coalescing that to a message refused every reading
+        // on a perfectly connected calendar.
+        const refusal =
+          calendar === undefined ? 'No calendar is connected.' : calendar.unavailableReason();
+        if (calendar === undefined || refusal !== null) {
+          return {
+            text: unavailable((refusal ?? 'No calendar is connected.').replace(/\.$/, '')),
+            handled: false,
+            failure: 'PROVIDER_NOT_CONFIGURED',
+          };
+        }
+
+        // Same rule as the inbox: a failed lookup is reported as itself. An
+        // empty day and an unreachable calendar are different answers, and
+        // showing the first when the second is true is the one mistake the
+        // user cannot detect.
+        let events;
+        try {
+          events = await this.#activity.track(
+            'thinking',
+            () => calendar.upcoming({ days: intent.days }),
+            { label: 'Checking your calendar...' },
+          );
+        } catch (error) {
+          return {
+            text: regret(
+              `I could not read your calendar: ${error instanceof Error ? error.message : 'the request failed'}`,
+            ),
+            handled: false,
+            failure: 'PROVIDER_FAILED',
+          };
+        }
+
+        if (events.length === 0) {
+          return { text: observe('Nothing on your calendar'), handled: true };
+        }
+
+        const lines = events
+          .slice(0, 8)
+          .map((event) => `- ${event.start}: ${event.summary}`)
+          .join('\n');
+
+        return {
+          text: observe(`${events.length} coming up`) + `\n${lines}`,
+          handled: true,
         };
       },
     };

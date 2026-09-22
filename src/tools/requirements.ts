@@ -40,22 +40,21 @@ const CSP_BLOCKER =
 const SHELL_REMEDY =
   'It needs the desktop shell, where network calls happen outside the page and a key can be held out of the browser entirely.';
 
-export function inboxRequirement(): ToolReply {
-  const card: ToolCard = {
-    kind: 'requirement',
-    title: 'Reading your inbox',
-    subtitle: 'Not built. Here is what it would take',
-    sections: [
-      {
-        heading: 'Missing',
-        items: [
-          {
-            label: 'A mail account connection',
-            detail: 'No mail provider exists in Helix. Nothing is half-built and nothing is stubbed',
-            meta: 'not written',
-            accent: 'warn',
-            source: 'Helix providers',
-          },
+/**
+ * Why the inbox cannot be read right now.
+ *
+ * This card used to say a mail provider did not exist. That stopped being
+ * true when `GmailProvider` landed, and a stale claim is the same fault as an
+ * optimistic one - it just fails in the direction nobody checks. So the
+ * blocker is now passed in by the caller, which knows the real one, and the
+ * default covers the build that genuinely has no shell to hold a token.
+ *
+ * @param blocker One sentence, already safe to show, naming what is missing.
+ */
+export function inboxRequirement(blocker?: string): ToolReply {
+  const missing: CardItem[] =
+    blocker === undefined
+      ? [
           {
             label: 'A way to reach it',
             detail: CSP_BLOCKER,
@@ -71,6 +70,29 @@ export function inboxRequirement(): ToolReply {
             accent: 'warn',
             source: 'docs/SECURITY.md',
           },
+        ]
+      : [
+          {
+            label: 'A connected mail account',
+            detail: blocker,
+            meta: 'not connected',
+            accent: 'warn',
+            source: 'Gmail provider',
+          },
+        ];
+
+  const card: ToolCard = {
+    kind: 'requirement',
+    title: 'Reading your inbox',
+    subtitle:
+      blocker === undefined
+        ? 'Not reachable from this build. Here is what it would take'
+        : 'Not connected. Here is what it would take',
+    sections: [
+      {
+        heading: 'Missing',
+        items: [
+          ...missing,
         ],
       },
       {
@@ -117,7 +139,9 @@ export function inboxRequirement(): ToolReply {
 
   return {
     spoken: unavailable(
-      'I have no way to reach your mail, and I would rather show you why than invent a message',
+      blocker === undefined
+        ? 'I have no way to reach your mail, and I would rather show you why than invent a message'
+        : 'I cannot reach your mail yet, and I would rather show you why than invent a message',
     ),
     card,
   };

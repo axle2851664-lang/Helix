@@ -523,6 +523,12 @@ export class HelixKernel {
       // machine. Wiring, not capability, was the whole of that fault.
       ai,
       runner,
+      // Both were constructed above and handed only to the action registry,
+      // so "what's on my calendar" and "read my inbox" answered with a
+      // not-built card while the providers sat wired to nothing. Reading is
+      // theirs; every write still goes through the runner.
+      gmail: mail,
+      calendar,
     });
 
     // Teach the registry what is actually installed.
@@ -615,19 +621,22 @@ export class HelixKernel {
         ? null
         : new PhoneListener({
             sink: orchestrator,
+            /**
+             * Through Tauri's own module, not a global.
+             *
+             * This read `window.__TAURI__.event.listen`, which Tauri 2 does
+             * not define unless `withGlobalTauri` is on. It is not, so the
+             * phone listener threw "the shell event bridge did not load" the
+             * moment it started and no phone command ever arrived - the third
+             * place in this file that hand-rolled a lookup the official
+             * module already does correctly.
+             *
+             * Imported lazily so the browser build does not pull in a module
+             * it can never use, and so the failure lands at the moment of use
+             * with a real message rather than at load.
+             */
             listen: async (event, handler) => {
-              const api = (window as unknown as Record<string, unknown>)['__TAURI__'] as
-                | {
-                    event?: {
-                      listen?: (
-                        e: string,
-                        cb: (m: { payload: unknown }) => void,
-                      ) => Promise<() => void>;
-                    };
-                  }
-                | undefined;
-              const subscribe = api?.event?.listen;
-              if (!subscribe) throw new Error('The shell event bridge did not load.');
+              const { listen: subscribe } = await import('@tauri-apps/api/event');
               return subscribe(event, (message) => handler(message.payload as never));
             },
             reply: async (id, text) => {

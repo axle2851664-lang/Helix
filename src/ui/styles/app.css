@@ -2875,3 +2875,70 @@
 .hx-imgcard__license--unknown {
   color: var(--hx-warn);
 }
+
+/* ------------------------- pairing address -------------------------
+   Lost, not omitted: these were appended in the same edit that a
+   later script deleted to end-of-file, and restoring that file from
+   git took them with it because they were never committed. The
+   markup has referenced them unstyled ever since. */
+.hx-pairing__address {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hx-pairing__found {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--hx-text-dim);
+}
+
+.hx-pairing__found strong {
+  color: var(--hx-text);
+  word-break: break-all;
+}
+
+/* A failed lookup says what to do about it, so it reads as an
+   instruction rather than an error to dismiss. */
+.hx-pairing__problem {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--hx-text);
+  border-left: 2px solid var(--hx-accent-line);
+  padding-left: 10px;
+}
+
+/* Hint text under an input. Used by the pairing and coding panels and
+   never defined, so those hints rendered at full body size. */
+.hx-field__hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--hx-text-faint);
+}
+
+/* ------------------------- capability rows -------------------------
+   "Not configured" and the reason beneath it. The reason was as loud as
+   the name without these, which reads as two equally important lines
+   rather than a heading and its explanation. */
+.hx-cap__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hx-cap__name {
+  font-size: 13px;
+  color: var(--hx-text);
+}
+
+.hx-cap__reason {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--hx-text-dim);
+}
