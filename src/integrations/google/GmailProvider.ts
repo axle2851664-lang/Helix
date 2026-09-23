@@ -222,6 +222,43 @@ export class GmailProvider {
   }
 
   /**
+   * Send to somebody who is not the owner.
+   *
+   * This is the method the scope note promised: "any other recipient needs
+   * your confirmation at the machine". It does not perform that confirmation
+   * and must never be called as though it had - it is the bottom of the
+   * outbound pipeline, reached only through `OutboundManager.dispatch`, which
+   * re-checks the gate rather than trusting whoever called it.
+   *
+   * Kept apart from `sendReply` on purpose. Merging them would mean one method
+   * whose recipient rule depends on an argument, and the owner-only guarantee
+   * would then be one wrong argument away from gone. Two methods cannot be
+   * confused by a caller in a hurry.
+   */
+  async send(options: { to: string; subject: string; body: string }): Promise<void> {
+    const status = this.status();
+    if (!status.connected) throw new Error(status.message ?? NOT_CONNECTED);
+
+    const to = options.to.trim();
+    if (to === '') throw new Error('There is nobody to send that to.');
+    if (options.body.trim() === '') throw new Error('There is nothing to send.');
+
+    // A newline in a header is header injection: it ends the header and
+    // starts another, which is how one recipient becomes a Bcc list. The
+    // subject and recipient are the two fields that reach a header, and
+    // neither may contain one.
+    if (/[\r\n]/.test(to) || /[\r\n]/.test(options.subject)) {
+      throw new Error('A recipient or subject cannot contain a line break.');
+    }
+
+    await this.#transport.request({
+      providerId: this.id,
+      path: '/gmail/v1/users/me/messages/send',
+      body: { raw: base64Url(mimeFor(to, options.subject, options.body)) },
+    });
+  }
+
+  /**
    * Reply to the owner, and to nobody else.
    *
    * The recipient is not a parameter. It is read from the configured owner
@@ -251,21 +288,23 @@ export class GmailProvider {
       );
     }
 
-    // RFC 2822, base64url as the Gmail API expects for a raw message.
-    const mime = [
-      `To: ${options.to}`,
-      `Subject: ${options.subject}`,
-      'Content-Type: text/plain; charset=utf-8',
-      '',
-      options.body,
-    ].join('\r\n');
-
     await this.#transport.request({
       providerId: this.id,
       path: '/gmail/v1/users/me/messages/send',
-      body: { raw: base64Url(mime) },
+      body: { raw: base64Url(mimeFor(options.to, options.subject, options.body)) },
     });
   }
+}
+
+/** RFC 2822, built in one place so both send paths encode identically. */
+function mimeFor(to: string, subject: string, body: string): string {
+  return [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'Content-Type: text/plain; charset=utf-8',
+    '',
+    body,
+  ].join('\r\n');
 }
 
 /** Base64url without padding, which is what the Gmail API's `raw` field takes. */

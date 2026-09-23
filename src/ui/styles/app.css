@@ -3058,3 +3058,88 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ------------------------------- outbox ------------------------------
+   The body is shown in full and never truncated, because a summary is
+   not the thing being agreed to. `pre-wrap` keeps the user's line breaks
+   without turning a long paragraph into a horizontal scrollbar, and the
+   max-height scrolls a long message rather than pushing its own confirm
+   button off the screen - which would be a message confirmed unread. */
+.hx-outbox__list,
+.hx-outbox__log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hx-outbox__log li {
+  padding: 7px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--hx-border);
+}
+
+.hx-outbox__log li:last-child {
+  border-bottom: none;
+}
+
+.hx-outbox__item {
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--hx-border-strong);
+  border-radius: 10px;
+  background: var(--hx-panel);
+}
+
+.hx-outbox__item:last-child {
+  margin-bottom: 0;
+}
+
+.hx-outbox__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hx-outbox__to {
+  font-size: 13px;
+  color: var(--hx-text);
+}
+
+.hx-outbox__state {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--hx-text-dim);
+}
+
+.hx-outbox__subject {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--hx-text-dim);
+}
+
+.hx-outbox__body {
+  margin: 10px 0 0;
+  padding: 11px 12px;
+  max-height: 320px;
+  overflow: auto;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--hx-text);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--hx-border);
+  border-radius: 8px;
+}
+
+.hx-outbox__buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}

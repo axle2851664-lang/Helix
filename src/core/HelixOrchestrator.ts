@@ -37,6 +37,8 @@ import type { WebResearch } from '../web/WebResearch.js';
 import { asEvidence } from '../web/WebResearch.js';
 import { researchCard } from '../tools/researchCard.js';
 import type { ActionRunner } from '../actions/ActionRunner.js';
+import type { OutboundManager } from '../outbound/OutboundManager.js';
+import { emailIntent, emailPrompt, subjectFrom } from '../outbound/emailIntent.js';
 import type { GmailProvider } from '../integrations/google/GmailProvider.js';
 import type { CalendarProvider } from '../integrations/google/CalendarProvider.js';
 import type { AIRouter } from '../ai/AIRouter.js';
@@ -142,6 +144,8 @@ export interface OrchestratorOptions {
    * absent means those requests are refused rather than performed unconfirmed.
    */
   runner?: ActionRunner;
+  /** The outbox, where a drafted message waits to be read and agreed to. */
+  outbound?: OutboundManager;
   /** Reading the inbox. Absent means the requirement card is the honest answer. */
   gmail?: GmailProvider;
   /** Reading the calendar. Absent means the same. */
@@ -159,6 +163,7 @@ export class HelixOrchestrator {
   readonly #ai: AIRouter | undefined;
   readonly #research: WebResearch | undefined;
   readonly #runner: ActionRunner | undefined;
+  readonly #outbound: OutboundManager | undefined;
   readonly #gmail: GmailProvider | undefined;
   readonly #calendar: CalendarProvider | undefined;
   readonly #tools: HelixTool[] = [];
@@ -174,6 +179,7 @@ export class HelixOrchestrator {
     this.#ai = options.ai;
     this.#research = options.research;
     this.#runner = options.runner;
+    this.#outbound = options.outbound;
     this.#gmail = options.gmail;
     this.#calendar = options.calendar;
 
@@ -1130,6 +1136,93 @@ ${lines}${more}`,
   }
 
   /**
+   * Turn "email a@b.com about X" into a draft sitting in the Outbox.
+   *
+   * It stops one step short of sending on purpose. Drafting is not a decision
+   * that needs confirming - nothing has left - and putting the message in
+   * front of the user to read in full is the decision. Writing it and sending
+   * it in one turn would make the confirmation a formality attached to text
+   * the user has not read yet.
+   *
+   * Returns null when this is not an email request after all, so the caller
+   * falls through to the card it would otherwise have shown.
+   */
+  async #draftEmail(text: string): Promise<HelixResponse | null> {
+    const parsed = emailIntent(text);
+    if (parsed === null) return null;
+
+    if (parsed.kind === 'no-address') {
+      return { text: unavailable(parsed.because), handled: false, failure: 'AMBIGUOUS' };
+    }
+
+    if (!this.#outbound) return null;
+
+    const intent = parsed.intent;
+
+    // Dictated wording is used as given. Asking a model to rewrite what
+    // somebody just said is how "twenty minutes late" becomes "slightly
+    // delayed", and they did not say that.
+    let body = intent.verbatim ?? '';
+    if (body === '') {
+      if (!this.#ai) {
+        return {
+          text: unavailable(
+            'writing that needs a language model, and none is configured. Tell me what to say and I will draft it as you said it',
+          ),
+          handled: false,
+          failure: 'PROVIDER_NOT_CONFIGURED',
+        };
+      }
+
+      const prompt = emailPrompt(intent.about);
+      const written = await this.#activity.track(
+        'thinking',
+        () =>
+          (this.#ai as AIRouter).generate(
+            [
+              { role: 'system', content: prompt.system },
+              { role: 'user', content: prompt.user },
+            ],
+            classify(prompt.user),
+          ),
+        { label: 'Drafting...', detail: intent.to },
+      );
+      body = written.text.trim();
+    }
+
+    if (body === '') {
+      return {
+        text: regret('I had nothing to put in that message'),
+        handled: false,
+        failure: 'INTERNAL',
+      };
+    }
+
+    try {
+      await this.#outbound.create({
+        kind: 'email',
+        to: [intent.to],
+        subject: intent.subject ?? subjectFrom(intent.about),
+        body,
+      });
+    } catch (error) {
+      // Drafting refuses a purchase, among other things. That is a refusal
+      // with a reason worth repeating, not a failure to hide.
+      return {
+        text: unavailable(error instanceof Error ? error.message : 'that could not be drafted'),
+        handled: false,
+        failure: 'VALIDATION_FAILED',
+      };
+    }
+
+    return {
+      text: observe(`Drafted to ${intent.to}. Read it in the Outbox and confirm it if it is right`),
+      handled: true,
+      navigateTo: 'outbox',
+    };
+  }
+
+  /**
    * "Email Marlow", "text her", "call the supplier".
    *
    * Helix is permitted to do all three now and can do none of them, so the
@@ -1177,6 +1270,14 @@ ${lines}${more}`,
       execute: async (request) => {
         const kind = classify(request.text);
         if (kind === null) return null;
+
+        // Email is the one kind with a real transport now. The others still
+        // have none, and their card stays exactly as it was - which is the
+        // point of reporting per kind rather than as one blanket answer.
+        if (kind === 'email') {
+          const drafted = await this.#draftEmail(request.text);
+          if (drafted !== null) return drafted;
+        }
 
         const reply = sendingRequirement(kind);
         return {
