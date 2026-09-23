@@ -17,12 +17,14 @@ describe('workspace registry', () => {
     expect(WORKSPACE_LIST).toHaveLength(WORKSPACE_IDS.length);
   });
 
-  // Matches the reference interface's eleven navigable entries.
+  // Matches the reference interface's navigable entries, plus the inbox,
+  // which the reference did not have.
   it('lists the sidebar workspaces in reference order', () => {
     expect(SIDEBAR_WORKSPACES.map((w) => w.id)).toEqual([
       'conversations',
       'memory',
       'files',
+      'inbox',
       'web-research',
       'coding',
       'image-generation',
@@ -56,6 +58,7 @@ describe('workspace registry', () => {
       'graph',
       'home',
       'image-search',
+      'inbox',
       'memory',
       'models',
       'settings',

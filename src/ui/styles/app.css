@@ -2942,3 +2942,119 @@
   line-height: 1.5;
   color: var(--hx-text-dim);
 }
+
+/* ------------------------------- inbox -------------------------------
+   Rows are scannable in one pass: sender, then subject, then the snippet
+   in a dimmer weight. The snippet is clamped to one line rather than
+   wrapped - three lines of a marketing email pushes the next message off
+   the screen, and the snippet is a hint, not the message.
+
+   The whole row is not a click target. Selecting mail is what arms the
+   archive button, so a stray click that selects something is a stray
+   click that arms an action; the checkbox is the only way in. */
+.hx-inbox__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.hx-inbox__notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--hx-text);
+}
+
+.hx-inbox__undo {
+  padding: 2px 9px;
+  font-size: 11px;
+}
+
+.hx-inbox__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--hx-border);
+}
+
+.hx-inbox__all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--hx-text-dim);
+  cursor: pointer;
+}
+
+.hx-inbox__buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hx-inbox__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hx-inbox__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 11px 8px;
+  border-bottom: 1px solid var(--hx-border);
+}
+
+.hx-inbox__row:last-child {
+  border-bottom: none;
+}
+
+.hx-inbox__row--on {
+  background: var(--hx-accent-soft);
+}
+
+.hx-inbox__row input[type='checkbox'] {
+  margin-top: 3px;
+  flex: none;
+}
+
+/* min-width: 0 so the clamped snippet can shrink instead of forcing the
+   row wider than the panel. */
+.hx-inbox__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.hx-inbox__from {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--hx-text-dim);
+}
+
+.hx-inbox__subject {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--hx-text);
+}
+
+.hx-inbox__snippet {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--hx-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

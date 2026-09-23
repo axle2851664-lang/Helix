@@ -114,6 +114,10 @@ export interface KernelServices {
   readonly orchestrator: HelixOrchestrator;
   /** The Google bridge, or null in a browser where no token can be held. */
   readonly google: TauriGoogleTransport | null;
+  /** The mailbox. Present always; it reports for itself whether it can act. */
+  readonly gmail: GmailProvider;
+  /** The calendar, on the same terms. */
+  readonly calendar: CalendarProvider;
   /** The mailbox watcher, or null where there is no shell to run it. */
   readonly relay: RelayWatcher | null;
   /** The direct phone listener, or null where there is no shell. */
@@ -771,6 +775,8 @@ export class HelixKernel {
       camera,
       orchestrator,
       google: googleTransport,
+      gmail: mail,
+      calendar,
       relay,
       listener: phone,
     };

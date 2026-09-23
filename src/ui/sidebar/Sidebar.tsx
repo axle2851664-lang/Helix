@@ -16,6 +16,7 @@ const ICONS: Record<WorkspaceId, IconName> = {
   conversations: 'conversation',
   memory: 'brain',
   files: 'folder',
+  inbox: 'send',
   'web-research': 'globe',
   coding: 'code',
   'image-generation': 'image',

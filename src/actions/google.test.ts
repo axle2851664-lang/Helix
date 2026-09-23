@@ -5,6 +5,7 @@ import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
 import { ActionRegistry } from './ActionRegistry.js';
 import { ActionRunner, type ActionConfirmer } from './ActionRunner.js';
 import { googleActions } from './google.js';
+import { MAIL_UNDO, encodeIds } from '../ui/mail/inboxActions.js';
 import { GmailProvider } from '../integrations/google/GmailProvider.js';
 import { CalendarProvider } from '../integrations/google/CalendarProvider.js';
 import type { InferenceTransport } from '../ai/types.js';
@@ -166,5 +167,47 @@ describe('putting something on the calendar', () => {
       start: { date: '2026-09-17' },
       end: { date: '2026-09-18' },
     });
+  });
+});
+
+/**
+ * The inbox screen and the action layer, checked against each other.
+ *
+ * These are separate modules and the seam between them is untyped: `run`
+ * takes `unknown` params, so a screen that sent an array of ids would
+ * typecheck, pass every test either side owns, and be refused at runtime in
+ * front of the user. That is the exact failure this pair of tests exists to
+ * stop.
+ */
+describe('what the inbox screen sends', () => {
+  it('is accepted by every action the screen offers', async () => {
+    for (const action of ['mail.archive', 'mail.star', 'mail.markRead']) {
+      const { runner } = harness();
+      const result = await runner.run(action, { ids: encodeIds(['18c1', '18c2']) });
+      expect(result.status, action).toBe('ok');
+    }
+  });
+
+  it('is accepted by every undo the screen offers', async () => {
+    for (const entry of Object.values(MAIL_UNDO)) {
+      const { runner } = harness();
+      const result = await runner.run(entry.action, { ids: encodeIds(['18c1']) });
+      expect(result.status, entry.action).toBe('ok');
+    }
+  });
+
+  it('reaches Gmail with the ids the user actually selected', async () => {
+    const { runner, sent } = harness();
+    await runner.run('mail.archive', { ids: encodeIds(['18c1', '18c2']) });
+
+    expect(sent[0]?.body).toEqual({ ids: ['18c1', '18c2'], removeLabelIds: ['INBOX'] });
+  });
+
+  /** An array would have shipped without this. */
+  it('refuses the shape the screen must not send', async () => {
+    const { runner } = harness();
+    const result = await runner.run('mail.archive', { ids: ['18c1', '18c2'] });
+
+    expect(result.status).toBe('refused');
   });
 });

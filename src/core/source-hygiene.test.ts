@@ -76,3 +76,27 @@ describe('source hygiene', () => {
     expect(offenders, offenders.join('\n')).toEqual([]);
   });
 });
+
+/**
+ * The UI harness never reaches the product.
+ *
+ * `.harness/` mounts a workspace against a fake mailbox and a fake action
+ * runner so interactions can be driven in a browser. That fake is exactly the
+ * thing this codebase refuses to ship: a plausible inbox. It is kept out by
+ * construction - `tsconfig.app.json` includes only `src`, and the build
+ * starts from `index.html` - but "kept out by construction" is a claim that
+ * goes stale the moment somebody adds a path alias, so it is also a test.
+ */
+describe('the UI harness stays out of the product', () => {
+  it('is imported by nothing under src', () => {
+    const offenders = sourceFiles(ROOT).filter((path) =>
+      // Both forms: `from '...'` and a bare side-effect `import '...'`. The
+      // first version of this test only caught the first, which made it a
+      // decoration rather than a guard - proven by adding a side-effect
+      // import and watching it pass.
+      /(?:from|import)\s+['"][^'"]*\.harness\//.test(readFileSync(path, 'utf8')),
+    );
+
+    expect(offenders).toEqual([]);
+  });
+});
