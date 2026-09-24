@@ -408,10 +408,19 @@ async fn access_token(client: &reqwest::Client) -> Result<String, String> {
         .map_err(|error| format!("Could not reach Google to refresh access: {error}"))?;
 
     if !response.status().is_success() {
-        return Err(format!(
-            "Google would not refresh access ({}). You may need to connect again.",
-            response.status()
-        ));
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        let dead = grant_is_dead(&body);
+
+        // A dead grant is not a transient failure, and leaving the token file
+        // in place would have `google_status` keep reporting "connected" while
+        // every call fails - the exact shape of lie this codebase refuses.
+        // Removing it makes the UI tell the truth without any UI change.
+        if dead {
+            let _ = google_disconnect();
+        }
+
+        return Err(refresh_failure_message(status.as_u16(), &body));
     }
 
     let tokens: TokenResponse = response
@@ -420,6 +429,61 @@ async fn access_token(client: &reqwest::Client) -> Result<String, String> {
         .map_err(|error| format!("Google's refresh response could not be read: {error}"))?;
 
     Ok(tokens.access_token)
+}
+
+/// Has Google said this grant is finished, rather than that something failed?
+///
+/// `invalid_grant` is the one answer that means reconnecting is the only fix:
+/// the refresh token has expired, been revoked, or had its consent withdrawn.
+/// Every other failure - a 500, a timeout, a rate limit - is the world being
+/// temporarily unavailable, and throwing away a working token over one of
+/// those would sign the user out for no reason.
+fn grant_is_dead(body: &str) -> bool {
+    // The field, not the substring. A human-readable description mentioning
+    // the phrase must not count, or an unrelated failure whose message quotes
+    // the error would delete a perfectly good token.
+    serde_json::from_str::<serde_json::Value>(body)
+        .ok()
+        .and_then(|value| {
+            value
+                .get("error")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string)
+        })
+        .is_some_and(|error| error == "invalid_grant")
+}
+
+/// What to tell the user, in the one place this is decided.
+///
+/// The seven-day sentence is here because it is the single most-repeated
+/// error this product will ever show. Helix is an unverified app on Google's
+/// Testing publishing status - a deliberate choice, since verification for
+/// restricted scopes means an annual paid security assessment - and Google
+/// expires a test user's refresh token after seven days. Saying "you may need
+/// to connect again" every week, without saying why, would read as Helix
+/// being broken. It is not broken; this is the price of the choice, and
+/// naming it is the difference between a bug and a known cost.
+fn refresh_failure_message(status: u16, body: &str) -> String {
+    if grant_is_dead(body) {
+        return "Google has expired this connection. Unverified apps stay on Google's \
+                Testing status, where a sign-in lasts seven days - so this is expected \
+                roughly weekly rather than a fault. Connect your Google account again in \
+                Settings."
+            .into();
+    }
+
+    if status >= 500 {
+        return format!(
+            "Google could not refresh access just now ({status}). That is a problem at \
+             Google's end rather than with your connection, so it is worth trying again \
+             shortly."
+        );
+    }
+
+    format!(
+        "Google would not refresh access ({status}). Your connection is still stored; if \
+         this keeps happening, reconnect your Google account in Settings."
+    )
 }
 
 /// Paths the web view is allowed to ask for.
@@ -530,6 +594,59 @@ fn open_in_browser(url: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The weekly one. Google says invalid_grant; the token is finished.
+    #[test]
+    fn an_expired_grant_is_recognised() {
+        let body = r#"{"error":"invalid_grant","error_description":"Token has been expired or revoked."}"#;
+        assert!(grant_is_dead(body));
+        let message = refresh_failure_message(400, body);
+        assert!(message.contains("seven days"), "{message}");
+        assert!(message.contains("Settings"), "{message}");
+    }
+
+    /// The failure that must NOT sign the user out. Throwing away a working
+    /// refresh token because Google had a bad minute is a self-inflicted
+    /// weekly outage on top of the real one.
+    #[test]
+    fn a_server_error_does_not_kill_the_grant() {
+        for body in ["", "{}", r#"{"error":"backendError"}"#, "<html>502</html>"] {
+            assert!(!grant_is_dead(body), "body: {body}");
+        }
+        let message = refresh_failure_message(503, "{}");
+        assert!(message.contains("Google's end"), "{message}");
+        assert!(!message.contains("seven days"), "{message}");
+    }
+
+    /// The field, not the substring. A description that happens to quote the
+    /// phrase is not Google declaring the grant dead.
+    #[test]
+    fn a_mention_in_prose_is_not_a_dead_grant() {
+        let body = r#"{"error":"rateLimitExceeded","error_description":"not an invalid_grant"}"#;
+        assert!(!grant_is_dead(body));
+    }
+
+    #[test]
+    fn a_plain_4xx_keeps_the_connection_and_says_so() {
+        let message = refresh_failure_message(429, r#"{"error":"rateLimitExceeded"}"#);
+        assert!(message.contains("still stored"), "{message}");
+    }
+
+    /// Whatever happens, the user is never left without a next step.
+    #[test]
+    fn every_message_names_something_to_do() {
+        for (status, body) in [
+            (400u16, r#"{"error":"invalid_grant"}"#),
+            (500, "{}"),
+            (429, "{}"),
+        ] {
+            let message = refresh_failure_message(status, body);
+            assert!(
+                message.contains("Settings") || message.contains("again"),
+                "{status}: {message}"
+            );
+        }
+    }
 
     /// The vectors from RFC 7636 appendix B. PKCE with a wrong encoding fails
     /// at Google with an error that names nothing useful, so it is pinned here.

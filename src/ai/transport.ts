@@ -262,9 +262,35 @@ export class TauriGoogleTransport implements InferenceTransport {
   }
 
   async request(options: { path: string; body: unknown }): Promise<unknown> {
-    return this.#invoke<unknown>('google_request', {
-      path: options.path,
-      body: options.body,
-    });
+    try {
+      return await this.#invoke<unknown>('google_request', {
+        path: options.path,
+        body: options.body,
+      });
+    } catch (error) {
+      // The shell deletes the stored token when Google declares the grant
+      // dead, but this side caches the account, so without re-asking the UI
+      // would keep showing "connected to you@example.com" while every call
+      // failed. That is the same lie the shell just went to the trouble of
+      // removing, moved one layer up.
+      //
+      // This matters weekly rather than rarely: Helix stays on Google's
+      // Testing status by choice, and a test user's sign-in lasts seven days.
+      if (expiredConnection(error)) await this.refreshStatus();
+      throw error;
+    }
   }
+}
+
+/**
+ * Did this failure mean the Google connection is finished?
+ *
+ * Matched on the shell's own sentence rather than a status code, because a
+ * Tauri command failure arrives as a string. The check is deliberately
+ * narrow - a false positive signs the user out of a working connection, which
+ * is worse than a status line that is briefly stale.
+ */
+export function expiredConnection(error: unknown): boolean {
+  const text = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  return /has expired this connection/i.test(text);
 }
