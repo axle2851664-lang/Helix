@@ -86,6 +86,18 @@ export class OllamaProvider implements InferenceProvider {
   /** Cached so the status panel does not re-probe on every render. */
   #cachedModels: ModelInfo[] | null = null;
   #lastProbeFailed = false;
+  /**
+   * Why the last probe failed, kept verbatim.
+   *
+   * The transport already distinguishes the cases that matter - a service
+   * that is not running, and a page that is not permitted to reach one - and
+   * `isConfigured` used to replace that with one generic sentence. The two
+   * have completely different fixes, and collapsing them cost a real
+   * debugging session: a desktop build with Ollama stopped and a browser tab
+   * that cannot reach localhost produced identical words, so neither the
+   * user nor I could tell which had happened.
+   */
+  #lastProbeError: string | null = null;
 
   constructor(options: OllamaProviderOptions) {
     this.#transport = options.transport;
@@ -110,6 +122,7 @@ export class OllamaProvider implements InferenceProvider {
       return {
         configured: false,
         reason:
+          this.#lastProbeError ??
           "I'm unable to reach the local AI service at present, sir. Please start the configured local model service.",
       };
     }
@@ -225,8 +238,20 @@ export class OllamaProvider implements InferenceProvider {
     if (this.#cachedModels !== null) return this.#cachedModels;
     try {
       return await this.#probe();
-    } catch {
+    } catch (error) {
       this.#lastProbeFailed = true;
+      // Which host Helix is in is the piece that was missing. A desktop
+      // build with Ollama stopped and a browser tab that cannot reach
+      // localhost are different problems with different fixes, and the
+      // sentence now says which one this is.
+      const host =
+        this.#transport.id === 'browser'
+          ? ' This is the web page, not the desktop app; the desktop app is the one that can always reach a local service.'
+          : '';
+      this.#lastProbeError =
+        error instanceof Error && error.message.trim() !== ''
+          ? `${error.message}${host}`
+          : null;
       this.#cachedModels = [];
       return [];
     }
@@ -236,6 +261,7 @@ export class OllamaProvider implements InferenceProvider {
   async refresh(): Promise<readonly ModelInfo[]> {
     this.#cachedModels = null;
     this.#lastProbeFailed = false;
+    this.#lastProbeError = null;
     return this.getAvailableModels();
   }
 
