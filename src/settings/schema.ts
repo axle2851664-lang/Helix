@@ -535,6 +535,14 @@ export const SETTINGS_SCHEMA = {
     },
     default: 'none',
   },
+  localInferenceOnly: {
+    kind: 'boolean',
+    section: 'providers',
+    label: 'Run entirely on this machine',
+    description:
+      'Never send a conversation to a cloud model, even when one is configured and no local model is running. Helix says it cannot answer rather than answering from somebody else\u2019s computer.',
+    default: true,
+  },
   preferLocalInference: {
     kind: 'boolean',
     section: 'providers',

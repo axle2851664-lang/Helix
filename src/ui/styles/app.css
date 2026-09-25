@@ -3143,3 +3143,60 @@
   gap: 8px;
   margin-top: 12px;
 }
+
+/* ----------------------------- portable ------------------------------
+   One item per row with its consequence beneath it, rather than a dense
+   grid of checkboxes. The rows are meant to be read, not skimmed: this
+   is the screen where somebody decides what leaves the machine. */
+.hx-portable__bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hx-portable__drives,
+.hx-portable__items {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.hx-portable__drive,
+.hx-portable__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 11px 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--hx-border);
+  cursor: pointer;
+}
+
+.hx-portable__drives li:last-child .hx-portable__drive,
+.hx-portable__items li:last-child .hx-portable__item {
+  border-bottom: none;
+}
+
+.hx-portable__drive input,
+.hx-portable__item input {
+  margin-top: 4px;
+  flex: none;
+}
+
+/* The consequence line, set apart from the description above it. A warning
+   in the same colour as the explanation reads as more explanation. */
+.hx-portable__warn {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--hx-accent);
+}
+
+.hx-portable__done {
+  margin: 12px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--hx-text);
+}

@@ -27,6 +27,7 @@ mod web;
 mod inference;
 mod listen;
 mod tailscale;
+mod portable;
 mod vault;
 
 use serde::Serialize;
@@ -149,6 +150,8 @@ pub fn run() {
             google::google_disconnect,
             google::google_request,
             web::web_fetch,
+            portable::portable_drives,
+            portable::portable_write,
             web::configured_web_providers,
             listen::start_phone_listener,
             listen::phone_reply,

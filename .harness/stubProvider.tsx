@@ -56,6 +56,9 @@ export const useHelix = () => ({
       return { status: 'ok', action, message: `Done: ${params.ids.split(',').length} messages.` };
     },
   },
+  backup: {
+    export: async () => ({ text: '{"format":"helix-archive","sections":[]}', fileName: 'x.json' }),
+  },
   outbound: {
     subscribe: (l: () => void) => {
       listeners.add(l);
@@ -83,3 +86,8 @@ export const useHelix = () => ({
 });
 
 export const useSettings = () => ({});
+
+// The portable screen exports through the real BackupManager interface; the
+// harness only needs it to hand back some text.
+export const useHelixBackup = () => ({});
+

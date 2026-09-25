@@ -401,6 +401,11 @@ export class HelixKernel {
         new CerebrasProvider({ transport: inferenceTransport }),
       ],
       preferLocal: settings.get('preferLocalInference'),
+      // A filter rather than a preference: with this on, a cloud provider is
+      // not a candidate at all. Preferring local still answers from the cloud
+      // the moment Ollama is not running, and nobody who asked for local
+      // would ever find out that happened.
+      localOnly: settings.get('localInferenceOnly'),
       temperature: settings.get('temperature'),
       maxOutputTokens: settings.get('maxOutputTokens'),
     });

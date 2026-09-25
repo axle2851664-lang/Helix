@@ -93,6 +93,16 @@ export interface AIRouterOptions {
   fallbackProvider?: string;
   /** Prefer local inference over cloud whenever local is configured. */
   preferLocal?: boolean;
+  /**
+   * Refuse cloud inference outright, rather than preferring local.
+   *
+   * `preferLocal` only ranks, so a machine with no local model running
+   * quietly sent the conversation to somebody else's computer - which is the
+   * one thing a person who asked for local would never find out had happened.
+   * This removes cloud providers from the plan entirely, so the honest
+   * failure ("no local model is running") replaces the silent substitution.
+   */
+  localOnly?: boolean;
   temperature?: number;
   maxOutputTokens?: number;
 }
@@ -138,7 +148,10 @@ export class AIRouter {
         (entry): entry is { model: ModelInfo; provider: InferenceProvider } =>
           entry.provider !== undefined && entry.provider.isConfigured().configured,
       )
-      .filter((entry) => entry.model.status !== 'unavailable');
+      .filter((entry) => entry.model.status !== 'unavailable')
+      // Applied here rather than in the ranking, because a rule that can be
+      // outweighed by another score is not a rule.
+      .filter((entry) => !this.#options.localOnly || entry.provider.location === 'local');
 
     return scored.sort((a, b) => this.#rank(a) - this.#rank(b));
   }
@@ -245,7 +258,21 @@ export class AIRouter {
    * needs the desktop shell, a third is not built.
    */
   #nothingAvailableReason(): string {
-    const reasons = this.#providers
+    // In local-only mode the cloud providers are not candidates, so their
+    // reasons are not advice - "Gemini needs a key" is a useless thing to
+    // read when you have asked for nothing to leave the machine.
+    const relevant = this.#options.localOnly
+      ? this.#providers.filter((provider) => provider.location === 'local')
+      : this.#providers;
+
+    if (this.#options.localOnly && relevant.every((p) => !p.isConfigured().configured)) {
+      const detail = relevant
+        .map((provider) => `${provider.name}: ${provider.isConfigured().reason}`)
+        .join(' ');
+      return `Helix is set to run entirely on this machine, and no local model is available. ${detail}`.trim();
+    }
+
+    const reasons = relevant
       .map((provider) => {
         const configuration = provider.isConfigured();
         return configuration.configured ? null : `${provider.name}: ${configuration.reason}`;

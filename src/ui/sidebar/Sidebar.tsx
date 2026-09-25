@@ -18,6 +18,7 @@ const ICONS: Record<WorkspaceId, IconName> = {
   files: 'folder',
   inbox: 'send',
   outbox: 'paperclip',
+  portable: 'drive',
   'web-research': 'globe',
   coding: 'code',
   'image-generation': 'image',
