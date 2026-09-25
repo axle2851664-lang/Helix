@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { Icon, type IconName } from '../components/Icon.js';
 import { useHelix, useSettings } from '../HelixProvider.js';
 import type { Activity } from '../../core/ActivityManager.js';
-import { formatContext, getModelOrDefault } from '../../models/catalog.js';
-import { ModelRegistry } from '../../ai/registry.js';
+import { formatContext } from '../../models/catalog.js';
 
 /**
  * The Helix status panel.
@@ -36,7 +35,6 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
     useHelix();
   const settings = useSettings([
     'languageProvider',
-    'languageModel',
     'inferenceProvider',
     'preferLocalInference',
     'speechToTextProvider',
@@ -130,12 +128,19 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
   const forcedOffline = settings.offlineMode === 'offline';
   const effectivelyOnline = online && !forcedOffline;
   const durable = (store as { durable?: boolean }).durable ?? false;
-  const model = getModelOrDefault(settings.languageModel);
 
-  const registry = new ModelRegistry();
-  // The router's actual choice where there is one; the stated preference
-  // otherwise, which is the right thing to show when nothing can run.
-  const selectedModel = selection.model ?? registry.get(settings.languageModel);
+  // The router's actual choice, and nothing else.
+  //
+  // This used to fall back to `registry.get(settings.languageModel)` when
+  // nothing could run, on the reasoning that showing the stated preference
+  // was better than showing nothing. It was not. The default preference is
+  // `claude-opus-5`, which is a seeded, unavailable, cloud entry - so the
+  // panel read "AI MODEL: Opus 5 - Claude by Anthropic" directly above
+  // "INFERENCE: Not configured", on a build set to run entirely on this
+  // machine. A row that names a model which cannot run, was never chosen and
+  // would send the conversation off the machine if it could is worse than an
+  // empty row, especially for someone checking that nothing leaves.
+  const selectedModel = selection.model;
 
   const inferenceLabel = selection.provider
     ? selection.provider.location === 'local'
@@ -167,13 +172,12 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
       label: 'AI MODEL',
       // The model, and only the model. Cerebras is not a model and must never
       // appear on this row - it runs models other people trained.
-      value: selectedModel?.name ?? model.name,
-      // Lit only when this is the model that would genuinely answer, not when
-      // it is merely the one selected in Settings.
-      tone: selection.model ? 'ok' : 'off',
+      value: selectedModel?.name ?? 'None',
+      // Lit only when this is the model that would genuinely answer.
+      tone: selectedModel ? 'ok' : 'off',
       detail: selectedModel
         ? `${selectedModel.family} by ${selectedModel.author} - ${formatContext(selectedModel.contextLength)} context`
-        : `${formatContext(model.contextTokens)} context`,
+        : 'Nothing is running. Install a local model, or connect a provider in Settings',
     },
     {
       key: 'inference',
