@@ -89,6 +89,17 @@ export interface AIRouterOptions {
   registry?: ModelRegistry;
   /** Provider id to try first, when it is configured. */
   preferredProvider?: string;
+  /**
+   * Model id to try first, when it is available.
+   *
+   * Set after the local probe, from `preferredLocalModel`, which picks the
+   * largest model that actually fits the machine. Without this the router
+   * ranked every usable local model equally and took whatever the registry
+   * happened to list first - so a machine with a 7B and a 3B installed
+   * answered on the 3B, while the careful "largest that fits" calculation
+   * was computed, logged, and then ignored by the only code that routes.
+   */
+  preferredModel?: string;
   /** Provider id to fall back to. */
   fallbackProvider?: string;
   /** Prefer local inference over cloud whenever local is configured. */
@@ -110,7 +121,7 @@ export interface AIRouterOptions {
 export class AIRouter {
   readonly #providers: readonly InferenceProvider[];
   readonly #registry: ModelRegistry;
-  readonly #options: AIRouterOptions;
+  #options: AIRouterOptions;
 
   constructor(options: AIRouterOptions) {
     this.#providers = options.providers;
@@ -156,10 +167,26 @@ export class AIRouter {
     return scored.sort((a, b) => this.#rank(a) - this.#rank(b));
   }
 
+  /**
+   * Choose the model that should answer from here on.
+   *
+   * A setter rather than a constructor option because the answer is not known
+   * at construction: it depends on what the runtime turns out to have
+   * installed and what fits in this machine's memory, both of which are
+   * discovered after startup.
+   */
+  setPreferredModel(id: string | null): void {
+    this.#options = { ...this.#options, ...(id === null ? {} : { preferredModel: id }) };
+    if (id === null) delete (this.#options as { preferredModel?: string }).preferredModel;
+  }
+
   #rank(entry: { model: ModelInfo; provider: InferenceProvider }): number {
     let score = 0;
 
     if (this.#options.preferLocal && entry.provider.location === 'local') score -= 1000;
+    // Above the provider preferences: this is a decision about which specific
+    // model should answer, already made against real memory.
+    if (entry.model.id === this.#options.preferredModel) score -= 2000;
     if (entry.provider.id === this.#options.preferredProvider) score -= 500;
     if (entry.provider.id === this.#options.fallbackProvider) score -= 100;
     // A documented-but-unconfirmed id is a worse bet than a confirmed one.

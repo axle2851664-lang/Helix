@@ -727,7 +727,11 @@ ${lines}`,
         ? `running on this machine through ${provider.name}. Nothing you say to me is sent anywhere`
         : `running on ${provider.name}, which is a service off this machine`;
 
-    return observe(`${model.name} (${model.id}), ${where}`);
+    // A local model's display name usually already contains its id, and
+    // "qwen2.5:3b (3B) (qwen2.5:3b)" reads like a stutter.
+    const named = model.name.includes(model.id) ? model.name : `${model.name} (${model.id})`;
+
+    return observe(`${named}, ${where}`);
   }
 
   /**

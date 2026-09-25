@@ -600,6 +600,17 @@ export class HelixKernel {
 
         const usable = assessed.filter((model) => model.status !== 'unavailable').length;
         const chosen = preferredLocalModel(assessed)?.id ?? null;
+        // Told to the router AND to the provider, not merely logged.
+        //
+        // This is the "largest that fits" decision, and until it was wired
+        // the router ignored it and answered on whichever model the registry
+        // listed first. The provider needed telling too: its `activeModel`
+        // fell back to the first installed model, so the Local AI screen
+        // named a 7B as active while a 3B wrote the replies. One decision,
+        // told to everything that reports it, is the only way those two
+        // cannot drift apart.
+        ai.setPreferredModel(chosen);
+        ollama.setModel(chosen);
 
         logger.info('Local models registered.', { installed: assessed.length, usable, chosen });
         // The status panel is computed from the registry, and until this
