@@ -83,6 +83,15 @@ import { CameraManager } from '../camera/CameraManager.js';
  * one that opens and says so.
  */
 
+/**
+ * How often to ask whether a local model has appeared.
+ *
+ * Ten seconds is short enough that starting Ollama and going back to the
+ * window feels immediate, and long enough that it is one localhost request
+ * every ten seconds rather than a busy loop. It stops on the first success.
+ */
+const LOCAL_PROBE_INTERVAL_MS = 10_000;
+
 export interface KernelServices {
   readonly bus: EventBus;
   readonly logger: Logger;
@@ -394,9 +403,13 @@ export class HelixKernel {
           })
         : null;
 
+    // Held by its concrete type: the repeating probe below needs `refresh()`,
+    // which is Ollama's own and not part of the provider interface.
+    const ollama = new OllamaProvider({ transport: inferenceTransport });
+
     const ai = new AIRouter({
       providers: [
-        new OllamaProvider({ transport: inferenceTransport }),
+        ollama,
         new GeminiProvider({ transport: inferenceTransport }),
         new CerebrasProvider({ transport: inferenceTransport }),
       ],
@@ -553,19 +566,33 @@ export class HelixKernel {
       outbound,
     });
 
-    // Teach the registry what is actually installed.
-    //
-    // Backgrounded on purpose. Probing the runtime takes a round trip and
-    // sometimes a timeout, and startup must not wait on a service that may not
-    // be running - the seeded local entry is `unavailable`, so until this
-    // lands the router simply has no local model and says so.
-    void (async () => {
-      const local = ai.provider('ollama');
-      if (!local) return;
-
+    /**
+     * Teach the registry what is actually installed, and keep asking.
+     *
+     * Backgrounded on purpose: probing takes a round trip and sometimes a
+     * timeout, and startup must not wait on a service that may not be
+     * running. The seeded local entry is `unavailable`, so until this lands
+     * the router simply has no local model and says so.
+     *
+     * It repeats, which the one-shot version did not, and that was a real
+     * hole rather than a refinement. Helix now refuses cloud inference by
+     * default, so a machine where Ollama starts a moment after Helix - or is
+     * started *because* Helix just said it was missing - stayed dead until
+     * the app was restarted. The obvious next action, "start Ollama and try
+     * again", did not work, and nothing on screen said why.
+     *
+     * The poll stops the moment it succeeds, and it costs one request to
+     * localhost, so the cost of asking again is close to nothing and the
+     * cost of not asking is a user who thinks the feature is broken.
+     */
+    const probeLocalModels = async (): Promise<boolean> => {
       try {
-        const installed = await local.getAvailableModels();
-        if (installed.length === 0) return;
+        // `refresh()`, not `getAvailableModels()`. The latter caches an empty
+        // list when a probe fails, so every later call would return that
+        // cached emptiness without ever reaching Ollama again - and this
+        // poll would have looked like it was working while doing nothing.
+        const installed = await ollama.refresh();
+        if (installed.length === 0) return false;
 
         const hardware = await platform.getHardwareProfile();
         const assessed = assessInstalledModels(installed, hardware);
@@ -575,13 +602,32 @@ export class HelixKernel {
         const chosen = preferredLocalModel(assessed)?.id ?? null;
 
         logger.info('Local models registered.', { installed: assessed.length, usable, chosen });
-        // The status panel is computed from the registry, and until this point
-        // the registry held only a placeholder. Without the event it goes on
+        // The status panel is computed from the registry, and until this
+        // point it held only a placeholder. Without the event it goes on
         // reporting that nothing is configured while a model answers.
         bus.emit('AI_MODELS_REGISTERED', { provider: 'ollama', usable, chosen });
+        return true;
       } catch (error) {
         logger.debug('Local model probe failed; the placeholder entry stands.', error);
+        return false;
       }
+    };
+
+    void (async () => {
+      if (await probeLocalModels()) return;
+
+      const timer = setInterval(() => {
+        void probeLocalModels().then((found) => {
+          if (found) clearInterval(timer);
+        });
+      }, LOCAL_PROBE_INTERVAL_MS);
+
+      // Never keep the process alive on its own account. In Node this is a
+      // real handle; in a browser `unref` does not exist, hence the guard.
+      (timer as unknown as { unref?: () => void }).unref?.();
+      // A timer that outlives the kernel would go on probing after shutdown
+      // and keep a reference to a bus nobody is listening to.
+      bus.on('helix:shutdown', () => clearInterval(timer));
     })();
 
     /**
