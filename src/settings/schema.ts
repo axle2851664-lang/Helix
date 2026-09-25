@@ -574,9 +574,9 @@ export const SETTINGS_SCHEMA = {
   languageModel: {
     kind: 'enum',
     section: 'providers',
-    label: 'Claude model',
+    label: 'Cloud model preference',
     description:
-      'Which Claude model Helix uses. Switch it here, or say "switch to Sonnet" on the home screen.',
+      'Which cloud model Helix would use if one were connected. It does not choose your local model - Ollama\u2019s installed models are found automatically, and the largest one that fits your machine is used. Ask Helix "what are you running on" for the real answer.',
     options: [
       'claude-opus-5',
       'claude-sonnet-5',

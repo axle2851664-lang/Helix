@@ -6,7 +6,7 @@ import type { SettingsManager } from '../settings/SettingsManager.js';
 import type { ConversationStore } from '../conversations/ConversationStore.js';
 import { resolveWorkspace, type WorkspaceId } from '../ui/workspaces/registry.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
-import { formatContext, getModelOrDefault, resolveModel } from '../models/catalog.js';
+import { getModelOrDefault, resolveModel } from '../models/catalog.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
 import type { KnowledgeHit, KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import {
@@ -701,12 +701,53 @@ ${lines}`,
   }
 
   /**
-   * Switching the Claude model, and reporting which one is selected.
+   * The truthful answer to "what are you running on".
    *
-   * Genuinely working: it changes persisted state, so the choice survives a
-   * restart and is visible in Settings and the status panel. It does not
-   * connect to anything - the reply says so, because a user who switches models
-   * would otherwise reasonably assume the next question gets answered.
+   * Deterministic, and deliberately not generated. A language model has no
+   * reliable knowledge of which weights are executing it - a 3B local model
+   * asked this will happily say it is Opus or GPT-4, because that is what the
+   * assistant transcripts it was trained on say. So the one question where a
+   * confident wrong answer does real harm is the one question Helix never
+   * asks a model to answer.
+   */
+  #describeRunningModel(): string {
+    const selection = this.#ai?.describeSelection();
+
+    if (!selection || selection.model === null || selection.provider === null) {
+      return regret(
+        `nothing is answering at the moment${
+          selection?.reason !== undefined ? `: ${selection.reason}` : ''
+        }`,
+      );
+    }
+
+    const { model, provider } = selection;
+    const where =
+      provider.location === 'local'
+        ? `running on this machine through ${provider.name}. Nothing you say to me is sent anywhere`
+        : `running on ${provider.name}, which is a service off this machine`;
+
+    return observe(`${model.name} (${model.id}), ${where}`);
+  }
+
+  /**
+   * Reporting which model is actually answering, and switching between them.
+   *
+   * The reporting half used to read `settings.languageModel`, whose default
+   * was `claude-opus-5` from an early design in which Helix called a cloud
+   * API. So "what model are you" answered "Opus 5" while qwen2.5 on the
+   * user's own machine wrote the sentence - and this tool sits at priority
+   * 300, so it beat the conversation that would have known better.
+   *
+   * That is the worst instance of this codebase's one cardinal fault, not a
+   * cosmetic slip. Someone who has switched Helix to local-only precisely so
+   * nothing leaves the machine asks this question to check, and was told a
+   * cloud model was answering. Being wrong in that direction destroys the
+   * only thing the answer is for.
+   *
+   * It is now answered from the router, which knows what is installed, what
+   * fits in this machine's memory, and what actually ran. A setting records a
+   * wish; only the router has a fact.
    */
   #modelTool(): HelixTool {
     const switchVerbs = ['switch to', 'use ', 'change to', 'set model', 'switch model'];
@@ -716,38 +757,34 @@ ${lines}`,
       'which claude',
       'current model',
       'model are you',
+      'what are you running',
+      'what are you running on',
+      'are you local',
+      'who made you',
+      'are you claude',
+      'are you gpt',
     ];
 
     return {
-      name: 'switchModel',
-      description: 'Switch the Claude model, or report which one is selected.',
+      name: 'whichModel',
+      description: 'Report which model is actually answering, or switch between installed ones.',
       priority: 300,
       matches: (request) => {
         const lower = request.text.toLowerCase();
         if (askPhrases.some((phrase) => lower.includes(phrase))) return true;
-        // A switch needs both a switching verb and a recognisable model name.
         return switchVerbs.some((verb) => lower.includes(verb)) && resolveModel(lower) !== null;
       },
       unavailableReason: () => null,
       execute: async (request) => {
         const lower = request.text.toLowerCase();
-        const current = getModelOrDefault(this.#settings.get('languageModel'));
 
-        // A question about the current model, not a switch.
         if (askPhrases.some((phrase) => lower.includes(phrase))) {
-          return {
-            text:
-              observe(
-                `I am presently set to ${current.name} (${current.id}), with a ` +
-                  `${formatContext(current.contextTokens)} context window`,
-              ) +
-              ` ${this.#connectionCaveat()}`,
-            handled: true,
-          };
+          return { text: this.#describeRunningModel(), handled: true };
         }
 
         const target = resolveModel(lower);
         if (!target) return null;
+        const current = getModelOrDefault(this.#settings.get('languageModel'));
 
         if (target.id === current.id) {
           return {

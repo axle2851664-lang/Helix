@@ -10,7 +10,22 @@ import { ProjectManager } from '../projects/ProjectManager.js';
 import { MemoryManager } from '../memory/MemoryManager.js';
 import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 
-async function makeContext() {
+/**
+ * A router that reports exactly what it is told to, so "what is answering"
+ * can be asserted rather than inferred.
+ */
+function routerReporting(model: { id: string; name: string } | null, location = 'local') {
+  return {
+    describeSelection: () => ({
+      model,
+      provider:
+        model === null ? null : { name: location === 'local' ? 'Ollama' : 'Gemini', location },
+      reason: model === null ? 'No local model is running.' : 'An ordinary request.',
+    }),
+  };
+}
+
+async function makeContext(ai?: unknown) {
   const kv = new MemoryKeyValueStore();
   const logger = new Logger('test', { level: 'ERROR', sinks: [] });
   const settings = new SettingsManager({ store: kv, logger });
@@ -30,6 +45,7 @@ async function makeContext() {
     memory,
     knowledge,
     logger,
+    ...(ai !== undefined ? { ai: ai as never } : {}),
   });
   const conversation = await conversations.create();
 
@@ -90,18 +106,55 @@ describe('orchestrator: model switching', () => {
     expect(response.text).toContain('Haiku 4.5');
   });
 
-  it('reports the selected model when asked', async () => {
-    const response = await ask('which model are you using?');
+  /**
+   * The bug this replaced: "which model are you" answered from
+   * settings.languageModel, whose default is claude-opus-5, while a local
+   * model wrote every other sentence. Someone running local-only asks this
+   * exact question to check that nothing is leaving the machine, so a
+   * confident wrong answer here is the most damaging one Helix can give.
+   */
+  it('names what is actually answering, not the stored preference', async () => {
+    const local = await makeContext(routerReporting({ id: 'qwen2.5:7b', name: 'Qwen2.5 7B' }));
+    const response = await local.orchestrator.submit({
+      text: 'which model are you using?',
+      conversationId: local.conversation.id,
+    });
 
     expect(response.handled).toBe(true);
-    expect(response.text).toContain('Opus 5');
-    expect(response.text).toContain('claude-opus-5');
+    expect(response.text).toContain('qwen2.5:7b');
+    expect(response.text).not.toContain('Opus');
+    expect(response.text).not.toContain('claude');
   });
 
-  it('reports the newly selected model after a switch', async () => {
-    await ask('switch to haiku');
-    const response = await ask('what model is selected?');
-    expect(response.text).toContain('Haiku 4.5');
+  it('says plainly that a local model keeps the conversation on the machine', async () => {
+    const local = await makeContext(routerReporting({ id: 'qwen2.5:7b', name: 'Qwen2.5 7B' }));
+    const response = await local.orchestrator.submit({
+      text: 'what are you running on?',
+      conversationId: local.conversation.id,
+    });
+
+    expect(response.text).toContain('this machine');
+    expect(response.text).toMatch(/not sent anywhere|Nothing you say/i);
+  });
+
+  it('does not claim to be local when a cloud provider is answering', async () => {
+    const cloud = await makeContext(
+      routerReporting({ id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' }, 'cloud'),
+    );
+    const response = await cloud.orchestrator.submit({
+      text: 'are you local?',
+      conversationId: cloud.conversation.id,
+    });
+
+    expect(response.text).toContain('off this machine');
+    expect(response.text).not.toMatch(/Nothing you say/i);
+  });
+
+  it('says nothing is answering rather than naming a model, when none is', async () => {
+    const response = await ask('which model are you using?');
+
+    expect(response.text).not.toContain('Opus 5');
+    expect(response.text).toMatch(/nothing is answering/i);
   });
 
   it('says when the model is already selected', async () => {
@@ -111,8 +164,8 @@ describe('orchestrator: model switching', () => {
 
   // The switch is real; the connection is not. Every reply must say so, or a
   // user will reasonably assume the next question gets answered.
-  it('always states that no API key is connected', async () => {
-    for (const phrase of ['switch to sonnet', 'which model are you using?', 'switch to sonnet']) {
+  it('always states that no API key is connected when switching', async () => {
+    for (const phrase of ['switch to sonnet', 'switch to haiku']) {
       const response = await ask(phrase);
       expect(response.text, phrase).toContain('no API key is connected');
     }
