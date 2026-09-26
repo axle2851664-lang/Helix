@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Globe } from './Globe.js';
 import { describeArc, segmentAngles, type ReactorSegment } from './capabilities.js';
 import type { HelixStatus } from '../../types/status.js';
 
@@ -68,13 +69,6 @@ export function Reactor({ segments, status, level, busy, onActivate, label }: Re
           height={SIZE}
           aria-hidden="true"
         >
-          <defs>
-            <radialGradient id="hx-reactor-core" cx="50%" cy="38%" r="70%">
-              <stop offset="0%" stopColor="rgba(224, 36, 60, 0.42)" />
-              <stop offset="100%" stopColor="rgba(224, 36, 60, 0.08)" />
-            </radialGradient>
-          </defs>
-
           {/* Track behind the segments, so gaps read as gaps and not as gone. */}
           <circle
             className="hx-reactor__track"
@@ -112,18 +106,14 @@ export function Reactor({ segments, status, level, busy, onActivate, label }: Re
             style={{ opacity: listening ? 0.3 + amplitude * 0.7 : 0 }}
           />
 
-          <circle className="hx-reactor__core" cx={CENTRE} cy={CENTRE} r={54} />
-
-          <text
-            className="hx-reactor__glyph"
-            x={CENTRE}
-            y={CENTRE}
-            textAnchor="middle"
-            dominantBaseline="central"
-          >
-            H
-          </text>
         </svg>
+
+        {/*
+          The sphere sits under the ring rather than inside the SVG, because
+          it is a CSS 3D rotation and SVG does not carry one reliably. The
+          ring stays SVG: it is a readout, and its segments are real data.
+        */}
+        <Globe size={150} />
       </button>
 
       {/* The readout. Occupies its line whether or not anything is hovered, so

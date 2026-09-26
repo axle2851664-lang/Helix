@@ -3305,3 +3305,153 @@
 @media (prefers-reduced-motion: reduce) {
   .hx-nav__item { transition: none; }
 }
+
+/* ======================== the wireframe sphere ========================
+   Rotated by the compositor, not by the main thread. The machine this
+   runs on has no GPU for inference and a CPU counting single tokens a
+   second - an ornament repainting sixty times a second would be taking
+   cycles from the only thing on screen that matters. */
+.hx-globe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  perspective: 620px;
+  pointer-events: none;
+}
+
+.hx-globe__spin {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: hx-globe-turn 26s linear infinite;
+}
+
+.hx-globe__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  /* Thin and cool, not branded. The reference is a silver wireframe on
+     black, and a red one would read as an alarm rather than a machine
+     at rest. */
+  border: 1px solid rgba(214, 232, 246, 0.26);
+  box-sizing: border-box;
+}
+
+/* Parallels sit back a shade, so the vertical structure reads first and
+   the sphere does not turn into a uniform mesh. */
+.hx-globe__ring--parallel {
+  border-color: rgba(214, 232, 246, 0.16);
+}
+
+@keyframes hx-globe-turn {
+  from { transform: rotateX(-14deg) rotateY(0deg); }
+  to { transform: rotateX(-14deg) rotateY(360deg); }
+}
+
+/* A permanently moving object is an obstacle, not decoration. */
+@media (prefers-reduced-motion: reduce) {
+  .hx-globe__spin { animation: none; transform: rotateX(-14deg) rotateY(24deg); }
+}
+
+/* ============================ the HUD ================================
+   Black, not near-black, so the sphere is the only lit thing. The chrome
+   goes to thin uppercase monospace at low opacity - present when looked
+   for, silent otherwise. */
+.hx-app,
+body {
+  background: #000;
+}
+
+.hx-reactor {
+  position: relative;
+}
+
+.hx-reactor__track {
+  stroke: rgba(214, 232, 246, 0.09);
+}
+
+.hx-reactor__readout,
+.hx-reactor__readout-idle {
+  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(214, 232, 246, 0.34);
+}
+
+.hx-nav__heading,
+.hx-wordmark {
+  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+.hx-nav__item {
+  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+}
+
+.hx-sidebar {
+  background: rgba(255, 255, 255, 0.012);
+  border-right: 1px solid rgba(214, 232, 246, 0.06);
+}
+
+/* ---- the rest of the home screen, brought down to the same level ----
+   The reference has no headline and no buttons: thin monospace at the
+   edges, and the sphere. These keep their function and stop competing
+   with it. */
+.hx-home__title {
+  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(214, 232, 246, 0.62);
+}
+
+.hx-home__sub {
+  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(214, 232, 246, 0.26);
+}
+
+/* Outlines rather than filled pills. A suggestion should not look more
+   important than the thing it is suggesting you talk to. */
+.hx-chip {
+  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  background: transparent;
+  border: 1px solid rgba(214, 232, 246, 0.14);
+  color: rgba(214, 232, 246, 0.54);
+  transition: border-color 140ms ease, color 140ms ease;
+}
+
+.hx-chip:hover {
+  border-color: rgba(214, 232, 246, 0.38);
+  color: rgba(214, 232, 246, 0.92);
+}
+
+/* The mark, as an outline. A filled red square in the corner was the
+   brightest thing on a screen whose point is the sphere. */
+.hx-logo {
+  background: transparent;
+  border: 1px solid rgba(214, 232, 246, 0.2);
+  box-shadow: none;
+}
+
+.hx-logo__glyph {
+  color: rgba(214, 232, 246, 0.72);
+}
+
+.hx-composer,
+.hx-composer__field {
+  border-color: rgba(214, 232, 246, 0.12);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-chip { transition: none; }
+}
