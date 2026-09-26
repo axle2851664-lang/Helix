@@ -145,6 +145,7 @@ pub fn run() {
             install_root,
             inference::configured_inference_providers,
             inference::inference_request,
+            inference::inference_stream,
             google::google_status,
             google::google_connect,
             google::google_disconnect,

@@ -164,6 +164,7 @@ export class HelixOrchestrator {
   readonly #ai: AIRouter | undefined;
   readonly #research: WebResearch | undefined;
   readonly #runner: ActionRunner | undefined;
+  readonly #bus: EventBus | undefined;
   readonly #outbound: OutboundManager | undefined;
   readonly #gmail: GmailProvider | undefined;
   readonly #calendar: CalendarProvider | undefined;
@@ -189,6 +190,7 @@ export class HelixOrchestrator {
     this.#ai = options.ai;
     this.#research = options.research;
     this.#runner = options.runner;
+    this.#bus = options.bus;
     this.#outbound = options.outbound;
     this.#gmail = options.gmail;
     this.#calendar = options.calendar;
@@ -330,13 +332,30 @@ export class HelixOrchestrator {
           content: message.text,
         }));
 
-      const result = await this.#ai.generate(
-        [
-          { role: 'system', content: local ? BRIEF_SYSTEM_PROMPT : SYSTEM_PROMPT },
-          ...history,
-        ],
-        requirement,
-      );
+      const messages = [
+        { role: 'system' as const, content: local ? BRIEF_SYSTEM_PROMPT : SYSTEM_PROMPT },
+        ...history,
+      ];
+
+      // Streamed when anything is listening. The reply takes exactly as long
+      // either way - what changes is that the first words appear in about a
+      // second instead of after the whole thing, which on a CPU is the
+      // difference between a machine that is working and one that has hung.
+      const bus = this.#bus;
+      const result =
+        bus === undefined
+          ? await this.#ai.generate(messages, requirement)
+          : await this.#ai.stream(messages, requirement, (chunk) => {
+              bus.emit('AI_STREAM_CHUNK', {
+                conversationId: request.conversationId,
+                text: chunk,
+              });
+            });
+
+      // Emitted whatever happened, including on the paths below that return
+      // early. A stream that never says it ended leaves a cursor blinking on
+      // a reply that finished.
+      bus?.emit('AI_STREAM_END', { conversationId: request.conversationId });
 
       // A substitution is reported rather than hidden. The user asked one
       // thing to answer and something else did.
@@ -370,6 +389,9 @@ export class HelixOrchestrator {
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       this.#logger.info('Conversation could not be answered.', { reason });
+      // Ends the stream on the failure path too. Without this, a reply that
+      // died half-written leaves a cursor blinking under it for ever.
+      this.#bus?.emit('AI_STREAM_END', { conversationId: request.conversationId });
 
       return { text: reason, handled: false, failure: 'PROVIDER_NOT_CONFIGURED' };
     }

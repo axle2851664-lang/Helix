@@ -1,4 +1,4 @@
-import type { InferenceTransport } from './types.js';
+import type { InferenceTransport, StreamEvent } from './types.js';
 
 /**
  * How an inference request leaves the machine, and why it usually cannot.
@@ -212,6 +212,63 @@ export class TauriInferenceTransport implements InferenceTransport {
       throw error instanceof Error ? error : new Error(messageFrom(error));
     }
   }
+
+  /**
+   * Stream a reply, a piece at a time.
+   *
+   * Uses a Tauri channel rather than global events, so a reply cannot be
+   * delivered to the wrong listener: the channel belongs to this call and
+   * nothing else can receive on it. With global events, two conversations
+   * running at once would interleave into each other.
+   *
+   * The `Channel` class is imported here rather than at module load, because
+   * this file is also used in the browser, where importing the Tauri API at
+   * the top would fail before anything could explain why.
+   */
+  async streamChat(options: {
+    providerId: string;
+    path: string;
+    body: unknown;
+    onEvent: (event: StreamEvent) => void;
+  }): Promise<void> {
+    const { Channel } = await import('@tauri-apps/api/core');
+
+    const channel = new Channel<StreamEvent>();
+    channel.onmessage = (event) => options.onEvent(event);
+
+    try {
+      await this.#invoke<void>('inference_stream', {
+        request: {
+          provider: options.providerId,
+          path: options.path,
+          body: options.body ?? null,
+        },
+        onEvent: channel,
+      });
+    } catch (error) {
+      throw error instanceof Error ? error : new Error(messageFrom(error));
+    }
+  }
+}
+
+/**
+ * Whether this transport can stream, and how.
+ *
+ * Optional on purpose: a transport that cannot stream should not have to
+ * pretend. Callers check for it and fall back to a whole-reply request, which
+ * is what the browser does - it has no channel to stream over.
+ */
+export interface StreamingTransport {
+  streamChat(options: {
+    providerId: string;
+    path: string;
+    body: unknown;
+    onEvent: (event: StreamEvent) => void;
+  }): Promise<void>;
+}
+
+export function canStream(value: unknown): value is StreamingTransport {
+  return typeof (value as StreamingTransport | null)?.streamChat === 'function';
 }
 
 /** Whatever the shell rejected with, as a sentence. */

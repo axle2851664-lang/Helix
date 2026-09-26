@@ -322,6 +322,51 @@ export class AIRouter {
     return reasons.join(' ');
   }
 
+  /**
+   * Run a request, handing back each piece as it arrives.
+   *
+   * Deliberately simpler than `generate`: it uses the first candidate and
+   * does not fall through to a second on failure. A fallback mid-stream would
+   * mean text from one model already on screen and text from another
+   * appended to it, which reads as one answer and is two.
+   *
+   * Providers that cannot stream hand back the whole reply in one piece, so
+   * callers need no branch of their own.
+   */
+  async stream(
+    messages: readonly ChatMessage[],
+    requirement: Requirement,
+    onChunk: (text: string) => void,
+  ): Promise<RoutedResult> {
+    const candidates = this.plan(requirement);
+    const first = candidates[0];
+    if (!first) throw new Error(this.#nothingAvailableReason());
+
+    const result = await first.provider.stream(
+      {
+        model: first.model.id,
+        messages,
+        ...(this.#options.temperature !== undefined
+          ? { temperature: this.#options.temperature }
+          : {}),
+        maxOutputTokens: replyTokenCap(
+          this.#options.maxOutputTokens,
+          first.provider.location === 'local',
+        ),
+      },
+      onChunk,
+    );
+
+    return {
+      ...result,
+      requestedModel: first.model.id,
+      requestedProvider: first.provider.id,
+      substituted: false,
+      capabilityLoss: null,
+      attempts: [{ providerId: first.provider.id, modelId: first.model.id, failedBecause: null }],
+    };
+  }
+
   /** What the status panel shows: the model and the provider, separately. */
   describeSelection(requirement?: Requirement): {
     model: ModelInfo | null;

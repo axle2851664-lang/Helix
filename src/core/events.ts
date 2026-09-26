@@ -81,6 +81,16 @@ export interface HelixEventMap {
    * "INFERENCE: Not configured" while a local model was answering.
    */
   AI_MODELS_REGISTERED: { provider: string; usable: number; chosen: string | null };
+  /**
+   * A piece of a reply as it is generated.
+   *
+   * Carries the conversation it belongs to, because two conversations can be
+   * open and a chunk shown under the wrong one is worse than no streaming at
+   * all. `text` is what is new, never the whole reply so far.
+   */
+  AI_STREAM_CHUNK: { conversationId: string; text: string };
+  /** A streamed reply has finished, successfully or not. */
+  AI_STREAM_END: { conversationId: string };
 
   // --- Connectivity (spec 27) ---
   CONNECTIVITY_CHANGED: { mode: 'online' | 'offline' };

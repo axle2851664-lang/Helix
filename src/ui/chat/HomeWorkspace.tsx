@@ -130,12 +130,41 @@ export function HomeWorkspace({
     return () => unsubscribes.forEach((stop) => stop());
   }, [projects, memory, knowledge]);
 
+  /**
+   * The reply being written, before it is saved.
+   *
+   * Held here rather than in the conversation store, because a half-written
+   * reply is not a message yet - persisting each token would fill the history
+   * with fragments of an answer that may never finish. The moment it lands,
+   * the stored message replaces this.
+   */
+  const [streaming, setStreaming] = useState('');
+
+  useEffect(() => {
+    const stopChunk = bus.on('AI_STREAM_CHUNK', (event) => {
+      // Scoped to this conversation. Two open at once must not write into
+      // each other, and a chunk shown under the wrong one is worse than no
+      // streaming at all.
+      if (event.conversationId !== conversationId) return;
+      setStreaming((sofar) => sofar + event.text);
+    });
+    const stopEnd = bus.on('AI_STREAM_END', (event) => {
+      if (event.conversationId === conversationId) setStreaming('');
+    });
+
+    return () => {
+      stopChunk();
+      stopEnd();
+    };
+  }, [bus, conversationId]);
+
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight });
-  }, [conversation?.messages.length]);
+  }, [conversation?.messages.length, streaming]);
 
   const send = async (text: string, options: { speak?: boolean } = {}) => {
     setDraft('');
+    setStreaming('');
     setBusy(true);
     try {
       const id = await ensureConversation();
@@ -150,6 +179,7 @@ export function HomeWorkspace({
         await voice.speak(response.text);
       }
     } finally {
+      setStreaming('');
       setBusy(false);
     }
   };
@@ -288,9 +318,19 @@ export function HomeWorkspace({
           {busy && (
             <div className="hx-msg hx-msg--helix">
               <div className="hx-msg__role">Helix</div>
-              <div className="hx-msg__body hx-msg__body--pending">
-                {activity.current.label}
-              </div>
+              {/*
+                The reply as it is written, or the activity label until the
+                first word arrives. Once text is coming there is no reason to
+                keep saying "Thinking" - the words are the proof.
+              */}
+              {streaming === '' ? (
+                <div className="hx-msg__body hx-msg__body--pending">{activity.current.label}</div>
+              ) : (
+                <div className="hx-msg__body hx-msg__body--streaming">
+                  {streaming}
+                  <span className="hx-cursor" aria-hidden="true" />
+                </div>
+              )}
             </div>
           )}
         </div>

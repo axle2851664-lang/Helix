@@ -1,5 +1,6 @@
 import { Icon, type IconName } from '../components/Icon.js';
-import { SIDEBAR_WORKSPACES, type WorkspaceId } from '../workspaces/registry.js';
+import { GROUP_LABELS, GROUP_ORDER, SIDEBAR_WORKSPACES } from '../workspaces/registry.js';
+import type { WorkspaceId } from '../workspaces/registry.js';
 import { useSettings } from '../HelixProvider.js';
 
 /**
@@ -67,29 +68,45 @@ export function Sidebar({ active, onNavigate, onNewConversation, collapsed }: Si
           <span className="hx-nav__label">New Conversation</span>
         </button>
 
-        {SIDEBAR_WORKSPACES.map((workspace) => {
-          const isActive = workspace.id === active;
+        {/*
+          Grouped rather than flat. Eighteen entries in one list is a wall:
+          everything has equal weight, so nothing has any, and finding one
+          means reading all of them. Every choice is still here - the reading
+          is four headings instead of eighteen labels.
+        */}
+        {GROUP_ORDER.map((group) => {
+          const inGroup = SIDEBAR_WORKSPACES.filter((workspace) => workspace.group === group);
+          if (inGroup.length === 0) return null;
+
           return (
-            <button
-              key={workspace.id}
-              type="button"
-              className={`hx-nav__item${isActive ? ' hx-nav__item--active' : ''}`}
-              aria-current={isActive ? 'page' : undefined}
-              onClick={() => onNavigate(workspace.id)}
-              title={
-                workspace.implemented
-                  ? workspace.subtitle
-                  : `${workspace.subtitle} (not implemented yet - phase ${workspace.phase})`
-              }
-            >
-              <Icon name={ICONS[workspace.id]} />
-              <span className="hx-nav__label">{workspace.title}</span>
-              {!workspace.implemented && (
-                <span className="hx-nav__phase" aria-label="not implemented yet">
-                  P{workspace.phase}
-                </span>
-              )}
-            </button>
+            <div className="hx-nav__group" key={group}>
+              <div className="hx-nav__heading">{GROUP_LABELS[group]}</div>
+              {inGroup.map((workspace) => {
+                const isActive = workspace.id === active;
+                return (
+                  <button
+                    key={workspace.id}
+                    type="button"
+                    className={`hx-nav__item${isActive ? ' hx-nav__item--active' : ''}`}
+                    aria-current={isActive ? 'page' : undefined}
+                    onClick={() => onNavigate(workspace.id)}
+                    title={
+                      workspace.implemented
+                        ? workspace.subtitle
+                        : `${workspace.subtitle} (not implemented yet - phase ${workspace.phase})`
+                    }
+                  >
+                    <Icon name={ICONS[workspace.id] ?? 'panel'} />
+                    <span className="hx-nav__label">{workspace.title}</span>
+                    {!workspace.implemented && (
+                      <span className="hx-nav__phase" aria-label="not implemented yet">
+                        P{workspace.phase}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           );
         })}
       </nav>

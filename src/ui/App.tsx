@@ -63,7 +63,15 @@ function HelixWorkspaceShell() {
   const [workspace, setWorkspace] = useState<WorkspaceId>('home');
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [statusOpen, setStatusOpen] = useState(true);
+  /**
+   * Closed until asked for.
+   *
+   * The panel is eight rows of live detail, and open by default it was the
+   * loudest thing on a screen whose point is the core in the middle. Nothing
+   * is removed - the toggle is in the header and the same detail is a click
+   * away - but the resting state is now the quiet one.
+   */
+  const [statusOpen, setStatusOpen] = useState(false);
   // Below this width the sidebar becomes an overlay, so it must start closed or
   // it covers the workspace on load.
   const [sidebarOpen, setSidebarOpen] = useState(

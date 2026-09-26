@@ -1,4 +1,5 @@
 import { CONVERSATIONAL_CONTEXT, CONVERSATIONAL_TOKEN_CAP, KEEP_ALIVE } from './speed.js';
+import { canStream } from './transport.js';
 import type {
   GenerateRequest,
   GenerateResult,
@@ -422,8 +423,63 @@ export class OllamaProvider implements InferenceProvider {
     request: GenerateRequest,
     onChunk: (text: string) => void,
   ): Promise<GenerateResult> {
-    const result = await this.generate(request);
-    if (result.text !== '') onChunk(result.text);
-    return result;
+    // A transport that cannot stream is not made to pretend. The browser has
+    // no channel to stream over, so it gets the whole reply and hands it
+    // across in one piece - which is honest about when the answer arrived.
+    if (!canStream(this.#transport)) {
+      const result = await this.generate(request);
+      if (result.text !== '') onChunk(result.text);
+      return result;
+    }
+
+    let text = '';
+    let model = request.model;
+    let failure: string | null = null;
+
+    await withTimeout(
+      this.#transport.streamChat({
+        providerId: this.id,
+        path: CHAT_PATH,
+        body: {
+          model: request.model,
+          messages: request.messages,
+          stream: true,
+          keep_alive: KEEP_ALIVE,
+          options: {
+            ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
+            ...(request.maxOutputTokens !== undefined
+              ? { num_predict: request.maxOutputTokens }
+              : {}),
+            ...(request.maxOutputTokens !== undefined &&
+            request.maxOutputTokens <= CONVERSATIONAL_TOKEN_CAP
+              ? { num_ctx: CONVERSATIONAL_CONTEXT }
+              : {}),
+          },
+        },
+        onEvent: (event) => {
+          if (event.kind === 'chunk') {
+            text += event.text;
+            onChunk(event.text);
+          } else if (event.kind === 'done') {
+            if (event.model !== '') model = event.model;
+          } else {
+            failure = event.message;
+          }
+        },
+      }),
+      FIRST_REPLY_TIMEOUT_MS,
+      `${request.model} did not answer within three minutes. The first request after starting loads the whole model into memory, which is slow on a large model or a slow disk - but three minutes is past that.`,
+    );
+
+    // A failure part-way through is reported even though text arrived. The
+    // words already on screen are real; what must not happen is a truncated
+    // answer presented as a finished one.
+    if (failure !== null && text === '') throw new Error(failure);
+
+    return {
+      text,
+      model,
+      ...(failure !== null ? { incomplete: failure } : {}),
+    } as GenerateResult;
   }
 }

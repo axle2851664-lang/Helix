@@ -35,7 +35,30 @@ export const WORKSPACE_IDS = [
 
 export type WorkspaceId = (typeof WORKSPACE_IDS)[number];
 
+/**
+ * Which part of the sidebar a workspace belongs in.
+ *
+ * Eighteen entries in one flat list is a wall rather than a menu: everything
+ * has equal weight, so nothing has any, and finding the one you want means
+ * reading all of them. Grouping keeps every choice and makes the list
+ * scannable - you read four headings instead of eighteen labels.
+ */
+export type WorkspaceGroup = 'talk' | 'mail' | 'make' | 'know' | 'machine';
+
+export const GROUP_LABELS: Readonly<Record<WorkspaceGroup, string>> = {
+  talk: 'Talk',
+  mail: 'Mail & time',
+  make: 'Make',
+  know: 'Know',
+  machine: 'This machine',
+};
+
+/** The order the groups appear in, most-used first. */
+export const GROUP_ORDER: readonly WorkspaceGroup[] = ['talk', 'mail', 'make', 'know', 'machine'];
+
 export interface WorkspaceDescriptor {
+  /** Where it sits in the sidebar. Absent means it is not in the sidebar. */
+  group?: WorkspaceGroup;
   id: WorkspaceId;
   title: string;
   subtitle: string;
@@ -59,6 +82,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   conversations: {
     id: 'conversations',
+    group: 'talk',
     title: 'Conversations',
     subtitle: 'Your saved conversations.',
     aliases: ['history', 'chats', 'transcripts'],
@@ -68,6 +92,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   memory: {
     id: 'memory',
+    group: 'talk',
     title: 'Memory',
     subtitle: 'What Helix remembers, and what it forgets.',
     aliases: ['memories', 'remember', 'recall'],
@@ -77,6 +102,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   files: {
     id: 'files',
+    group: 'know',
     title: 'Files',
     subtitle: 'Indexed files and knowledge.',
     aliases: ['documents', 'knowledge', 'library'],
@@ -86,6 +112,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   'web-research': {
     id: 'web-research',
+    group: 'know',
     title: 'Web Research',
     subtitle: 'Search and summarise the web.',
     aliases: ['web', 'search', 'research', 'browse', 'internet'],
@@ -95,6 +122,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   coding: {
     id: 'coding',
+    group: 'make',
     title: 'Coding',
     subtitle: 'Write code, locally. Nothing is run.',
     aliases: ['code', 'programming', 'develop', 'write code'],
@@ -104,6 +132,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   inbox: {
     id: 'inbox',
+    group: 'mail',
     title: 'Inbox',
     subtitle: 'Your unread mail, and the few things Helix may do with it.',
     aliases: ['mail', 'email', 'inbox', 'my mail', 'my email', 'gmail'],
@@ -113,6 +142,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   outbox: {
     id: 'outbox',
+    group: 'mail',
     title: 'Outbox',
     subtitle: 'Messages waiting for you to read them and agree.',
     aliases: ['outbox', 'drafts', 'sending', 'sent', 'messages waiting'],
@@ -122,6 +152,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   portable: {
     id: 'portable',
+    group: 'machine',
     title: 'Take It With You',
     subtitle: 'Put Helix on a flash drive, choosing exactly what goes.',
     aliases: ['portable', 'flash drive', 'usb', 'usb stick', 'take it with me', 'memory stick'],
@@ -131,6 +162,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   'image-search': {
     id: 'image-search',
+    group: 'make',
     title: 'Image Search',
     subtitle: 'Find pictures on the web, with their source and licence.',
     aliases: ['images', 'image search', 'pictures', 'find images', 'photos'],
@@ -140,6 +172,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   'image-generation': {
     id: 'image-generation',
+    group: 'make',
     title: 'Image Generation',
     subtitle: 'Generate and edit images.',
     aliases: ['images', 'image', 'generate image', 'art', 'picture'],
@@ -149,6 +182,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   earth: {
     id: 'earth',
+    group: 'know',
     title: 'Helix Earth',
     subtitle: 'Maps, globe and geographic data.',
     aliases: ['map', 'maps', 'globe', 'geography', 'earth', 'location'],
@@ -158,6 +192,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   storage: {
     id: 'storage',
+    group: 'machine',
     title: 'Storage',
     subtitle: 'Space used by Helix and its data.',
     aliases: ['disk', 'space', 'usage', 'capacity'],
@@ -167,6 +202,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   'upload-project': {
     id: 'upload-project',
+    group: 'know',
     title: 'Upload Project',
     subtitle: 'Import files and create a project.',
     aliases: ['import', 'upload', 'new project', 'projects', 'project'],
@@ -176,6 +212,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   'gesture-control': {
     id: 'gesture-control',
+    group: 'machine',
     title: 'Gesture Control',
     subtitle: 'Camera, vision and hand tracking.',
     aliases: ['camera', 'camera mode', 'gestures', 'hands', 'vision', 'webcam'],
@@ -185,6 +222,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   spatial: {
     id: 'spatial',
+    group: 'make',
     title: 'Spatial',
     subtitle: 'Manipulate objects by hand over the camera view.',
     aliases: ['spatial mode', 'objects', 'stage', 'hand control', 'manipulate'],
@@ -194,6 +232,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   graph: {
     id: 'graph',
+    group: 'know',
     title: 'Graph',
     subtitle: 'Your notes and the links between them.',
     aliases: ['vault', 'notes graph', 'links', 'map of notes', 'knowledge graph'],
@@ -203,6 +242,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   models: {
     id: 'models',
+    group: 'machine',
     title: 'Local AI',
     subtitle: 'Models on this machine, and what will fit.',
     aliases: ['models', 'local ai', 'local model', 'ollama', 'brain', 'llm'],
@@ -212,6 +252,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   },
   settings: {
     id: 'settings',
+    group: 'machine',
     title: 'Settings',
     subtitle: 'Providers, privacy, storage and appearance.',
     aliases: ['preferences', 'options', 'config', 'configure'],

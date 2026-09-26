@@ -57,6 +57,12 @@ export interface ChatMessage {
   content: string;
 }
 
+/** One piece of a streamed reply, mirroring the shell's own tagged events. */
+export type StreamEvent =
+  | { kind: 'chunk'; text: string }
+  | { kind: 'done'; model: string }
+  | { kind: 'failed'; message: string };
+
 export interface GenerateRequest {
   /** Wire id of the model to run. Never defaulted inside a provider. */
   model: string;
