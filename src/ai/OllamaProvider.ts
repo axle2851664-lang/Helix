@@ -30,6 +30,25 @@ import type {
  * are the ones in the brief rather than invented paraphrases.
  */
 
+/**
+ * How long to wait for a local model before giving up on it.
+ *
+ * Generous on purpose. The first request after a model is chosen has to load
+ * the weights into memory - several gigabytes off disk - and on a slow drive
+ * that legitimately takes minutes. Anything shorter would abandon a machine
+ * that was about to answer.
+ *
+ * But not unbounded, which is what it was. The shell sets no timeout on its
+ * HTTP client, so a stalled request waited for ever and the interface sat on
+ * "Standing by" with nothing to read and nothing to do. A wait that never
+ * ends is indistinguishable from a program that has crashed, and is worse,
+ * because the user keeps waiting.
+ */
+const FIRST_REPLY_TIMEOUT_MS = 180_000;
+
+/** Listing models is a cheap call. If it is slow, it is not coming. */
+const PROBE_TIMEOUT_MS = 10_000;
+
 const TAGS_PATH = '/api/tags';
 const CHAT_PATH = '/api/chat';
 
@@ -51,6 +70,29 @@ interface ChatResponse {
   done_reason?: unknown;
   prompt_eval_count?: unknown;
   eval_count?: unknown;
+}
+
+/**
+ * Race a request against the clock.
+ *
+ * `Promise.race` rather than an AbortSignal, because the desktop transport
+ * cannot cancel a request already handed to the shell. This does not stop the
+ * work; it stops the waiting, which is the part the user is stuck in. The
+ * abandoned request finishes into nothing.
+ */
+async function withTimeout<T>(work: Promise<T>, ms: number, whenSlow: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(whenSlow)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 function asNumber(value: unknown): number | null {
@@ -188,11 +230,15 @@ export class OllamaProvider implements InferenceProvider {
 
   /** Ask the runtime what it actually has. The only authority on this. */
   async #probe(): Promise<ModelInfo[]> {
-    const response = (await this.#transport.request({
-      providerId: this.id,
-      path: TAGS_PATH,
-      body: null,
-    })) as TagsResponse;
+    const response = (await withTimeout(
+      this.#transport.request({
+        providerId: this.id,
+        path: TAGS_PATH,
+        body: null,
+      }),
+      PROBE_TIMEOUT_MS,
+      `The local AI service at 127.0.0.1:11434 did not answer within ten seconds. Listing models is a cheap call, so this usually means Ollama is starting up or is wedged rather than busy.`,
+    )) as TagsResponse;
 
     const models = (response.models ?? [])
       .map((entry): ModelInfo | null => {
@@ -270,22 +316,26 @@ export class OllamaProvider implements InferenceProvider {
   }
 
   async generate(request: GenerateRequest): Promise<GenerateResult> {
-    const response = (await this.#transport.request({
-      providerId: this.id,
-      path: CHAT_PATH,
-      body: {
-        model: request.model,
-        messages: request.messages,
-        stream: false,
-        options: {
-          ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
-          ...(request.maxOutputTokens !== undefined
-            ? { num_predict: request.maxOutputTokens }
-            : {}),
+    const response = (await withTimeout(
+      this.#transport.request({
+        providerId: this.id,
+        path: CHAT_PATH,
+        body: {
+          model: request.model,
+          messages: request.messages,
+          stream: false,
+          options: {
+            ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
+            ...(request.maxOutputTokens !== undefined
+              ? { num_predict: request.maxOutputTokens }
+              : {}),
+          },
         },
-      },
-      ...(request.signal ? { signal: request.signal } : {}),
-    })) as ChatResponse;
+        ...(request.signal ? { signal: request.signal } : {}),
+      }),
+      FIRST_REPLY_TIMEOUT_MS,
+      `${request.model} did not answer within three minutes. The first request after starting loads the whole model into memory, which is slow on a large model or a slow disk - but three minutes is past that. Check that Ollama is still running, or choose a smaller model on the Local AI screen.`,
+    )) as ChatResponse;
 
     const content = response.message?.content;
     if (typeof content !== 'string') {

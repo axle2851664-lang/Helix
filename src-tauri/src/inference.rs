@@ -16,6 +16,13 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// How long any one inference request may take before it is abandoned.
+///
+/// Longer than the front end's own wait, deliberately: the interface should
+/// be the thing that gives up first, because it is the thing that can explain
+/// itself to the user.
+const INFERENCE_TIMEOUT_SECS: u64 = 240;
+
 /// A provider Helix knows how to reach.
 struct ProviderSpec {
     id: &'static str,
@@ -159,7 +166,21 @@ pub async fn inference_request(
     }
 
     let url = format!("{}{}", provider.base_url, request.path);
-    let client = reqwest::Client::new();
+    // A request with no timeout waits for ever, and the interface waiting on
+    // it shows "Standing by" with nothing to read and nothing to do - which
+    // is indistinguishable from a crash, and worse, because the user keeps
+    // waiting. `web.rs` has had a timeout since it was written; this was
+    // missed.
+    //
+    // Generous, because a local model legitimately takes minutes to load
+    // several gigabytes of weights off disk on the first request after it is
+    // chosen. The front end gives up a little sooner and says why; this is
+    // the wall behind that, so an abandoned request cannot be left running
+    // against the runtime for ever.
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(INFERENCE_TIMEOUT_SECS))
+        .build()
+        .map_err(|error| InferenceError::from(format!("Could not build an HTTP client: {error}")))?;
 
     let builder = match request.body {
         Some(ref body) => client.post(&url).json(body),
