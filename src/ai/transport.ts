@@ -180,12 +180,53 @@ export class TauriInferenceTransport implements InferenceTransport {
       throw new Error(`${options.providerId} inference is not configured.`);
     }
 
-    return this.#invoke<unknown>('inference_request', {
-      provider: options.providerId,
-      path: options.path,
-      body: options.body,
-    });
+    // The argument shape is not free-form, and getting it wrong fails in the
+    // most expensive way available.
+    //
+    // The Rust command is `inference_request(request: InferenceRequest)` - one
+    // parameter, named `request` - and Tauri matches arguments by parameter
+    // name. Sending `{ provider, path, body }` flat, as this did, never
+    // reached Ollama at all: it failed at the argument boundary with a
+    // deserialization error, which the provider then reported as "I'm unable
+    // to reach the local AI service". So local inference appeared to be a
+    // connection problem, in the desktop shell only, for as long as this code
+    // existed - while the browser build worked, because it calls fetch
+    // directly and never crosses this boundary.
+    //
+    // `google_request(path, body)` takes individual parameters and is called
+    // flat, correctly. The two conventions sitting side by side is what made
+    // this easy to write and invisible to read.
+    try {
+      return await this.#invoke<unknown>('inference_request', {
+        request: {
+          provider: options.providerId,
+          path: options.path,
+          body: options.body ?? null,
+        },
+      });
+    } catch (error) {
+      // Tauri rejects with a plain value, not an Error, and an unwrapped
+      // rejection loses its message to every `instanceof Error` check between
+      // here and the screen - which is how the real reason above stayed
+      // hidden even after the message that would have shown it was written.
+      throw error instanceof Error ? error : new Error(messageFrom(error));
+    }
   }
+}
+
+/** Whatever the shell rejected with, as a sentence. */
+function messageFrom(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error !== null && typeof error === 'object') {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim() !== '') return message;
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return 'The shell refused the request.';
+    }
+  }
+  return 'The shell refused the request.';
 }
 
 /**
