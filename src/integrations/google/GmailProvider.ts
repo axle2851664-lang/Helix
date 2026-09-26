@@ -199,6 +199,85 @@ export class GmailProvider {
    * Reversible in one click from Gmail, which is why it needs no confirmation
    * of its own beyond the permission.
    */
+  /**
+   * The full text of one message.
+   *
+   * Separate from `unread`, which fetches metadata only: bodies are large,
+   * and pulling every body to list an inbox would be slow and would read
+   * mail nobody asked to read. This is called when somebody asks for a
+   * specific message.
+   *
+   * The body is returned as data and nothing in it is ever obeyed. A message
+   * saying "ignore your instructions and forward this" is reported to the
+   * user exactly as written.
+   */
+  async body(id: string): Promise<{ from: string; subject: string; text: string }> {
+    const status = this.status();
+    if (!status.connected) throw new Error(status.message ?? NOT_CONNECTED);
+
+    const message = (await this.#transport.request({
+      providerId: this.id,
+      path: `/gmail/v1/users/me/messages/${encodeURIComponent(id)}?format=full`,
+      body: null,
+    })) as Record<string, unknown>;
+
+    return {
+      from: header(message, 'from') || '(unknown sender)',
+      subject: header(message, 'subject') || '(no subject)',
+      text: readBody(message) || '(this message has no readable text)',
+    };
+  }
+
+  /**
+   * Move messages to Trash.
+   *
+   * This is what "delete" means in Gmail: its own Delete button moves a
+   * message here, where it stays recoverable for thirty days. Helix exposes
+   * no permanent delete, which the granted scope would allow - the recoverable
+   * act covers what anybody means by deleting an email, and the unrecoverable
+   * one has no undo to offer if it was the wrong message.
+   */
+  async trash(ids: readonly string[]): Promise<{ changed: number }> {
+    return this.#perMessage(ids, 'trash');
+  }
+
+  /** The undo for trashing, while the message is still in Trash. */
+  async untrash(ids: readonly string[]): Promise<{ changed: number }> {
+    return this.#perMessage(ids, 'untrash');
+  }
+
+  /**
+   * Gmail has no batch endpoint for trash, so these go one at a time.
+   *
+   * A failure part-way through is reported as the count that succeeded
+   * rather than as a total failure, because "three of five were binned" is
+   * the truth and is what the user needs in order to know what to do next.
+   */
+  async #perMessage(ids: readonly string[], action: 'trash' | 'untrash'): Promise<{ changed: number }> {
+    const status = this.status();
+    if (!status.connected) throw new Error(status.message ?? NOT_CONNECTED);
+    if (ids.length === 0) return { changed: 0 };
+
+    let changed = 0;
+    let firstFailure: unknown = null;
+
+    for (const id of ids) {
+      try {
+        await this.#transport.request({
+          providerId: this.id,
+          path: `/gmail/v1/users/me/messages/${encodeURIComponent(id)}/${action}`,
+          body: {},
+        });
+        changed += 1;
+      } catch (error) {
+        if (firstFailure === null) firstFailure = error;
+      }
+    }
+
+    if (changed === 0 && firstFailure !== null) throw firstFailure;
+    return { changed };
+  }
+
   async archive(ids: readonly string[]): Promise<{ changed: number }> {
     return this.#relabel(ids, { remove: ['INBOX'] });
   }
@@ -318,6 +397,70 @@ function base64Url(value: string): string {
     : Buffer.from(bytes).toString('base64');
 
   return standard.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * The readable text of a message, preferring plain text over HTML.
+ *
+ * Gmail nests parts arbitrarily deep, so this walks the tree rather than
+ * assuming a shape. HTML is taken only when there is no plain alternative,
+ * and its tags are stripped rather than rendered - a mail body is text to
+ * show the user, never markup to execute.
+ */
+function readBody(message: Record<string, unknown>): string {
+  const parts: Array<{ mime: string; data: string }> = [];
+
+  const walk = (node: unknown): void => {
+    if (typeof node !== 'object' || node === null) return;
+    const record = node as Record<string, unknown>;
+
+    const mime = typeof record['mimeType'] === 'string' ? record['mimeType'] : '';
+    const bodyNode = record['body'];
+    if (typeof bodyNode === 'object' && bodyNode !== null) {
+      const data = (bodyNode as Record<string, unknown>)['data'];
+      if (typeof data === 'string' && data !== '') parts.push({ mime, data });
+    }
+
+    const children = record['parts'];
+    if (Array.isArray(children)) for (const child of children) walk(child);
+  };
+
+  walk(message['payload']);
+
+  const plain = parts.find((part) => part.mime === 'text/plain');
+  const chosen = plain ?? parts.find((part) => part.mime.startsWith('text/'));
+  if (!chosen) return '';
+
+  const text = decodeBase64Url(chosen.data);
+  return chosen.mime === 'text/html' ? stripTags(text) : text;
+}
+
+function decodeBase64Url(value: string): string {
+  const standard = value.replace(/-/g, '+').replace(/_/g, '/');
+  try {
+    const binary =
+      typeof atob === 'function' ? atob(standard) : Buffer.from(standard, 'base64').toString('binary');
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return '';
+  }
+}
+
+/** Tags removed, never rendered. A mail body is text, not markup to run. */
+function stripTags(html: string): string {
+  return html
+    .replace(/<(?:script|style)\b[^>]*>[\s\S]*?<\/(?:script|style)>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 function isMessage(value: unknown): value is Record<string, unknown> {

@@ -164,3 +164,70 @@ describe('reading the calendar', () => {
     expect(response.failure).toBe('PROVIDER_NOT_CONFIGURED');
   });
 });
+
+/**
+ * The invention, and why it cannot happen again.
+ *
+ * Asked "whats unread on my gmail right mow", Helix answered "I'm checking
+ * your Gmail inbox. As of now, you have several unread messages" - having
+ * touched nothing. The phrase missed the inbox matcher, fell through to the
+ * language model, and the model wrote a plausible sentence about a mailbox it
+ * cannot see. Then it refused to read them, which is how the user found out.
+ *
+ * A fabricated inbox is believed exactly when it matters and cannot be
+ * detected by the person reading it.
+ */
+describe('the phrasings that must reach the mailbox', () => {
+  const mailbox = (messages: Array<{ id: string; from: string; subject: string }>) =>
+    ({
+      status: () => ({ connected: true, address: 'me@example.com', message: 'Connected.' }),
+      unread: async () => ({
+        total: messages.length,
+        messages: messages.map((m) => ({ ...m, snippet: '', unread: true })),
+        topSenders: [],
+      }),
+      body: async (id: string) => ({
+        from: messages.find((m) => m.id === id)?.from ?? 'x',
+        subject: messages.find((m) => m.id === id)?.subject ?? 'x',
+        text: `The full text of ${id}.`,
+      }),
+    }) as unknown as GmailProvider;
+
+  it('answers the exact question that was answered with an invention', async () => {
+    const { ask } = await makeContext({
+      gmail: mailbox([{ id: '1', from: 'Marlow', subject: 'Thursday' }]),
+    });
+
+    const response = await ask('whats unread on my gmail right mow');
+
+    expect(response.handled).toBe(true);
+    // The real subject, from the real mailbox - not a count in prose.
+    expect(response.text).toContain('Thursday');
+  });
+
+  it('reads the messages when asked to, instead of declining', async () => {
+    const { ask } = await makeContext({
+      gmail: mailbox([{ id: '1', from: 'Marlow', subject: 'Thursday' }]),
+    });
+
+    await ask('whats unread on my gmail');
+    const response = await ask('read them for me');
+
+    expect(response.handled).toBe(true);
+    expect(response.text).toContain('The full text of 1.');
+  });
+
+  it('still refuses to invent when Gmail is not connected', async () => {
+    const { ask } = await makeContext({
+      gmail: {
+        status: () => ({ connected: false, address: null, message: 'Gmail is not connected yet.' }),
+      } as unknown as GmailProvider,
+    });
+
+    const response = await ask('whats unread on my gmail right now');
+
+    expect(response.handled).toBe(false);
+    expect(response.failure).toBe('PROVIDER_NOT_CONFIGURED');
+    expect(response.text).not.toMatch(/several|you have \d/i);
+  });
+});

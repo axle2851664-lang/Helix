@@ -216,6 +216,22 @@ export function InboxWorkspace() {
               >
                 <Icon name="folder" size={15} /> Archive
               </button>
+              {/*
+                Delete means Trash, which is what Gmail's own Delete button
+                does: recoverable for thirty days. Helix exposes no permanent
+                delete, though the granted scope would allow one - an
+                unrecoverable act has no undo to offer when it turns out to
+                have been the wrong message. This one is confirmed before it
+                runs, and the undo is offered after.
+              */}
+              <button
+                type="button"
+                className="hx-btn"
+                disabled={chosen.length === 0}
+                onClick={() => void act('mail.trash', chosen)}
+              >
+                <Icon name="close" size={15} /> Delete
+              </button>
             </div>
           </div>
 
@@ -299,11 +315,13 @@ function Promises() {
       <h2 className="hx-panel__title">What Helix will not do with your mail</h2>
       <ul className="hx-list">
         <li>
-          <strong>It cannot delete anything.</strong>
+          <strong>Delete means Trash, not gone.</strong>
           <br />
           <span className="hx-muted">
-            Google granted the scope; Helix exposes no delete, here or anywhere. Archiving is the
-            strongest thing on this screen, and it is reversible.
+            The same thing Gmail&rsquo;s own Delete button does: the message sits in Trash for
+            thirty days and can be brought back. Helix exposes no permanent delete, though the
+            granted scope would allow one - an act with no undo has nothing to offer when it turns
+            out to have been the wrong message.
           </span>
         </li>
         <li>

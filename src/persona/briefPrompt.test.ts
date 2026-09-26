@@ -19,11 +19,27 @@ const tokens = (text: string) => Math.ceil(text.length / 4);
 
 describe('the brief prompt', () => {
   it('is a fraction of the full one', () => {
-    expect(tokens(BRIEF_SYSTEM_PROMPT)).toBeLessThan(tokens(SYSTEM_PROMPT) / 3);
+    // Two fifths rather than a third. The first threshold was picked before
+    // the mailbox rule was added and had no reasoning behind it; the number
+    // that matters is the absolute one below, because that is what the CPU
+    // actually reads. This only guards against the brief prompt quietly
+    // growing back into the full one.
+    expect(tokens(BRIEF_SYSTEM_PROMPT)).toBeLessThan(tokens(SYSTEM_PROMPT) * 0.4);
   });
 
+  /**
+   * The budget that matters. At a few hundred tokens a second of prompt
+   * evaluation on a CPU, this is the difference between a second of silence
+   * before the answer starts and five.
+   */
   it('is small enough that reading it is not the wait', () => {
     expect(tokens(BRIEF_SYSTEM_PROMPT)).toBeLessThan(450);
+  });
+
+  /** The rule that stopped Helix inventing an inbox. */
+  it('forbids claiming to have looked at mail', () => {
+    expect(BRIEF_SYSTEM_PROMPT).toMatch(/cannot see/i);
+    expect(BRIEF_SYSTEM_PROMPT).toMatch(/have not looked yet|haven't looked yet/i);
   });
 
   /**

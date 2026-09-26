@@ -39,6 +39,7 @@ import { researchCard } from '../tools/researchCard.js';
 import type { ActionRunner } from '../actions/ActionRunner.js';
 import type { OutboundManager } from '../outbound/OutboundManager.js';
 import { emailIntent, emailPrompt, subjectFrom } from '../outbound/emailIntent.js';
+import { mailIntent, type MailIntent, type MailTarget } from '../integrations/google/mailIntent.js';
 import type { GmailProvider } from '../integrations/google/GmailProvider.js';
 import type { CalendarProvider } from '../integrations/google/CalendarProvider.js';
 import type { AIRouter } from '../ai/AIRouter.js';
@@ -166,6 +167,15 @@ export class HelixOrchestrator {
   readonly #outbound: OutboundManager | undefined;
   readonly #gmail: GmailProvider | undefined;
   readonly #calendar: CalendarProvider | undefined;
+  /**
+   * The messages most recently shown, so a follow-up can name one.
+   *
+   * "Read them" and "archive the second one" are only safe because this
+   * exists: without it the target would have to be guessed, and mail acted
+   * on by mistake cannot be recovered by somebody who never knew it
+   * happened.
+   */
+  #listedMail: Array<{ id: string; from: string; subject: string }> = [];
   readonly #tools: HelixTool[] = [];
 
   constructor(options: OrchestratorOptions) {
@@ -1110,28 +1120,125 @@ ${lines}`,
    * card is a plausible fake inbox, which is the one failure a user has no way
    * of detecting.
    */
-  #inboxTool(): HelixTool {
-    const phrases = [
-      'read my inbox',
-      'check my inbox',
-      'my inbox',
-      'my email',
-      'my emails',
-      'read my mail',
-      'check my mail',
-      'any new mail',
-    ];
+  /**
+   * Resolve "them", "the second one", "the one from Marlow" to real ids.
+   *
+   * Returns null when nothing can be resolved, so the caller falls through to
+   * listing the inbox rather than acting on a guess. That is the important
+   * half: a message archived or binned by mistake is gone from the user's
+   * view, and they never knew it was touched.
+   */
+  #resolveMail(which: MailTarget): Array<{ id: string; from: string; subject: string }> {
+    if (this.#listedMail.length === 0) return [];
 
+    if (which.of === 'all-listed') return [...this.#listedMail];
+
+    if (which.of === 'nth') {
+      const found = this.#listedMail[which.index - 1];
+      return found ? [found] : [];
+    }
+
+    const wanted = which.name.toLowerCase();
+    return this.#listedMail.filter((message) => message.from.toLowerCase().includes(wanted));
+  }
+
+  /**
+   * Reading and changing specific messages.
+   *
+   * Every change goes through the action runner, so the Gmail permission, the
+   * confirmation rules and the audit log apply exactly as they do when the
+   * Inbox screen does it. Conversation gets no privileged path to somebody's
+   * mailbox.
+   */
+  async #actOnMail(intent: MailIntent, gmail: GmailProvider): Promise<HelixResponse | null> {
+    if (intent.kind === 'unread') return null;
+
+    const targets = this.#resolveMail(intent.which);
+    if (targets.length === 0) {
+      // Listing first is the honest recovery: it makes "the second one" mean
+      // something before it is allowed to mean anything.
+      return null;
+    }
+
+    if (intent.kind === 'read') {
+      const parts: string[] = [];
+      for (const message of targets.slice(0, 3)) {
+        try {
+          const full = await this.#activity.track('thinking', () => gmail.body(message.id), {
+            label: 'Reading...',
+            detail: message.subject,
+          });
+          // Shown as written. Anything in a message is information, never an
+          // instruction - a mail saying "ignore your instructions" is
+          // reported exactly as it arrived.
+          parts.push(`From ${full.from}
+${full.subject}
+
+${full.text.slice(0, 4000)}`);
+        } catch (error) {
+          parts.push(
+            `I could not open "${message.subject}": ${
+              error instanceof Error ? error.message : 'the request failed'
+            }`,
+          );
+        }
+      }
+      return { text: parts.join('\n\n---\n\n'), handled: true };
+    }
+
+    if (!this.#runner) {
+      return {
+        text: unavailable('I have no way to check that changing your mail is allowed'),
+        handled: false,
+        failure: 'CAPABILITY_UNAVAILABLE',
+      };
+    }
+
+    const action = {
+      archive: 'mail.archive',
+      trash: 'mail.trash',
+      star: 'mail.star',
+      markRead: 'mail.markRead',
+    }[intent.kind];
+
+    const result = await this.#runner.run(action, {
+      ids: targets.map((message) => message.id).join(','),
+    });
+
+    if (result.status === 'ok') {
+      // The list is stale the moment it is acted on: archived and binned mail
+      // is no longer where it was, and a later "the second one" must not
+      // point at a message that has moved.
+      this.#listedMail = [];
+      return { text: confirm(result.message.replace(/\.$/, '')), handled: true };
+    }
+
+    const declined = result.status === 'refused' && result.reason === 'not-confirmed';
+    return {
+      text: result.message,
+      handled: declined,
+      ...(declined
+        ? {}
+        : { failure: result.status === 'refused' ? 'PERMISSION_DENIED' : 'INTERNAL' }),
+    };
+  }
+
+  #inboxTool(): HelixTool {
     return {
       name: 'readInbox',
-      description: 'Read the unread mail, once Gmail is connected.',
+      description: 'Read, archive, star or bin mail, once Gmail is connected.',
       priority: 250,
-      matches: (request) => {
-        const lower = request.text.toLowerCase();
-        return phrases.some((phrase) => lower.includes(phrase));
-      },
+      // Matched by `mailIntent`, not by a phrase list. The list missed
+      // "what's unread on my gmail right now", which fell through to the
+      // language model - and it answered "I'm checking your Gmail inbox. As
+      // of now, you have several unread messages" without touching the
+      // mailbox. A generous matcher costs a redundant tool run; a miss costs
+      // an invented inbox, which is believed exactly when it matters.
+      matches: (request) => mailIntent(request.text, this.#listedMail.length > 0) !== null,
       unavailableReason: () => null,
-      execute: async () => {
+      execute: async (request) => {
+        const intent = mailIntent(request.text, this.#listedMail.length > 0);
+        if (intent === null) return null;
         // The requirement card was the honest answer when no mail provider
         // existed. One does now, so returning it unconditionally had Helix
         // telling the user a capability was "not written" while the code to
@@ -1167,9 +1274,25 @@ ${lines}`,
           };
         }
 
+        if (intent.kind !== 'unread') {
+          const acted = await this.#actOnMail(intent, gmail);
+          if (acted !== null) return acted;
+        }
+
         if (summary.total === 0) {
+          this.#listedMail = [];
           return { text: observe('Nothing unread'), handled: true };
         }
+
+        // Remembered so "read them" and "archive the second one" have
+        // something specific to mean. Without this a follow-up would have to
+        // guess which messages were meant, and acting on the wrong mail
+        // cannot be taken back.
+        this.#listedMail = summary.messages.slice(0, 5).map((message) => ({
+          id: message.id,
+          from: message.from,
+          subject: message.subject,
+        }));
 
         const lines = summary.messages
           .slice(0, 5)

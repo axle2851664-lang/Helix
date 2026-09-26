@@ -118,6 +118,30 @@ export function googleActions(services: GoogleActionServices): ActionDefinition[
       verb: 'Marked read:',
       run: (ids) => gmail.markRead(ids),
     }),
+    // Trash is the one mail action that is confirmed.
+    //
+    // The others are a label change away from being undone and Gmail undoes
+    // them in a click. This takes a message out of the inbox entirely, and
+    // although Trash holds it for thirty days, that is a window rather than
+    // an undo - nobody checks a bin they did not know they filled. The
+    // confirmation shows the count before it happens.
+    {
+      ...mailAction({
+        id: 'mail.trash',
+        label: 'Move mail to Trash',
+        summary: 'What Gmail\u2019s own Delete button does. Recoverable for thirty days.',
+        verb: 'Moved to Trash:',
+        run: (ids) => gmail.trash(ids),
+      }),
+      confirmation: 'destructive' as const,
+    },
+    mailAction({
+      id: 'mail.untrash',
+      label: 'Take mail back out of Trash',
+      summary: 'The undo for trashing, while it is still there.',
+      verb: 'Restored:',
+      run: (ids) => gmail.untrash(ids),
+    }),
     mailAction({
       id: 'mail.markUnread',
       label: 'Mark mail unread',

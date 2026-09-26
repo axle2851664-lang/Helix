@@ -13,6 +13,7 @@ export const MAIL_UNDO: Readonly<Record<string, { action: string; label: string 
   'mail.archive': { action: 'mail.unarchive', label: 'Put back in the inbox' },
   'mail.star': { action: 'mail.unstar', label: 'Remove the star' },
   'mail.markRead': { action: 'mail.markUnread', label: 'Mark unread again' },
+  'mail.trash': { action: 'mail.untrash', label: 'Take it back out of Trash' },
 };
 
 /**
