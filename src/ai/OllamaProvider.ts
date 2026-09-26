@@ -1,3 +1,4 @@
+import { KEEP_ALIVE } from './speed.js';
 import type {
   GenerateRequest,
   GenerateResult,
@@ -303,6 +304,43 @@ export class OllamaProvider implements InferenceProvider {
     }
   }
 
+  /**
+   * Load a model into memory before anybody asks it anything.
+   *
+   * The first request after a model is chosen pays for reading several
+   * gigabytes off disk, and that cost lands on whatever the user happens to
+   * type first - usually "hello", which is exactly the message that should
+   * feel instant. Doing it at startup moves the wait to a moment when nobody
+   * is waiting.
+   *
+   * Asks for a single token: enough to force the load, not enough to spend
+   * meaningful time generating. Failure is silent on purpose - this is an
+   * optimisation, and a machine that cannot warm up will report the real
+   * problem when a real request is made.
+   */
+  async warm(modelId: string): Promise<boolean> {
+    try {
+      await withTimeout(
+        this.#transport.request({
+          providerId: this.id,
+          path: CHAT_PATH,
+          body: {
+            model: modelId,
+            messages: [{ role: 'user', content: 'hi' }],
+            stream: false,
+            keep_alive: KEEP_ALIVE,
+            options: { num_predict: 1 },
+          },
+        }),
+        FIRST_REPLY_TIMEOUT_MS,
+        'The model did not finish loading.',
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /** Re-check from scratch, for the refresh button. */
   async refresh(): Promise<readonly ModelInfo[]> {
     this.#cachedModels = null;
@@ -324,6 +362,11 @@ export class OllamaProvider implements InferenceProvider {
           model: request.model,
           messages: request.messages,
           stream: false,
+          // Keeps the weights resident between messages. Ollama unloads an
+          // idle model after five minutes, and the next message then pays the
+          // whole multi-gigabyte load again - so whether a reply takes two
+          // seconds or two minutes was decided by how long the user paused.
+          keep_alive: KEEP_ALIVE,
           options: {
             ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
             ...(request.maxOutputTokens !== undefined

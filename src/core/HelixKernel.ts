@@ -47,6 +47,7 @@ import { DocsProvider } from '../integrations/google/DocsProvider.js';
 import { CalendarProvider } from '../integrations/google/CalendarProvider.js';
 import { CerebrasProvider } from '../ai/CerebrasProvider.js';
 import { assessInstalledModels, preferredLocalModel } from '../ai/localModels.js';
+import { fastestLocalModel } from '../ai/speed.js';
 import { assessDiskPressure } from '../storage/pressure.js';
 import { RelayWatcher } from '../relay/RelayWatcher.js';
 import { PhoneListener } from '../relay/PhoneListener.js';
@@ -599,7 +600,15 @@ export class HelixKernel {
         ai.registry.replaceProviderModels('ollama', assessed);
 
         const usable = assessed.filter((model) => model.status !== 'unavailable').length;
-        const chosen = preferredLocalModel(assessed)?.id ?? null;
+        // Speed or capability, as the user asked. The default is speed: a
+        // 7B at four-bit runs at a few tokens a second on a CPU where a 3B
+        // runs at several times that, and an assistant that takes forty
+        // seconds to say hello stops being used.
+        const chosen =
+          (settings.get('localModelPreference') === 'capable'
+            ? preferredLocalModel(assessed)
+            : fastestLocalModel(assessed)
+          )?.id ?? null;
         // Told to the router AND to the provider, not merely logged.
         //
         // This is the "largest that fits" decision, and until it was wired
@@ -617,6 +626,17 @@ export class HelixKernel {
         // point it held only a placeholder. Without the event it goes on
         // reporting that nothing is configured while a model answers.
         bus.emit('AI_MODELS_REGISTERED', { provider: 'ollama', usable, chosen });
+
+        // Load the weights now, while nobody is waiting. The first request
+        // after a model is chosen reads several gigabytes off disk, and that
+        // cost otherwise lands on whatever the user types first - usually
+        // "hello", the one message that should feel instant.
+        if (chosen !== null) {
+          void ollama.warm(chosen).then((warmed) => {
+            logger.info(warmed ? 'Local model warmed.' : 'Local model did not warm.', { chosen });
+          });
+        }
+
         return true;
       } catch (error) {
         logger.debug('Local model probe failed; the placeholder entry stands.', error);

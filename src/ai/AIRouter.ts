@@ -1,4 +1,5 @@
 import { ModelRegistry } from './registry.js';
+import { replyTokenCap } from './speed.js';
 import type {
   Capability,
   ChatMessage,
@@ -238,9 +239,18 @@ export class AIRouter {
           ...(this.#options.temperature !== undefined
             ? { temperature: this.#options.temperature }
             : {}),
-          ...(this.#options.maxOutputTokens !== undefined
-            ? { maxOutputTokens: this.#options.maxOutputTokens }
-            : {}),
+          // Capped for a local model, and only for a local one.
+          //
+          // The setting defaults to 4096, which is a sensible ceiling for a
+          // cloud model and a disaster for a local one: four thousand tokens
+          // at a few tokens a second is minutes of waiting for a reply that
+          // conversation never needed. Long-form callers that want the full
+          // budget - the coding workspace, for one - ask the provider
+          // directly and are unaffected.
+          maxOutputTokens: replyTokenCap(
+            this.#options.maxOutputTokens,
+            candidate.provider.location === 'local',
+          ),
         });
 
         attempts.push({

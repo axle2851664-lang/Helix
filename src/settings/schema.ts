@@ -535,6 +535,19 @@ export const SETTINGS_SCHEMA = {
     },
     default: 'none',
   },
+  localModelPreference: {
+    kind: 'enum',
+    section: 'providers',
+    label: 'Local model choice',
+    options: ['fast', 'capable'],
+    optionLabels: {
+      fast: 'Fastest - smallest model installed',
+      capable: 'Most capable - largest that fits',
+    },
+    description:
+      'Which of your installed local models answers. The smallest runs several times faster than the largest, and for ordinary conversation the difference in the answer is small while the difference in the wait is not.',
+    default: 'fast',
+  },
   localInferenceOnly: {
     kind: 'boolean',
     section: 'providers',
