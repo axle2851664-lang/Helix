@@ -3200,3 +3200,17 @@
   line-height: 1.6;
   color: var(--hx-text);
 }
+
+/* The remedy beneath a failed Google connection. Set apart from the raw
+   error above it, because one is what Google said and the other is what
+   to do about it - reading as one paragraph makes both harder to use. */
+.helix-settings__remedy {
+  margin-top: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--hx-text);
+  background: var(--hx-accent-soft);
+  border: 1px solid var(--hx-accent-line);
+  border-radius: 8px;
+}

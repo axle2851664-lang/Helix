@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useHelix, useSettings } from '../HelixProvider.js';
+import { googleProblem } from './googleProblem.js';
 
 /**
  * Connecting the Google account, and proving the relay works.
@@ -30,6 +31,8 @@ export function RelayPanel() {
   const [connected, setConnected] = useState(false);
   const [busy, setBusy] = useState<'connect' | 'disconnect' | 'poll' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  /** What to do about the last failure, when Google's wording does not say. */
+  const [remedy, setRemedy] = useState<string | null>(null);
 
   useEffect(() => {
     if (!google) return;
@@ -53,6 +56,7 @@ export function RelayPanel() {
 
   const connect = async () => {
     setBusy('connect');
+    setRemedy(null);
     setMessage('Your browser should open Google’s consent page.');
     try {
       const address = await google.connect(config.googleClientId, config.googleClientSecret);
@@ -60,8 +64,13 @@ export function RelayPanel() {
       setAccount(address);
       setMessage(address === '' ? 'Connected.' : `Connected to ${address}.`);
     } catch (error) {
+      const said = error instanceof Error ? error.message : String(error);
       setConnected(false);
-      setMessage(error instanceof Error ? error.message : String(error));
+      // Google's message is kept exactly as it came, and the remedy sits
+      // beside it. A translation that turns out to be the wrong guess must
+      // not hide the evidence that would have shown it was wrong.
+      setMessage(said);
+      setRemedy(googleProblem(said).remedy);
     } finally {
       setBusy(null);
     }
@@ -104,14 +113,24 @@ export function RelayPanel() {
     }
   };
 
+  const ready =
+    config.googleClientId.trim() !== '' && config.googleClientSecret.trim() !== '';
   const canConnect = config.googleClientId.trim() !== '' && busy === null;
 
   return (
     <div className="helix-settings__note">
+      {/*
+        The instruction has to match what is actually missing. Telling
+        somebody to fill in fields they have already filled in reads as "you
+        have not done step one" when the truth is "press the button", and
+        that is where this got stuck in practice.
+      */}
       <p>
         {connected
           ? `Connected${account ? ` to ${account}` : ''}.`
-          : 'Not connected. Fill in the client ID and secret above, then connect.'}
+          : ready
+            ? 'Not connected yet. Press Connect and approve it in the browser window that opens.'
+            : 'Not connected. Fill in the client ID and secret above, then connect.'}
       </p>
 
       <div className="helix-settings__actions">
@@ -146,6 +165,11 @@ export function RelayPanel() {
       </div>
 
       {message && <p role="status">{message}</p>}
+      {remedy && (
+        <p className="helix-settings__remedy" role="status">
+          {remedy}
+        </p>
+      )}
     </div>
   );
 }
