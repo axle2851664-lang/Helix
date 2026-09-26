@@ -1,4 +1,4 @@
-import { KEEP_ALIVE } from './speed.js';
+import { CONVERSATIONAL_CONTEXT, CONVERSATIONAL_TOKEN_CAP, KEEP_ALIVE } from './speed.js';
 import type {
   GenerateRequest,
   GenerateResult,
@@ -371,6 +371,14 @@ export class OllamaProvider implements InferenceProvider {
             ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
             ...(request.maxOutputTokens !== undefined
               ? { num_predict: request.maxOutputTokens }
+              : {}),
+            // Bounded only when this is a conversational request, which the
+            // reply cap identifies. A long-form caller asking for thousands
+            // of tokens must not have its window quietly shrunk underneath
+            // it and its answer truncated.
+            ...(request.maxOutputTokens !== undefined &&
+            request.maxOutputTokens <= CONVERSATIONAL_TOKEN_CAP
+              ? { num_ctx: CONVERSATIONAL_CONTEXT }
               : {}),
           },
         },

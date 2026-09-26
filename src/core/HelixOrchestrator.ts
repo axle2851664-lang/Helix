@@ -43,7 +43,7 @@ import type { GmailProvider } from '../integrations/google/GmailProvider.js';
 import type { CalendarProvider } from '../integrations/google/CalendarProvider.js';
 import type { AIRouter } from '../ai/AIRouter.js';
 import { classify } from '../ai/AIRouter.js';
-import { SYSTEM_PROMPT } from '../persona/systemPrompt.js';
+import { BRIEF_SYSTEM_PROMPT, SYSTEM_PROMPT } from '../persona/systemPrompt.js';
 import { slangPrompt, slangRequest } from '../persona/slang.js';
 import { imageIntent } from '../images/query.js';
 import { docsIntent, draftPrompt } from '../integrations/google/docsIntent.js';
@@ -303,17 +303,28 @@ export class HelixOrchestrator {
     try {
       // Short-term context: the conversation so far, so "show me the model"
       // knows which project was just opened.
+      // On a CPU there is no free context. Every token of prompt and history
+      // is read before a single token of reply is produced, so the full
+      // prompt and twelve turns is several seconds of silence before the
+      // answer starts - which for "hello" is the entire wait. A local model
+      // gets the brief prompt and a shorter memory; a cloud model, where
+      // prompt evaluation is effectively instant, gets both in full.
+      const local = this.#ai.describeSelection(requirement).provider?.location === 'local';
+
       const conversation = await this.#conversations.get(request.conversationId);
       const history = (conversation?.messages ?? [])
         .filter((message) => message.role === 'user' || message.role === 'helix')
-        .slice(-12)
+        .slice(local ? -6 : -12)
         .map((message) => ({
           role: message.role === 'helix' ? ('assistant' as const) : ('user' as const),
           content: message.text,
         }));
 
       const result = await this.#ai.generate(
-        [{ role: 'system', content: SYSTEM_PROMPT }, ...history],
+        [
+          { role: 'system', content: local ? BRIEF_SYSTEM_PROMPT : SYSTEM_PROMPT },
+          ...history,
+        ],
         requirement,
       );
 

@@ -68,11 +68,32 @@ export const KEEP_ALIVE = '30m';
  * never needs more than a few hundred. This caps what conversation asks for
  * without touching the setting, so a deliberate long-form request can still
  * raise it.
+ *
+ * 192 rather than 512, measured against the machine this was reported from:
+ * CPU only, where generation runs at single-digit tokens a second. 512 is a
+ * minute of waiting at that rate; 192 is the length of a spoken answer, which
+ * is what the prompt asks for anyway. A reply that genuinely needs more is
+ * truncated rather than slow, and that is the right way round - a person can
+ * ask for the rest.
  */
-export const CONVERSATIONAL_TOKEN_CAP = 512;
+export const CONVERSATIONAL_TOKEN_CAP = 192;
 
 /** The cap to actually send: the user's setting, or the conversational cap. */
 export function replyTokenCap(setting: number | undefined, conversational: boolean): number {
   if (setting === undefined) return CONVERSATIONAL_TOKEN_CAP;
   return conversational ? Math.min(setting, CONVERSATIONAL_TOKEN_CAP) : setting;
 }
+
+/**
+ * The context window to ask for.
+ *
+ * Left unset, Ollama uses the model's own default, which is often far larger
+ * than a conversation needs. Attention cost grows with the window and so does
+ * the memory the KV cache takes, and neither is free on a machine with no
+ * GPU. Two thousand tokens comfortably holds the brief prompt and several
+ * turns of conversation.
+ *
+ * Only applied where the prompt is the brief one, so a long-form request
+ * cannot be quietly truncated by a window chosen for chat.
+ */
+export const CONVERSATIONAL_CONTEXT = 2048;
