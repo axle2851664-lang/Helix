@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { describeBuild } from '../../platform/buildStamp.js';
 import { GuardrailPanel } from '../system/GuardrailPanel.js';
 import { useHelix, useHelixState } from '../HelixProvider.js';
 import type { HardwareProfile, VolumeStats } from '../../platform/PlatformAdapter.js';
@@ -90,6 +91,14 @@ export function SystemWorkspace() {
                 : 'Tauri window, but its command bridge did not answer'
           }
         />
+        {/*
+          The row that ends "is this even my code".
+          An installed Helix carries the interface from the day it was built
+          and pulling source cannot change it; a dev build is whatever is on
+          disk now. On screen the two are identical, which is how six rounds
+          went into debugging fixes that were never loaded.
+        */}
+        <Row label="Interface built" value={describeBuild()} />
         <Row label="Portable mode" value={paths.isPortable ? 'On' : 'Off'} />
         <Row label="Data root" value={paths.dataRoot} mono />
         <Row

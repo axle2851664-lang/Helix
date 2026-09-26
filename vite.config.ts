@@ -12,6 +12,20 @@ import { fileURLToPath, URL } from 'node:url';
  */
 export default defineConfig({
   base: './',
+  /**
+   * When this interface was built, frozen into the bundle.
+   *
+   * An installed Helix carries the frontend from the day it was built and
+   * cannot be changed by pulling source; a dev build is whatever is on disk
+   * now. Those two look identical on screen, and telling them apart cost six
+   * rounds of debugging: fixes were pulled, rebuilt and verified while an
+   * installed copy from days earlier sat in the taskbar showing the old
+   * behaviour. The System screen now prints this, so the question "is this
+   * even my code" is answered by looking rather than by guessing.
+   */
+  define: {
+    __HELIX_BUILT_AT__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [react()],
   resolve: {
     alias: {
