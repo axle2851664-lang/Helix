@@ -3306,53 +3306,11 @@
   .hx-nav__item { transition: none; }
 }
 
-/* ======================== the wireframe sphere ========================
-   Rotated by the compositor, not by the main thread. The machine this
-   runs on has no GPU for inference and a CPU counting single tokens a
-   second - an ornament repainting sixty times a second would be taking
-   cycles from the only thing on screen that matters. */
-.hx-globe {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  translate: -50% -50%;
-  perspective: 620px;
-  pointer-events: none;
-}
-
-.hx-globe__spin {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  animation: hx-globe-turn 26s linear infinite;
-}
-
-.hx-globe__ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  /* Thin and cool, not branded. The reference is a silver wireframe on
-     black, and a red one would read as an alarm rather than a machine
-     at rest. */
-  border: 1px solid rgba(214, 232, 246, 0.26);
-  box-sizing: border-box;
-}
-
-/* Parallels sit back a shade, so the vertical structure reads first and
-   the sphere does not turn into a uniform mesh. */
-.hx-globe__ring--parallel {
-  border-color: rgba(214, 232, 246, 0.16);
-}
-
-@keyframes hx-globe-turn {
-  from { transform: rotateX(-14deg) rotateY(0deg); }
-  to { transform: rotateX(-14deg) rotateY(360deg); }
-}
-
-/* A permanently moving object is an obstacle, not decoration. */
-@media (prefers-reduced-motion: reduce) {
-  .hx-globe__spin { animation: none; transform: rotateX(-14deg) rotateY(24deg); }
-}
+/* The CSS wireframe sphere that used to live here is gone: it was a
+   stack of bordered circles, which is exactly the "basic CSS circle" the
+   centre should not be. SphereField draws a real point field on a canvas
+   instead, and its points are the capability data rather than geometry
+   for its own sake. */
 
 /* ============================ the HUD ================================
    Black, not near-black, so the sphere is the only lit thing. The chrome
@@ -3454,4 +3412,381 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .hx-chip { transition: none; }
+}
+
+/* ===================== the monitoring frame ==========================
+   Four corners of readouts, two hairlines, and nothing in the middle.
+   The sphere is the focal point; this is the instrument case around it. */
+.hx-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hx-hud__corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.hx-hud__corner--tl { top: 22px; left: 26px; align-items: flex-start; }
+.hx-hud__corner--tr { top: 22px; right: 26px; align-items: flex-end; }
+.hx-hud__corner--bl { bottom: 22px; left: 26px; align-items: flex-start; }
+.hx-hud__corner--br { bottom: 22px; right: 26px; align-items: flex-end; }
+
+.hx-hud__row {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  line-height: 1.5;
+  white-space: nowrap;
+  /* Faded in once, slowly, so the frame settles rather than snapping on. */
+  animation: hx-hud-settle 1400ms ease-out both;
+}
+
+.hx-hud__corner--tr .hx-hud__row,
+.hx-hud__corner--br .hx-hud__row {
+  flex-direction: row-reverse;
+}
+
+.hx-hud__label { color: #555555; }
+.hx-hud__value { color: #e5e5e5; }
+.hx-hud__row--dim .hx-hud__value { color: #a0a0a0; }
+
+@keyframes hx-hud-settle {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Hairlines that mark the frame. They report nothing and say nothing. */
+.hx-hud__rule {
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.07) 12%,
+    rgba(255, 255, 255, 0.07) 88%,
+    transparent
+  );
+}
+
+.hx-hud__rule--top { top: 74px; }
+.hx-hud__rule--bottom { bottom: 74px; }
+
+/* ===================== the sphere and its light ======================
+   The glow is drawn under the canvas rather than as a shadow on it, so
+   the points stay crisp and only the air around them lifts. */
+.hx-sphere {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.hx-reactor-wrap::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 340px;
+  height: 340px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.055) 0%,
+    rgba(255, 255, 255, 0.018) 38%,
+    transparent 68%
+  );
+  pointer-events: none;
+  animation: hx-breathe 9s ease-in-out infinite;
+}
+
+@keyframes hx-breathe {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+/* ================= grain, scanlines, vignette ========================
+   All three sit above everything and take no pointer events, so nothing
+   below becomes unclickable. Kept at the threshold of visibility: the
+   point is that the screen stops looking like flat paint, not that
+   anybody notices a texture. */
+.hx-app::after,
+.hx-app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+}
+
+/* Grain and scanlines together. The SVG noise is inline so it costs no
+   request and cannot fail to load. */
+.hx-app::before {
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.014) 0px,
+      rgba(255, 255, 255, 0.014) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity: 0.32;
+  mix-blend-mode: screen;
+  animation: hx-grain 700ms steps(3, end) infinite;
+}
+
+/* Vignette, drawn last so it darkens the corners of everything. */
+.hx-app::after {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 52%,
+    rgba(0, 0, 0, 0.42) 100%
+  );
+}
+
+/* Three positions, not a smooth drift: real grain jumps between frames. */
+@keyframes hx-grain {
+  0% { transform: translate(0, 0); }
+  33% { transform: translate(-1%, 1%); }
+  66% { transform: translate(1%, -1%); }
+  100% { transform: translate(0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-app::before { animation: none; }
+  .hx-reactor-wrap::before { animation: none; }
+  .hx-hud__row { animation: none; }
+}
+
+/* The frame is for a screen with room for it. On a phone the readouts
+   would sit on top of the content, so they stand down. */
+@media (max-width: 900px) {
+  .hx-hud__corner--bl,
+  .hx-hud__corner--br { display: none; }
+  .hx-hud__rule { display: none; }
+  .hx-hud__corner--tl { top: 14px; left: 16px; }
+  .hx-hud__corner--tr { top: 14px; right: 16px; }
+}
+
+@media (max-width: 560px) {
+  .hx-hud { display: none; }
+}
+
+/* The frame belongs to the hero, not to the window.
+   Positioned against the viewport it sat on top of the sidebar, the
+   header buttons and the composer - three collisions, all of them
+   unreadable. It is scoped to the area it describes, and inset clear of
+   the header above it and the composer below. */
+.hx-home__hero {
+  position: relative;
+}
+
+.hx-hud__corner--tl { top: 10px; left: 14px; }
+.hx-hud__corner--tr { top: 10px; right: 14px; }
+.hx-hud__corner--bl { bottom: 10px; left: 14px; }
+.hx-hud__corner--br { bottom: 10px; right: 14px; }
+
+.hx-hud__rule { left: 14px; right: 14px; }
+.hx-hud__rule--top { top: 56px; }
+.hx-hud__rule--bottom { bottom: 56px; }
+
+/* The hero is the sphere's room, so the readouts sit at its edges and
+   the content keeps clear of them. */
+.hx-home__hero {
+  padding: 56px 26px;
+}
+
+@media (max-width: 900px) {
+  .hx-home__hero { padding: 44px 18px; }
+}
+
+/* ================= the ring, in the same monochrome ===================
+   State was carried by hue - green, amber, grey. It is now carried by
+   brightness and weight, which loses nothing: this ring never depended
+   on hue to be readable. Its own note says so, and it is why every
+   segment prints its reason in words on hover and repeats it in the
+   hidden list below. Greyscale simply makes that true for everyone at a
+   glance rather than only for people who can separate the colours. */
+.hx-reactor__segment--ready {
+  stroke: #ffffff;
+  stroke-width: 9;
+  opacity: 0.92;
+}
+
+.hx-reactor__segment--caveat {
+  stroke: #a0a0a0;
+  stroke-width: 7;
+  opacity: 0.8;
+}
+
+.hx-reactor__segment--unavailable {
+  stroke: #555555;
+  stroke-width: 5;
+  opacity: 0.5;
+}
+
+.hx-reactor__segment:hover,
+.hx-reactor__segment:focus-visible {
+  stroke: #ffffff;
+  opacity: 1;
+}
+
+.hx-reactor__level {
+  stroke: rgba(255, 255, 255, 0.5);
+}
+
+/* ================== the last of the colour ===========================
+   The status dots were the only hue left on the screen. Every one of
+   them sits beside its own word - ONLINE, VOICE READY, Not configured -
+   so the dot was never carrying the meaning on its own. Turning them to
+   brightness keeps the signal and finishes the monochrome. */
+.hx-dot--ok { background: #ffffff; }
+.hx-dot--warn { background: #a0a0a0; }
+.hx-dot--bad,
+.hx-dot--off { background: #555555; }
+
+.hx-status__state--online,
+.hx-voicelock--ready {
+  color: #e5e5e5;
+}
+
+.hx-voicelock {
+  color: #555555;
+}
+
+/* The composer, in the same hairline language as everything else. */
+.hx-composer {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.hx-composer:focus-within {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.hx-composer__send {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #e5e5e5;
+}
+
+/* ===================== small screens ================================
+   The placeholder was wrapping and being clipped by the fixed height of
+   the composer, and the header ran off the right edge. Both are the
+   same fault: a row that cannot shrink. */
+.hx-composer__field,
+.hx-composer input,
+.hx-composer textarea {
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 560px) {
+  .hx-composer__field,
+  .hx-composer input,
+  .hx-composer textarea {
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* The word beside each header icon is the first thing to go; the icon
+     and its accessible name remain. */
+  .hx-header__label {
+    display: none;
+  }
+
+  .hx-home__title { font-size: 13px; }
+  .hx-home__sub { font-size: 9.5px; }
+}
+
+/* The two that were left. Both sit beside their own word, so nothing is
+   lost by taking the hue out - ONLINE still says ONLINE, and the send
+   button is still the only round control on the row. */
+.hx-conn--online { color: #e5e5e5; }
+.hx-conn--offline { color: #a0a0a0; }
+
+.hx-sendbtn {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: transparent;
+  color: #e5e5e5;
+}
+
+.hx-sendbtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* ============ technical markings and the scan sweep ==================
+   The last two things the reference has and this did not: a faint
+   measuring grid behind everything, and something slowly crossing it.
+
+   Both sit on the hero rather than the window, both are drawn with
+   pseudo-elements so they add no nodes, and both take no pointer
+   events. They are at the threshold of visibility on purpose - the
+   point is that the black stops reading as flat paint. */
+.hx-home__hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 96px 96px;
+  /* Faded at the edges so the grid does not end in a hard line against
+     the sidebar and the composer. */
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
+}
+
+/* One hairline crossing slowly, the way a monitoring system sweeps.
+   Twenty-two seconds: long enough that it reads as patience rather than
+   as an animation asking to be watched. */
+.hx-home__hero::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.11) 50%,
+    rgba(255, 255, 255, 0.06) 75%,
+    transparent
+  );
+  animation: hx-scan 22s linear infinite;
+}
+
+@keyframes hx-scan {
+  0% { top: 4%; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { top: 96%; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-home__hero::after { animation: none; opacity: 0; }
+}
+
+/* The grid is a desktop texture. On a phone the squares are larger than
+   the content sitting on them, which reads as a defect rather than as
+   fine detail. */
+@media (max-width: 560px) {
+  .hx-home__hero::before { background-size: 64px 64px; opacity: 0.6; }
+  .hx-home__hero::after { display: none; }
 }

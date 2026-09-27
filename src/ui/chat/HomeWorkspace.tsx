@@ -3,6 +3,7 @@ import { Composer } from './Composer.js';
 import { ToolCardView } from './ToolCardView.js';
 import { useHelix, useSettings } from '../HelixProvider.js';
 import { Reactor } from '../hero/Reactor.js';
+import { Hud } from '../hero/Hud.js';
 import { describeReasoning, reactorSegments } from '../hero/capabilities.js';
 import { rotateWindow, suggestedPrompts } from '../hero/prompts.js';
 import { toUserMessage } from '../../core/HelixError.js';
@@ -271,6 +272,19 @@ export function HomeWorkspace({
     <div className="hx-home">
       {isEmpty ? (
         <div className="hx-home__hero">
+          {/*
+            Around the edges, and every figure is measured elsewhere and
+            passed in. Nothing here is computed for effect - see Hud.tsx.
+          */}
+          <Hud
+            segments={segments}
+            model={reasoning?.model ?? null}
+            local={reasoning?.local === true}
+            online={online}
+            listening={voiceState.state === 'listening'}
+            counts={counts}
+          />
+
           <Reactor
             segments={segments}
             status={voiceState.state === 'listening' ? 'LISTENING' : 'IDLE'}
@@ -278,6 +292,7 @@ export function HomeWorkspace({
             busy={busy}
             onActivate={() => void toggleCall()}
             label={voiceState.state === 'listening' ? 'Stop listening' : 'Speak to Helix'}
+            reduceMotion={config.reduceMotion === true}
           />
 
           <h1 className="hx-home__title">How may I help?</h1>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe } from './Globe.js';
+import { SphereField } from './SphereField.js';
 import { describeArc, segmentAngles, type ReactorSegment } from './capabilities.js';
 import type { HelixStatus } from '../../types/status.js';
 
@@ -20,10 +20,10 @@ import type { HelixStatus } from '../../types/status.js';
  * same lie as a fake gauge, told more subtly.
  */
 
-const SIZE = 220;
+const SIZE = 300;
 const CENTRE = SIZE / 2;
-const OUTER_RADIUS = 96;
-const LEVEL_RADIUS = 74;
+const OUTER_RADIUS = 134;
+const LEVEL_RADIUS = 104;
 
 const STATE_LABEL = {
   ready: 'ready',
@@ -39,9 +39,19 @@ interface ReactorProps {
   busy: boolean;
   onActivate: () => void;
   label: string;
+  /** Honoured by the sphere, which otherwise turns for ever. */
+  reduceMotion?: boolean;
 }
 
-export function Reactor({ segments, status, level, busy, onActivate, label }: ReactorProps) {
+export function Reactor({
+  segments,
+  status,
+  level,
+  busy,
+  onActivate,
+  label,
+  reduceMotion = false,
+}: ReactorProps) {
   const [hovered, setHovered] = useState<ReactorSegment | null>(null);
 
   const listening = status === 'LISTENING';
@@ -109,11 +119,18 @@ export function Reactor({ segments, status, level, busy, onActivate, label }: Re
         </svg>
 
         {/*
-          The sphere sits under the ring rather than inside the SVG, because
-          it is a CSS 3D rotation and SVG does not carry one reliably. The
-          ring stays SVG: it is a readout, and its segments are real data.
+          The sphere sits under the ring rather than inside the SVG: it is a
+          canvas, and the ring stays SVG because its segments are hoverable
+          and carry their reasons. Both are drawn from the same segments, so
+          they cannot disagree about what works.
         */}
-        <Globe size={150} />
+        <SphereField
+          segments={segments}
+          level={level}
+          listening={listening}
+          reduceMotion={reduceMotion}
+          size={SIZE}
+        />
       </button>
 
       {/* The readout. Occupies its line whether or not anything is hovered, so
