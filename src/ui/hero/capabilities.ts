@@ -205,72 +205,10 @@ function filesState(input: ReactorInput): { state: SegmentState; reason: string 
 /* sweep flag draws a plausible ring that is subtly inside out.       */
 /* ------------------------------------------------------------------ */
 
-export interface Point {
-  x: number;
-  y: number;
-}
-
-/** Degrees, clockwise from twelve o'clock, which is how the ring is read. */
-export function polarToCartesian(cx: number, cy: number, radius: number, degrees: number): Point {
-  const radians = ((degrees - 90) * Math.PI) / 180;
-  return { x: cx + radius * Math.cos(radians), y: cy + radius * Math.sin(radians) };
-}
-
-export interface SegmentAngle {
-  start: number;
-  end: number;
-}
-
-/**
- * Evenly divide the circle, leaving a gap between segments.
- *
- * The gap is taken out of each segment rather than added between them, so the
- * ring always closes at exactly 360 degrees however many segments there are.
+/*
+ * The SVG arc geometry that used to live here - polarToCartesian,
+ * segmentAngles, describeArc - went with the capability ring it drew. The
+ * segments themselves stayed: they are measurements, and they now light the
+ * latitude bands of the sphere in Core.tsx rather than a ring of arcs around
+ * it. Deleting the drawing kept the reading.
  */
-export function segmentAngles(count: number, gapDegrees = 6): SegmentAngle[] {
-  if (count <= 0) return [];
-
-  const step = 360 / count;
-  const gap = Math.min(gapDegrees, step * 0.6);
-
-  return Array.from({ length: count }, (_, index) => ({
-    start: index * step + gap / 2,
-    end: (index + 1) * step - gap / 2,
-  }));
-}
-
-/**
- * An SVG arc along a circle, for stroking. Not a filled wedge: the ring is a
- * stroke so its width is one number to change rather than two radii to keep
- * in step.
- */
-export function describeArc(
-  cx: number,
-  cy: number,
-  radius: number,
-  startDegrees: number,
-  endDegrees: number,
-): string {
-  const start = polarToCartesian(cx, cy, radius, startDegrees);
-  const end = polarToCartesian(cx, cy, radius, endDegrees);
-  const largeArc = endDegrees - startDegrees > 180 ? 1 : 0;
-
-  return [
-    'M',
-    round(start.x),
-    round(start.y),
-    'A',
-    round(radius),
-    round(radius),
-    0,
-    largeArc,
-    1,
-    round(end.x),
-    round(end.y),
-  ].join(' ');
-}
-
-/** Two decimal places: enough for sub-pixel accuracy, short enough to read. */
-function round(value: number): number {
-  return Math.round(value * 100) / 100;
-}

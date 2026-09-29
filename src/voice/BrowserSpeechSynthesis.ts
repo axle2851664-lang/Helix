@@ -92,6 +92,13 @@ export class BrowserSpeechSynthesis implements TextToSpeechProvider {
         utterance.rate = Math.min(10, Math.max(0.1, options.rate / 100));
       }
 
+      // Fires as each word begins, where the platform supports it. Chrome and
+      // Edge do; some Linux voices do not, and there the core simply does not
+      // swell rather than swelling on an invented rhythm.
+      utterance.onboundary = (event) => {
+        if (event.name === 'word' || event.name === undefined) this.#announceWord();
+      };
+
       utterance.onend = () => {
         resolve();
       };
@@ -107,6 +114,31 @@ export class BrowserSpeechSynthesis implements TextToSpeechProvider {
 
       speechSynthesis.speak(utterance);
     });
+  }
+
+  /**
+   * Word-onset listeners.
+   *
+   * A set rather than a single handler: the core subscribes for the life of
+   * the screen, and a second subscriber must not silently replace the first.
+   */
+  readonly #wordListeners = new Set<() => void>();
+
+  onWord(listener: () => void): () => void {
+    this.#wordListeners.add(listener);
+    return () => {
+      this.#wordListeners.delete(listener);
+    };
+  }
+
+  #announceWord(): void {
+    for (const listener of this.#wordListeners) {
+      try {
+        listener();
+      } catch {
+        // A listener that throws must not stop the sentence being spoken.
+      }
+    }
   }
 
   cancel(): void {

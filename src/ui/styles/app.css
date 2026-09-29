@@ -359,45 +359,6 @@
   text-align: center;
 }
 
-.hx-home__title {
-  margin: 0;
-  font-size: 33px;
-  font-weight: 400;
-  letter-spacing: -0.015em;
-}
-
-.hx-home__sub {
-  margin: 8px 0 26px;
-  font-size: 14.5px;
-  color: var(--hx-text-dim);
-}
-
-.hx-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 11px;
-  max-width: 620px;
-}
-
-.hx-chip {
-  padding: 11px 20px;
-  border-radius: 999px;
-  border: 1px solid var(--hx-border);
-  background: rgba(255, 255, 255, 0.022);
-  color: var(--hx-text-dim);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
-}
-
-.hx-chip:hover {
-  color: var(--hx-text);
-  border-color: var(--hx-accent-line);
-  background: var(--hx-accent-soft);
-}
-
 /* --------------------------- transcript ----------------------- */
 .hx-transcript {
   flex: 1;
@@ -897,10 +858,6 @@
   .hx-main__body {
     padding-left: 16px;
     padding-right: 16px;
-  }
-
-  .hx-home__title {
-    font-size: 27px;
   }
 }
 
@@ -1699,101 +1656,6 @@
   border: 0;
 }
 
-.hx-reactor-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.hx-reactor {
-  display: block;
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-  line-height: 0;
-  border-radius: 50%;
-  transition: transform 180ms ease;
-}
-
-.hx-reactor:hover {
-  transform: scale(1.02);
-}
-
-.hx-reactor:active {
-  transform: scale(0.99);
-}
-
-.hx-reactor:focus-visible {
-  outline: 2px solid var(--hx-accent);
-  outline-offset: 6px;
-}
-
-.hx-reactor__svg {
-  overflow: visible;
-}
-
-.hx-reactor__track {
-  stroke: rgba(255, 255, 255, 0.05);
-  stroke-width: 9;
-}
-
-.hx-reactor__segment {
-  stroke-width: 9;
-  stroke-linecap: butt;
-  cursor: pointer;
-  transition: stroke 200ms ease, opacity 200ms ease;
-}
-
-.hx-reactor__segment--ready {
-  stroke: var(--hx-ok);
-  opacity: 0.85;
-}
-
-.hx-reactor__segment--caveat {
-  stroke: var(--hx-warn);
-  opacity: 0.85;
-}
-
-.hx-reactor__segment--unavailable {
-  stroke: var(--hx-off);
-  opacity: 0.55;
-}
-
-.hx-reactor__segment:hover {
-  opacity: 1;
-  stroke-width: 11;
-}
-
-/* Microphone level. Radius is driven from measured amplitude in the
-   component, so this only carries the look, never the motion. */
-.hx-reactor__level {
-  stroke: var(--hx-accent);
-  stroke-width: 2;
-  transition: r 70ms linear, opacity 70ms linear;
-}
-
-.hx-reactor__core {
-  fill: url(#hx-reactor-core);
-  stroke: var(--hx-accent-line);
-  stroke-width: 1;
-  filter: drop-shadow(0 0 24px rgba(224, 36, 60, 0.35));
-}
-
-.hx-reactor:not(.hx-reactor--listening) .hx-reactor__core {
-  animation: hx-breathe-core 5s ease-in-out infinite;
-}
-
-.hx-reactor--listening .hx-reactor__core {
-  animation: hx-pulse-core 1.4s ease-in-out infinite;
-}
-
-.hx-reactor--busy .hx-reactor__core {
-  animation: hx-pulse-core 1.5s ease-in-out infinite;
-}
-
 @keyframes hx-breathe-core {
   0%, 100% { filter: drop-shadow(0 0 20px rgba(224, 36, 60, 0.28)); }
   50%      { filter: drop-shadow(0 0 34px rgba(224, 36, 60, 0.42)); }
@@ -1802,53 +1664,6 @@
 @keyframes hx-pulse-core {
   0%, 100% { filter: drop-shadow(0 0 18px rgba(224, 36, 60, 0.32)); }
   50%      { filter: drop-shadow(0 0 46px rgba(224, 36, 60, 0.6)); }
-}
-
-.hx-reactor__glyph {
-  fill: #fff;
-  font-family: var(--helix-display, inherit);
-  font-size: 46px;
-  font-weight: 600;
-  pointer-events: none;
-}
-
-/* Fixed height: the readout changes as the pointer crosses the ring, and the
-   title below it must not move when it does. */
-.hx-reactor__readout {
-  margin: 0;
-  min-height: 34px;
-  max-width: 52ch;
-  text-align: center;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--hx-text-dim);
-}
-
-.hx-reactor__readout-label {
-  display: inline-block;
-  margin-right: 7px;
-  font-family: var(--helix-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--hx-accent);
-}
-
-.hx-reactor__readout-idle {
-  color: var(--hx-text-faint);
-}
-
-[data-reduce-motion='true'] .hx-reactor__core {
-  animation: none !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hx-reactor__core {
-    animation: none !important;
-  }
-
-  .hx-reactor__level {
-    transition: none;
-  }
 }
 
 /* ======================= standing rules ======================== */
@@ -3321,23 +3136,6 @@ body {
   background: #000;
 }
 
-.hx-reactor {
-  position: relative;
-}
-
-.hx-reactor__track {
-  stroke: rgba(214, 232, 246, 0.09);
-}
-
-.hx-reactor__readout,
-.hx-reactor__readout-idle {
-  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(214, 232, 246, 0.34);
-}
-
 .hx-nav__heading,
 .hx-wordmark {
   font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
@@ -3352,44 +3150,6 @@ body {
 .hx-sidebar {
   background: rgba(255, 255, 255, 0.012);
   border-right: 1px solid rgba(214, 232, 246, 0.06);
-}
-
-/* ---- the rest of the home screen, brought down to the same level ----
-   The reference has no headline and no buttons: thin monospace at the
-   edges, and the sphere. These keep their function and stop competing
-   with it. */
-.hx-home__title {
-  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 15px;
-  font-weight: 400;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgba(214, 232, 246, 0.62);
-}
-
-.hx-home__sub {
-  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 10.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(214, 232, 246, 0.26);
-}
-
-/* Outlines rather than filled pills. A suggestion should not look more
-   important than the thing it is suggesting you talk to. */
-.hx-chip {
-  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 11px;
-  letter-spacing: 0.05em;
-  background: transparent;
-  border: 1px solid rgba(214, 232, 246, 0.14);
-  color: rgba(214, 232, 246, 0.54);
-  transition: border-color 140ms ease, color 140ms ease;
-}
-
-.hx-chip:hover {
-  border-color: rgba(214, 232, 246, 0.38);
-  color: rgba(214, 232, 246, 0.92);
 }
 
 /* The mark, as an outline. A filled red square in the corner was the
@@ -3408,107 +3168,6 @@ body {
 .hx-composer__field {
   border-color: rgba(214, 232, 246, 0.12);
   background: rgba(255, 255, 255, 0.015);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hx-chip { transition: none; }
-}
-
-/* ===================== the monitoring frame ==========================
-   Four corners of readouts, two hairlines, and nothing in the middle.
-   The sphere is the focal point; this is the instrument case around it. */
-.hx-hud {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.hx-hud__corner {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.hx-hud__corner--tl { top: 22px; left: 26px; align-items: flex-start; }
-.hx-hud__corner--tr { top: 22px; right: 26px; align-items: flex-end; }
-.hx-hud__corner--bl { bottom: 22px; left: 26px; align-items: flex-start; }
-.hx-hud__corner--br { bottom: 22px; right: 26px; align-items: flex-end; }
-
-.hx-hud__row {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-  font-family: var(--hx-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 9.5px;
-  letter-spacing: 0.13em;
-  line-height: 1.5;
-  white-space: nowrap;
-  /* Faded in once, slowly, so the frame settles rather than snapping on. */
-  animation: hx-hud-settle 1400ms ease-out both;
-}
-
-.hx-hud__corner--tr .hx-hud__row,
-.hx-hud__corner--br .hx-hud__row {
-  flex-direction: row-reverse;
-}
-
-.hx-hud__label { color: #555555; }
-.hx-hud__value { color: #e5e5e5; }
-.hx-hud__row--dim .hx-hud__value { color: #a0a0a0; }
-
-@keyframes hx-hud-settle {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* Hairlines that mark the frame. They report nothing and say nothing. */
-.hx-hud__rule {
-  position: absolute;
-  left: 26px;
-  right: 26px;
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgba(255, 255, 255, 0.07) 12%,
-    rgba(255, 255, 255, 0.07) 88%,
-    transparent
-  );
-}
-
-.hx-hud__rule--top { top: 74px; }
-.hx-hud__rule--bottom { bottom: 74px; }
-
-/* ===================== the sphere and its light ======================
-   The glow is drawn under the canvas rather than as a shadow on it, so
-   the points stay crisp and only the air around them lifts. */
-.hx-sphere {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  translate: -50% -50%;
-  pointer-events: none;
-}
-
-.hx-reactor-wrap::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 340px;
-  height: 340px;
-  translate: -50% -50%;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.055) 0%,
-    rgba(255, 255, 255, 0.018) 38%,
-    transparent 68%
-  );
-  pointer-events: none;
-  animation: hx-breathe 9s ease-in-out infinite;
 }
 
 @keyframes hx-breathe {
@@ -3566,22 +3225,6 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .hx-app::before { animation: none; }
-  .hx-reactor-wrap::before { animation: none; }
-  .hx-hud__row { animation: none; }
-}
-
-/* The frame is for a screen with room for it. On a phone the readouts
-   would sit on top of the content, so they stand down. */
-@media (max-width: 900px) {
-  .hx-hud__corner--bl,
-  .hx-hud__corner--br { display: none; }
-  .hx-hud__rule { display: none; }
-  .hx-hud__corner--tl { top: 14px; left: 16px; }
-  .hx-hud__corner--tr { top: 14px; right: 16px; }
-}
-
-@media (max-width: 560px) {
-  .hx-hud { display: none; }
 }
 
 /* The frame belongs to the hero, not to the window.
@@ -3593,15 +3236,6 @@ body {
   position: relative;
 }
 
-.hx-hud__corner--tl { top: 10px; left: 14px; }
-.hx-hud__corner--tr { top: 10px; right: 14px; }
-.hx-hud__corner--bl { bottom: 10px; left: 14px; }
-.hx-hud__corner--br { bottom: 10px; right: 14px; }
-
-.hx-hud__rule { left: 14px; right: 14px; }
-.hx-hud__rule--top { top: 56px; }
-.hx-hud__rule--bottom { bottom: 56px; }
-
 /* The hero is the sphere's room, so the readouts sit at its edges and
    the content keeps clear of them. */
 .hx-home__hero {
@@ -3610,41 +3244,6 @@ body {
 
 @media (max-width: 900px) {
   .hx-home__hero { padding: 44px 18px; }
-}
-
-/* ================= the ring, in the same monochrome ===================
-   State was carried by hue - green, amber, grey. It is now carried by
-   brightness and weight, which loses nothing: this ring never depended
-   on hue to be readable. Its own note says so, and it is why every
-   segment prints its reason in words on hover and repeats it in the
-   hidden list below. Greyscale simply makes that true for everyone at a
-   glance rather than only for people who can separate the colours. */
-.hx-reactor__segment--ready {
-  stroke: #ffffff;
-  stroke-width: 9;
-  opacity: 0.92;
-}
-
-.hx-reactor__segment--caveat {
-  stroke: #a0a0a0;
-  stroke-width: 7;
-  opacity: 0.8;
-}
-
-.hx-reactor__segment--unavailable {
-  stroke: #555555;
-  stroke-width: 5;
-  opacity: 0.5;
-}
-
-.hx-reactor__segment:hover,
-.hx-reactor__segment:focus-visible {
-  stroke: #ffffff;
-  opacity: 1;
-}
-
-.hx-reactor__level {
-  stroke: rgba(255, 255, 255, 0.5);
 }
 
 /* ================== the last of the colour ===========================
@@ -3706,9 +3305,6 @@ body {
   .hx-header__label {
     display: none;
   }
-
-  .hx-home__title { font-size: 13px; }
-  .hx-home__sub { font-size: 9.5px; }
 }
 
 /* The two that were left. Both sit beside their own word, so nothing is
@@ -3789,4 +3385,63 @@ body {
 @media (max-width: 560px) {
   .hx-home__hero::before { background-size: 64px 64px; opacity: 0.6; }
   .hx-home__hero::after { display: none; }
+}
+
+/* ======================= the core ====================================
+   One sphere, its aura, and a word that comes and goes. What used to be
+   here as well - a segmented capability ring, a four-corner HUD, a
+   title, a subtitle and a row of suggestion chips - is gone, and their
+   rules went with them rather than being left to apply to nothing.
+
+   The drawing is all in the canvas. These rules carry the button that
+   wraps it, the room around it, and nothing else: anything that pulsed
+   or glowed in CSS would be a second animation loop disagreeing with
+   the first about what Helix is doing. */
+
+.hx-core {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  /* Above the grid and the scan line, which are the hero's own
+     pseudo-elements. */
+  position: relative;
+  z-index: 1;
+  line-height: 0;
+}
+
+.hx-core:focus-visible {
+  /* A ring only while focused from the keyboard, and drawn well clear of
+     the aura so it reads as focus rather than as a state. */
+  outline: 1px solid rgba(255, 255, 255, 0.55);
+  outline-offset: 10px;
+  border-radius: 50%;
+}
+
+.hx-core__canvas {
+  display: block;
+  pointer-events: none;
+}
+
+/* The state, in words, under the core.
+
+   Fixed height and always present in the layout: it holds its line
+   whether or not there is anything to say, so the core does not shift up
+   and down as states come and go. Faint on purpose - it is there to be
+   read when you look for it, not to be the thing you look at. */
+.hx-core__state {
+  margin: 14px 0 0;
+  min-height: 18px;
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8a8a8a;
+  transition: opacity 320ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-core__state { transition: none; }
 }

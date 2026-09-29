@@ -100,6 +100,22 @@ export interface TextToSpeechProvider {
   /** Stop immediately. Required so the user can interrupt Helix (spec 9). */
   cancel(): void;
   readonly speaking: boolean;
+
+  /**
+   * Called as each word begins, where the synthesiser reports it.
+   *
+   * Optional, and duck-typed at the call site exactly as `onLevel` is on the
+   * recognition side, because not every synthesiser emits boundaries and a
+   * required method would force the ones that do not to lie about it.
+   *
+   * This exists so the core on screen can swell on the words Helix is
+   * actually saying. The alternative - a sine wave while `speaking` is true -
+   * would look identical and mean nothing, which is the one thing the
+   * interface is not allowed to do.
+   *
+   * Returns an unsubscribe function.
+   */
+  onWord?(listener: () => void): () => void;
 }
 
 /** Voice pipeline state, mirrored by the Helix status indicator. */

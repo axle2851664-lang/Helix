@@ -347,6 +347,21 @@ export class VoiceManager {
     }
   }
 
+  /**
+   * Subscribe to word onsets while Helix is speaking.
+   *
+   * Duck-typed, exactly as `onLevel` is on the recognition side: a synthesiser
+   * that does not report boundaries returns a no-op unsubscribe, and the
+   * caller gets no events rather than invented ones. The core on screen uses
+   * this to swell on the words actually being said; with no events it simply
+   * does not swell, which is the honest failure.
+   */
+  onSpokenWord(listener: () => void): () => void {
+    const tts = this.#tts as { onWord?: (h: () => void) => () => void } | null;
+    if (!tts || typeof tts.onWord !== 'function') return () => {};
+    return tts.onWord(listener);
+  }
+
   /** Interrupt Helix mid-sentence (spec 9). */
   stopSpeaking(): void {
     this.#tts?.cancel();

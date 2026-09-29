@@ -102,6 +102,15 @@ export interface HelixEventMap {
   // --- Permissions (spec 6). A capability is gated on a decision the user
   //     made, so the UI must be able to see both the asking and the answer. ---
   PERMISSION_REQUESTED: { permission: string; reason: string };
+  /**
+   * A question is on screen and Helix has stopped until it is answered.
+   *
+   * Raised by the consent gate, which is the only thing that knows. The core
+   * on the home screen has to be able to show "awaiting confirmation" as a
+   * state distinct from thinking, and without this it would have to guess -
+   * which is exactly the invented telemetry the interface is built to avoid.
+   */
+  CONSENT_PENDING: { pending: boolean; what: string };
   PERMISSION_CHANGED: { permission: string; state: string };
 
   // --- Settings (spec 15) ---

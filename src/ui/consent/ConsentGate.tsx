@@ -15,7 +15,7 @@ import { useHelix } from '../HelixProvider.js';
  * promise cannot be left hanging on a dialog that is no longer on screen.
  */
 export function ConsentGate() {
-  const { permissions, runner } = useHelix();
+  const { permissions, runner, bus } = useHelix();
   const queueRef = useRef<ConsentQueue | null>(null);
   if (queueRef.current === null) queueRef.current = new ConsentQueue();
   const queue = queueRef.current;
@@ -39,6 +39,25 @@ export function ConsentGate() {
       queue.close();
     };
   }, [permissions, runner, queue]);
+
+  /**
+   * Announce that Helix has stopped and is waiting on an answer.
+   *
+   * The core on the home screen has to show "awaiting confirmation" as a state
+   * distinct from thinking - one of them will carry on by itself and one will
+   * not - and this gate is the only thing that knows. Without the event the
+   * core would have to guess, which is the invented telemetry the interface is
+   * built to avoid.
+   *
+   * The cleanup fires on unmount as well, so a question that disappears with
+   * the gate does not leave the core waiting for ever.
+   */
+  useEffect(() => {
+    bus.emit('CONSENT_PENDING', { pending: current !== null, what: current?.title ?? '' });
+    return () => {
+      if (current !== null) bus.emit('CONSENT_PENDING', { pending: false, what: '' });
+    };
+  }, [bus, current]);
 
   if (!current) return null;
 

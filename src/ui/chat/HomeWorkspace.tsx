@@ -2,10 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Composer } from './Composer.js';
 import { ToolCardView } from './ToolCardView.js';
 import { useHelix, useSettings } from '../HelixProvider.js';
-import { Reactor } from '../hero/Reactor.js';
-import { Hud } from '../hero/Hud.js';
+import { Core } from '../hero/Core.js';
+import { coreStateFor, coreStateLabel } from '../hero/coreState.js';
 import { describeReasoning, reactorSegments } from '../hero/capabilities.js';
-import { rotateWindow, suggestedPrompts } from '../hero/prompts.js';
 import { toUserMessage } from '../../core/HelixError.js';
 import type { VoiceSnapshot } from '../../voice/VoiceManager.js';
 import type { Conversation, ConversationMessage } from '../../conversations/ConversationStore.js';
@@ -21,9 +20,25 @@ import type { WorkspaceId } from '../workspaces/registry.js';
  * produce.
  */
 
-/** How many examples are on screen at once, and how often the window moves. */
-const VISIBLE_PROMPTS = 4;
-const ROTATE_MS = 6000;
+/**
+ * How long a word stays under the core after the state that produced it has
+ * gone.
+ *
+ * Long enough to read, short enough that the screen returns to the core. The
+ * brief is for no permanent dashboards, and a label that never leaves is one.
+ */
+const STATE_LINGER_MS = 1600;
+
+/**
+ * How fast the swell decays between the words Helix is speaking.
+ *
+ * A word onset sets the level to 1 and this walks it back down, so each word
+ * is a distinct beat. It is a decay on a real event, not an oscillator: with
+ * no boundary events from the synthesiser, nothing ever sets it, and the core
+ * does not move. That is the correct failure - a sine wave here would look
+ * exactly like speech and mean nothing.
+ */
+const WORD_DECAY_MS = 90;
 
 interface HomeWorkspaceProps {
   conversationId: string | null;
@@ -75,7 +90,6 @@ export function HomeWorkspace({
     unindexed: 0,
     searchable: 0,
   });
-  const [rotation, setRotation] = useState(0);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const reload = useCallback(async () => {
@@ -97,6 +111,69 @@ export function HomeWorkspace({
   useEffect(() => voice.subscribe(setVoiceState), [voice]);
 
   useEffect(() => platform.onConnectivityChange(setOnline), [platform]);
+
+  /**
+   * What Helix is doing, from the manager that hands out a token to the code
+   * doing it. Subscribed rather than read, because `activity.current` is a
+   * mutable field and React has no reason to re-render when it changes.
+   */
+  const [activityKind, setActivityKind] = useState(() => activity.current.kind);
+  useEffect(
+    () => activity.subscribe((next) => setActivityKind(next.kind)),
+    [activity],
+  );
+
+  /** True while a consent question is on screen and unanswered. */
+  const [awaitingConsent, setAwaitingConsent] = useState(false);
+  useEffect(
+    () => bus.on('CONSENT_PENDING', (event) => setAwaitingConsent(event.pending)),
+    [bus],
+  );
+
+  /**
+   * How far the core is swollen, 0..1, and the only number on this screen that
+   * moves with a measurement.
+   *
+   * Two sources, both real. While listening it is the microphone level, from
+   * the providers that measure it. While speaking it is word onsets from the
+   * synthesiser: each one sets it to 1 and it decays from there, so a word
+   * reads as a beat rather than as a wave. There is no third source. If the
+   * synthesiser reports no boundaries - some Linux voices do not - nothing
+   * sets it, and the core does not swell while Helix talks. That is the honest
+   * failure; an oscillator would look identical and mean nothing.
+   */
+  const [level, setLevel] = useState(0);
+  const speakingLevel = useRef(0);
+
+  useEffect(() => {
+    if (voiceState.state !== 'speaking') {
+      speakingLevel.current = 0;
+      setLevel(0);
+      return;
+    }
+
+    const stopWords = voice.onSpokenWord(() => {
+      speakingLevel.current = 1;
+      setLevel(1);
+    });
+
+    const decay = window.setInterval(() => {
+      if (speakingLevel.current === 0) return;
+      speakingLevel.current = Math.max(0, speakingLevel.current - 0.25);
+      setLevel(speakingLevel.current);
+    }, WORD_DECAY_MS);
+
+    return () => {
+      stopWords();
+      window.clearInterval(decay);
+    };
+  }, [voice, voiceState.state]);
+
+  // While listening the level comes from the snapshot, which the voice manager
+  // already pushes on every sample.
+  useEffect(() => {
+    if (voiceState.state === 'listening') setLevel(Math.min(1, voiceState.level * 6));
+  }, [voiceState.state, voiceState.level]);
 
 
   /**
@@ -247,25 +324,37 @@ export function HomeWorkspace({
     searchableFiles: counts.searchable,
   });
 
-  const prompts = suggestedPrompts({
-    memoryAllowed: config.allowLongTermMemory,
-    memoryCount: counts.memories,
-    projectCount: counts.projects,
-    unindexedFiles: counts.unindexed,
-    searchableFiles: counts.searchable,
-    hearingBlocker,
+  /**
+   * What the core is doing, and the word for it.
+   *
+   * Derived in `coreState.ts` from three things the program already knows and
+   * cannot fake: the activity manager's kind, the voice pipeline's state, and
+   * whether a consent question is open. The word appears under the core and
+   * then goes; it is not a readout.
+   */
+  const coreState = coreStateFor({
+    activity: activityKind,
+    voice: voiceState.state,
+    awaitingConsent,
   });
 
-  const visible = rotateWindow(prompts, rotation, VISIBLE_PROMPTS);
-
-  // Examples rotate only on the empty home screen, and never when the user has
-  // asked for less motion - a moving list is hard to read for exactly the
-  // people that setting exists for.
+  /**
+   * The word, held for a moment after the state that produced it has passed.
+   *
+   * Without the delay a state that lasts 200ms - which most of them do - would
+   * flash a word nobody could read. With it, the word appears, is readable,
+   * and then goes; the screen returns to the core, which is the point.
+   */
+  const [lingeringLabel, setLingeringLabel] = useState<string | null>(null);
   useEffect(() => {
-    if (!isEmpty || config.reduceMotion) return;
-    const timer = window.setInterval(() => setRotation((current) => current + 1), ROTATE_MS);
-    return () => window.clearInterval(timer);
-  }, [isEmpty, config.reduceMotion]);
+    const label = coreStateLabel(coreState);
+    if (label !== null) {
+      setLingeringLabel(label);
+      return;
+    }
+    const timer = window.setTimeout(() => setLingeringLabel(null), STATE_LINGER_MS);
+    return () => window.clearTimeout(timer);
+  }, [coreState]);
 
 
   return (
@@ -273,57 +362,36 @@ export function HomeWorkspace({
       {isEmpty ? (
         <div className="hx-home__hero">
           {/*
-            Around the edges, and every figure is measured elsewhere and
-            passed in. Nothing here is computed for effect - see Hud.tsx.
+            The whole screen: one sphere, its aura, and a word that appears
+            while something is happening and then leaves.
+
+            What used to be here as well - a segmented capability ring, a
+            four-corner HUD of readouts, a title, a subtitle and a rotating row
+            of suggestion chips - is gone. None of it was invented, which is
+            why it survived this long, but the brief asks for a screen with no
+            permanent dashboards, and a ring of arcs around the sphere is a
+            permanent dashboard drawn in a circle. The capability measurements
+            did not go with it: they are what lights the sphere's own bands,
+            and the words that explain them are in Diagnostics.
           */}
-          <Hud
+          <Core
             segments={segments}
-            model={reasoning?.model ?? null}
-            local={reasoning?.local === true}
-            online={online}
-            listening={voiceState.state === 'listening'}
-            counts={counts}
-          />
-
-          <Reactor
-            segments={segments}
-            status={voiceState.state === 'listening' ? 'LISTENING' : 'IDLE'}
-            level={voiceState.level}
-            busy={busy}
-            onActivate={() => void toggleCall()}
-            label={voiceState.state === 'listening' ? 'Stop listening' : 'Speak to Helix'}
+            state={coreState}
+            level={level}
             reduceMotion={config.reduceMotion === true}
+            onActivate={() => void toggleCall()}
+            label={
+              voiceState.state === 'listening' ? 'Stop listening' : 'Speak to Helix'
+            }
           />
 
-          <h1 className="hx-home__title">How may I help?</h1>
-          {coreNotice && (
-            <p className="hx-core__notice" role="status">
-              {coreNotice}
-            </p>
-          )}
-          <p className="hx-home__sub">
-            {voiceState.state === 'listening'
-              ? 'Listening, sir. Speak, and I will stop when you do.'
-              : 'Press the H to speak, sir, or try one of these:'}
+          {/*
+            Occupies its line whether or not there is anything to say, so the
+            core does not shift up and down as states come and go.
+          */}
+          <p className="hx-core__state" role="status" aria-live="polite">
+            {coreNotice ?? lingeringLabel ?? ''}
           </p>
-
-          {/* Only things that will genuinely work are offered here. Everything
-              else stays reachable by typing it, but is not advertised. */}
-          <div className="hx-suggestions">
-            {visible.map((prompt) => (
-              <button
-                key={prompt.text}
-                type="button"
-                className="hx-chip"
-                title={prompt.outcome}
-                // Fills the composer rather than firing immediately, so the
-                // user can edit before sending.
-                onClick={() => setDraft(prompt.text)}
-              >
-                {prompt.text}
-              </button>
-            ))}
-          </div>
         </div>
       ) : (
         <div className="hx-transcript" ref={transcriptRef}>
