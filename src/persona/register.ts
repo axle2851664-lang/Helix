@@ -31,6 +31,7 @@ import { ADDRESS_FORMS, addressPattern } from './voice.js';
 export type RegisterFault =
   | 'terminal'
   | 'archaic'
+  | 'servile'
   | 'disclaimer'
   | 'address-repeat'
   | 'address-rate'
@@ -77,11 +78,18 @@ const TERMINAL_OPENERS = [
   'roger',
 ] as const;
 
-/** Costume-drama address. Substituted rather than deleted: it means something. */
+/**
+ * Costume-drama address.
+ *
+ * These used to be substituted with "sir", on the reasoning that an address
+ * means something and deleting it loses it. Helix no longer uses honorifics at
+ * all, so substituting one for another would only launder the fault: they are
+ * deleted, along with every other form, by `collapseAddress`. What remains
+ * here is the one form that is not in `ADDRESS_FORMS` because it is a phrase
+ * rather than a title.
+ */
 const ARCHAIC_ADDRESS: ReadonlyArray<readonly [RegExp, string]> = [
-  [/\bmy lord\b/gi, 'sir'],
-  [/\bmilord\b/gi, 'sir'],
-  [/\byour lordship\b/gi, 'sir'],
+  [/(,\s*)?\byour lordship\b([,.!?]?)/gi, '$2'],
 ];
 
 /** Flourishes with no content at all, so removing them removes nothing. */
@@ -157,6 +165,28 @@ const SERVICE_TAGS = [
   /\s*(?:please )?let me know (?:if|how) (?:i can (?:be of )?(?:assist|help|service)|you(?:'d| would) like to proceed)[^.!?]*ADDRESS\s*[?.!]?\s*$/i,
   /\s*i(?:'m| am) (?:here|at your (?:service|disposal))(?: (?:if|should) you need (?:me|anything))?ADDRESS\s*[?.!]?\s*$/i,
 ].map(withTrailingAddress);
+
+/**
+ * Deference, which the register does not have.
+ *
+ * Flagged, never edited, and that distinction is deliberate. The phrases above
+ * this one are either an opener (removable from the front without touching the
+ * sentence) or a closing tag (removable from the end the same way). These are
+ * woven into the middle of a clause: cutting "I'd be delighted to" out of "Of
+ * course, I'd be delighted to help with that" leaves "Of course, help with
+ * that", which is worse English than the fault it repaired. So the checker
+ * reports them and leaves the words alone. The prompt is what prevents them;
+ * this is what proves the prompt is failing when it is.
+ */
+const SERVILE = [
+  /\bI(?:'d| would) be delighted\b/i,
+  /\bI(?:'d| would) be happy to\b/i,
+  /\bI do apologi[sz]e\b/i,
+  /\bmy (?:sincere )?apologies\b/i,
+  /\bit(?:'s| is) my pleasure\b/i,
+  /\bat your service\b/i,
+  /\bhow may I be of service\b/i,
+];
 
 const EMOJI = /\p{Extended_Pictographic}️?/gu;
 
@@ -285,11 +315,24 @@ export function inspect(text: string): RegisterFinding[] {
     if (match) findings.push({ fault: 'archaic', found: match[0].trim() });
   }
 
+  for (const pattern of SERVILE) {
+    const match = pattern.exec(text);
+    if (match) findings.push({ fault: 'servile', found: match[0] });
+  }
+
   const disclaimer = new RegExp(DISCLAIMER.source, 'i').exec(text);
   if (disclaimer) findings.push({ fault: 'disclaimer', found: disclaimer[0].trim() });
 
-  if ([...text.matchAll(ADDRESS_OCCURRENCE)].length > 1) {
-    findings.push({ fault: 'address-repeat', found: 'sir' });
+  // Any honorific at all is a fault now, not merely a repeated one: the rate
+  // is zero. Reported as a repeat when there is more than one so a test
+  // failure still names which rule the model broke.
+  const honorifics = [...text.matchAll(ADDRESS_OCCURRENCE)];
+  const firstHonorific = honorifics[0];
+  if (firstHonorific !== undefined) {
+    findings.push({
+      fault: honorifics.length > 1 ? 'address-repeat' : 'address-rate',
+      found: firstHonorific[0].trim(),
+    });
   }
 
   const tag = matchServiceTag(text);
@@ -310,26 +353,28 @@ export function inspect(text: string): RegisterFinding[] {
  */
 export interface RepairOptions {
   /**
-   * Whether this reply may carry the form of address.
+   * Whether this reply may carry an honorific.
    *
-   * Defaults to true, which leaves the reply's own choice alone beyond the
-   * one-per-reply rule. The orchestrator passes `allowAddressInReply()` from
-   * `voice.ts`, so that the rate across replies is governed by the same
-   * rolling window as Helix's own scripted sentences - a model given the rate
-   * in words used the address in five replies out of six.
+   * Defaults to false, and `allowAddressInReply()` in `voice.ts` - which the
+   * orchestrator passes - always returns false as well. The option survives
+   * because a caller that wants to see a reply unrepaired should be able to
+   * ask, not because Helix ever addresses anyone as "sir".
+   *
+   * The default was true. A default of true is how an honorific gets back in:
+   * every call site that forgets the option gets the old behaviour, silently.
    */
   allowAddress?: boolean;
 }
 
 export function repair(text: string, options: RepairOptions = {}): RepairedReply {
-  const allowAddress = options.allowAddress ?? true;
+  const allowAddress = options.allowAddress ?? false;
 
   const findings = inspect(text);
   const hasAddress = ADDRESS_OCCURRENCE.test(text);
   ADDRESS_OCCURRENCE.lastIndex = 0;
 
-  if (!allowAddress && hasAddress) {
-    findings.push({ fault: 'address-rate', found: 'sir' });
+  if (!allowAddress && hasAddress && !findings.some((f) => f.fault === 'address-rate')) {
+    findings.push({ fault: 'address-rate', found: 'honorific' });
   }
 
   if (findings.length === 0) return { text, findings: [], wholesale: false };

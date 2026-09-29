@@ -126,7 +126,7 @@ export function SpatialStage({
       {objects.length === 0 && (
         <div className="hx-stage__empty">
           <Icon name="image" size={26} />
-          <p>No objects on the stage, sir.</p>
+          <p>No objects on the stage.</p>
           <p className="hx-muted">Add one below, or open a project with images.</p>
         </div>
       )}

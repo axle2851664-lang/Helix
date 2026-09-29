@@ -55,8 +55,14 @@ describe('terminal register', () => {
 });
 
 describe('costume-drama register', () => {
-  it('substitutes archaic address rather than deleting it', () => {
-    expect(repair('The file is open, my lord.').text).toBe('The file is open, sir.');
+  /**
+   * This used to substitute "sir" for "my lord", on the reasoning that an
+   * address means something. Helix no longer uses honorifics at all, so
+   * swapping one for another would only launder the fault.
+   */
+  it('deletes archaic address rather than substituting another', () => {
+    expect(repair('The file is open, my lord.').text).toBe('The file is open.');
+    expect(repair('The file is open, your lordship.').text).toBe('The file is open.');
   });
 
   it('deletes flourishes, which carry nothing', () => {
@@ -64,21 +70,36 @@ describe('costume-drama register', () => {
   });
 });
 
-describe('address rate', () => {
-  it('leaves a single address alone', () => {
-    const single = 'I am here, sir. What do you need?';
-    expect(repair(single).text).toBe(single);
+describe('honorifics', () => {
+  /**
+   * The rate is zero, so there is no "single address" case to leave alone any
+   * more. This test asserted the opposite - that one was fine - which is
+   * exactly the behaviour the brief removed.
+   */
+  it('removes a single address', () => {
+    expect(repair('I am here, sir. What do you need?').text).toBe(
+      'I am here. What do you need?',
+    );
   });
 
-  /**
-   * The prompt asks for it never twice in one reply and a small model obliges
-   * about as often as not. The first is kept because it is nearly always the
-   * natural one.
-   */
-  it('keeps the first and drops the rest', () => {
+  it('removes every one of them, not just the repeats', () => {
     const result = repair('Yes, sir. The file is open, sir, and indexed, sir.');
-    expect(result.text).toBe('Yes, sir. The file is open and indexed.');
+    expect(result.text).toBe('Yes. The file is open and indexed.');
     expect(result.findings.map((finding) => finding.fault)).toContain('address-repeat');
+  });
+
+  it('catches the forms Helix never used but a model reaches for', () => {
+    for (const said of [
+      'Right away, chief.',
+      'Understood, commander.',
+      'Of course, captain.',
+      "As you like, ma'am.",
+    ]) {
+      expect(inspect(said).map((f) => f.fault), said).toContain('address-rate');
+      expect(repair(said).text.toLowerCase(), said).not.toMatch(
+        /\b(chief|commander|captain|ma'am)\b/,
+      );
+    }
   });
 });
 
@@ -89,7 +110,7 @@ describe('the offer of further service', () => {
    */
   it('removes a trailing service tag', () => {
     expect(repair("You're welcome, sir. How may I assist you further?").text).toBe(
-      "You're welcome, sir.",
+      "You're welcome.",
     );
   });
 
@@ -156,9 +177,19 @@ describe('the address rate across replies', () => {
     expect(result.findings.map((finding) => finding.fault)).toContain('address-rate');
   });
 
-  it('leaves the reply alone when the rate allows it', () => {
+  /**
+   * The option survives so a caller can see a reply unrepaired. Nothing in
+   * Helix passes it: `allowAddressInReply()` always answers false.
+   */
+  it('leaves the reply alone only when explicitly asked to', () => {
     const allowed = 'I am here, sir. What do you need?';
     expect(repair(allowed, { allowAddress: true }).text).toBe(allowed);
+  });
+
+  // The default is what every forgetful call site gets, so the default is the
+  // rule rather than an opt-in to it.
+  it('defaults to removing it', () => {
+    expect(repair('I am here, sir.').text).toBe('I am here.');
   });
 
   it('does nothing to a reply that never used it', () => {
@@ -193,9 +224,6 @@ describe('what it must never do', () => {
         .filter(Boolean);
 
       for (const word of produced) {
-        // "sir" is the one substitution, and it replaces an address with an
-        // address - it adds no information.
-        if (word === 'sir') continue;
         expect(source.has(word), `"${word}" was not in the input`).toBe(true);
       }
     }
@@ -212,6 +240,26 @@ describe('what it must never do', () => {
     const good = "I'm here. Canberra, incidentally - not Sydney.";
     expect(repair(good).text).toBe(good);
     expect(repair(good).findings).toEqual([]);
+  });
+});
+
+describe('deference', () => {
+  /**
+   * Reported and not repaired, on purpose: these sit in the middle of a
+   * clause, and cutting one out leaves worse English than the fault did. See
+   * `SERVILE` in register.ts.
+   */
+  it.each([
+    "Of course, I'd be delighted to help with that.",
+    'I do apologise, that was my mistake.',
+    'I am at your service.',
+  ])('flags it without rewriting the sentence: %j', (input) => {
+    expect(inspect(input).map((f) => f.fault)).toContain('servile');
+  });
+
+  it('does not flag an ordinary offer of help', () => {
+    const plain = 'I can list the three that failed.';
+    expect(inspect(plain)).toEqual([]);
   });
 });
 

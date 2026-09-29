@@ -67,7 +67,7 @@ export function Composer({ value, onChange, onSubmit, busy, autoFocus }: Compose
     try {
       const transcript = await voice.listen();
       if (transcript.trim() === '') {
-        say("I'm afraid I didn't catch that, sir.");
+        say("I didn't catch that.");
         return;
       }
       // Fills the composer rather than sending, so the user can correct a
@@ -132,7 +132,7 @@ export function Composer({ value, onChange, onSubmit, busy, autoFocus }: Compose
           className="hx-iconbtn"
           aria-label="Attach a file"
           onClick={() =>
-            say("I'm afraid attachments aren't available here yet, sir. You may import files from Upload Project.")
+            say("Attachments are not available here yet. Import files from Upload Project.")
           }
         >
           <Icon name="paperclip" size={19} />
@@ -143,7 +143,7 @@ export function Composer({ value, onChange, onSubmit, busy, autoFocus }: Compose
           className="hx-iconbtn"
           aria-label="Attach an image"
           onClick={() =>
-            say("I'm afraid image understanding isn't configured yet, sir. It arrives with vision in phase 7.")
+            say("Image understanding is not configured yet. It arrives with vision in phase 7.")
           }
         >
           <Icon name="image" size={19} />

@@ -98,8 +98,8 @@ export function FilesWorkspace() {
       {assets.length === 0 ? (
         <div className="hx-panel hx-empty">
           <Icon name="folder" size={26} />
-          <p>No files as yet, sir.</p>
-          <p className="hx-muted">Import some from Upload Project and I shall index them.</p>
+          <p>No files yet.</p>
+          <p className="hx-muted">Import some from Upload Project and I will index them.</p>
         </div>
       ) : (
         <>
@@ -237,7 +237,7 @@ export function FilesWorkspace() {
               </h2>
               <p className="hx-settings__note">
                 Found in {flagged.size} {flagged.size === 1 ? 'file' : 'files'}. This is very
-                often innocent - notes about this subject trip it, sir, as they should. It is
+                often innocent - notes about this subject trip it, as they should. It is
                 shown because anything Helix reads could have been written by someone else for
                 Helix to read, and you should be the one who decides what it means. Helix treats
                 every passage below as content, never as an instruction.
@@ -273,7 +273,7 @@ export function FilesWorkspace() {
             <section className="hx-panel">
               <h2 className="hx-panel__title">Why some files are not searchable</h2>
               <p className="hx-settings__note">
-                These are stored safely and remain part of their project, sir. I am simply unable
+                These are stored safely and remain part of their project. I am simply unable
                 to read their text as yet, so search will not reach them.
               </p>
               <ul className="hx-list">

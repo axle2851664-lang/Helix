@@ -113,7 +113,7 @@ export function SpatialWorkspace() {
 
     const video = videoRef.current;
     if (!video || !cameraState.live) {
-      say('The camera must be running before I can track your hands, sir.');
+      say('The camera must be running before I can track your hands.');
       return;
     }
 
@@ -153,7 +153,7 @@ export function SpatialWorkspace() {
   const placeSearchResults = () => {
     const outcome = imageResults.outcome;
     if (!outcome || outcome.results.length === 0) {
-      say('There are no image results to place. Search for some first, sir.');
+      say('There are no image results to place. Search for some first.');
       return;
     }
 
@@ -181,7 +181,7 @@ export function SpatialWorkspace() {
     const images = assets.filter((asset) => asset.kind === 'image');
 
     if (images.length === 0) {
-      say('That project holds no images to place on the stage, sir.');
+      say('That project holds no images to place on the stage.');
       return;
     }
 

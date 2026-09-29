@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  carriesAddress,
+  ADDRESS_FORMS,
   acknowledge,
   addressed,
+  allowAddressInReply,
+  carriesAddress,
   confirm,
   enquire,
   observe,
@@ -17,53 +19,62 @@ beforeEach(() => {
   resetVoice();
 });
 
-describe('addressed', () => {
+describe('honorifics', () => {
   /**
-   * Either form, because there are two and they alternate. Pinning this to
-   * "sir" made the second call in the same test fail for doing exactly what it
-   * was asked to do.
+   * The rule this whole file exists to hold. Helix used to say "sir" in about
+   * a third of its replies and there was machinery to meter it; the rate is
+   * now zero, and the machinery removes rather than meters.
    */
-  it('adds the form of address before terminal punctuation', () => {
-    expect(addressed('The project is open.', { force: true })).toMatch(
-      /^The project is open, (?:sir|boss)\.$/,
-    );
-    expect(addressed('Shall I proceed?', { force: true })).toMatch(
-      /^Shall I proceed, (?:sir|boss)\?$/,
-    );
+  it('strips every form of address it knows', () => {
+    expect(addressed('The project is open, sir.')).toBe('The project is open.');
+    expect(addressed('Very good, boss.')).toBe('Very good.');
+    expect(addressed('At once, milord.')).toBe('At once.');
+    expect(addressed("Certainly, ma'am.")).toBe('Certainly.');
   });
 
-  // Alternating rather than random: a run of "boss, boss, boss" reads as a tic.
-  it('alternates between the two forms', () => {
-    const lines = Array.from({ length: 4 }, (_, i) =>
-      addressed(`Line ${i}.`, { force: true }),
-    );
-
-    expect(lines[0]).toContain('sir');
-    expect(lines[1]).toContain('boss');
-    expect(lines[2]).toContain('sir');
-    expect(lines[3]).toContain('boss');
+  it('never adds one, even when asked to', () => {
+    // `force` is the option that used to mean "address regardless of rate".
+    // A call site that still passes it must not resurrect the behaviour.
+    expect(addressed('The project is open.', { force: true })).toBe('The project is open.');
+    expect(carriesAddress(addressed('Shall I proceed?', { force: true }))).toBe(false);
   });
 
-  it('does not double up when already addressed', () => {
-    expect(addressed('Very good, sir.', { force: true })).toBe('Very good, sir.');
-    expect(addressed('Certainly, Sir.', { force: true })).toBe('Certainly, Sir.');
-  });
-
-  it('handles a sentence with no terminal punctuation', () => {
-    expect(addressed('Opening the project', { force: true })).toBe('Opening the project, sir.');
+  it('removes a mid-sentence address without eating the sentence', () => {
+    expect(addressed('No, sir, that file is missing.')).toBe('No, that file is missing.');
   });
 
   it('leaves empty input alone', () => {
-    expect(addressed('   ', { force: true })).toBe('');
+    expect(addressed('   ')).toBe('');
+  });
+
+  it('recognises every form it claims to refuse', () => {
+    for (const form of ADDRESS_FORMS) {
+      expect(carriesAddress(`Understood, ${form}.`), form).toBe(true);
+    }
+  });
+
+  it('does not fire on ordinary words that merely contain one', () => {
+    // "Master" inside "mastering" and "boss" inside "embossed" are not
+    // honorifics. A matcher without word boundaries would edit the answer.
+    for (const said of ['Mastering takes an hour.', 'The embossed logo is fine.']) {
+      expect(carriesAddress(said), said).toBe(false);
+      expect(addressed(said)).toBe(said);
+    }
+  });
+
+  it('reports a rate of zero and refuses a model reply that carries one', () => {
+    expect(recentAddressRate()).toBe(0);
+    expect(allowAddressInReply(true)).toBe(false);
+    expect(allowAddressInReply(false)).toBe(false);
   });
 });
 
 describe('confirm', () => {
-  it('leads with an acknowledgement and states the result', () => {
+  it('leads with a flat acknowledgement and states the result', () => {
     const text = confirm('The project is open');
-    expect(text).toMatch(/^(Certainly|Very good|Of course|Right away)\./);
+    expect(text).toMatch(/^(Done|Complete|Confirmed|Handled)\./);
     expect(text).toContain('The project is open');
-    expect(text, 'should end with an address in either form').toMatch(/, (?:sir|boss)\.$/);
+    expect(carriesAddress(text)).toBe(false);
   });
 
   it('does not double the full stop', () => {
@@ -72,39 +83,40 @@ describe('confirm', () => {
 
   // A scripted personality that repeats one phrase reads as mechanical.
   it('varies the acknowledgement across repeated calls', () => {
-    const openers = new Set(
-      Array.from({ length: 6 }, () => confirm('Done').split('.')[0]),
-    );
+    const openers = new Set(Array.from({ length: 6 }, () => confirm('Done').split('.')[0]));
     expect(openers.size).toBeGreaterThan(1);
-  });
-
-  it('can omit the address where it would read oddly', () => {
-    expect(carriesAddress(confirm('Indexed', { address: false }))).toBe(false);
   });
 });
 
 describe('acknowledge', () => {
-  it('signals work about to begin', () => {
+  it('signals work that has started and has not finished', () => {
     const text = acknowledge('I will search the project files');
-    expect(text).toMatch(/^(Allow me a moment|I'll take a look|I'll examine that now)\./);
+    expect(text).toMatch(/^(Working|Looking now|One moment)\./);
     expect(text).toContain('search the project files');
+  });
+
+  it('never claims the work is finished', () => {
+    // The distinction the brief is most insistent on: a started action and a
+    // completed one must not read the same.
+    for (let i = 0; i < 6; i += 1) {
+      const text = acknowledge('I will index the vault');
+      expect(text, text).not.toMatch(/^(Done|Complete|Confirmed|Handled)\./);
+    }
   });
 });
 
 describe('regret', () => {
-  it('opens with composed regret, never alarm', () => {
-    const text = regret('the project could not be found');
-    expect(text).toBe("I'm afraid the project could not be found, sir.");
+  it('states the failure without apologising for it', () => {
+    expect(regret('the project could not be found')).toBe('The project could not be found.');
   });
 
-  it('lowercases the problem so it reads as one sentence', () => {
-    expect(regret('The file is missing')).toBe("I'm afraid the file is missing, sir.");
+  it('capitalises the problem so it reads as one sentence', () => {
+    expect(regret('The file is missing')).toBe('The file is missing.');
   });
 
-  // The brief forbids cheerful apology and panic.
-  it('never uses alarmed or apologetic filler', () => {
+  it('never uses apologetic, alarmed or deferential filler', () => {
     const text = regret('that operation was unsuccessful');
-    for (const banned of ['Oops', 'my bad', 'Uh oh', 'horribly wrong', '!']) {
+    for (const banned of ["I'm afraid", 'I do apologise', 'Oops', 'my bad', 'Uh oh', '!', 'sir']) {
       expect(text, banned).not.toContain(banned);
     }
   });
@@ -116,34 +128,32 @@ describe('unavailable', () => {
       'no speech provider is configured',
       'You can choose one in Settings under Voice.',
     );
-    expect(text).toContain("I'm afraid no speech provider is configured, sir.");
+    expect(text).toContain('No speech provider is configured.');
     expect(text).toContain('Settings under Voice');
   });
 
   it('works without a remedy', () => {
     expect(unavailable('that capability is not configured')).toBe(
-      "I'm afraid that capability is not configured, sir.",
+      'That capability is not configured.',
     );
   });
 });
 
 describe('uncertain', () => {
-  it('declines to guess', () => {
-    expect(uncertain('which project you mean')).toBe(
-      "I'm not certain which project you mean, sir.",
-    );
+  it('declines to guess, without hedging', () => {
+    expect(uncertain('which project you mean')).toBe("I don't know which project you mean.");
   });
 });
 
 describe('enquire', () => {
-  it('asks a question with the address in place', () => {
-    expect(enquire('Which one did you mean')).toBe('Which one did you mean, sir?');
+  it('asks a question with no address attached', () => {
+    expect(enquire('Which one did you mean')).toBe('Which one did you mean?');
   });
 });
 
 describe('observe', () => {
   it('states a fact plainly', () => {
-    expect(observe('Two files are indexed')).toBe('Two files are indexed, sir.');
+    expect(observe('Two files are indexed')).toBe('Two files are indexed.');
   });
 });
 
@@ -155,13 +165,18 @@ describe('tone rules', () => {
     unavailable('no provider is configured'),
     uncertain('what caused it'),
     enquire('Shall I proceed'),
+    observe('Two files are indexed'),
   ];
 
   it('never uses exclamation marks', () => {
     for (const text of samples()) expect(text, text).not.toContain('!');
   });
 
-  it('never uses archaic address', () => {
+  it('never addresses the user by a title', () => {
+    for (const text of samples()) expect(carriesAddress(text), text).toBe(false);
+  });
+
+  it('never uses archaic or theatrical address', () => {
     for (const text of samples()) {
       for (const archaic of ['milord', 'master', 'indubitably', 'my good sir']) {
         expect(text.toLowerCase(), text).not.toContain(archaic);
@@ -177,54 +192,19 @@ describe('tone rules', () => {
     }
   });
 
-  it('keeps replies short by default', () => {
-    for (const text of samples()) {
-      expect(text.length, text).toBeLessThan(140);
-    }
+  it('keeps replies short', () => {
+    for (const text of samples()) expect(text.length, text).toBeLessThan(140);
   });
 });
 
-describe('how often Helix addresses the user', () => {
-  beforeEach(resetVoice);
-
-  /**
-   * The brief asks for roughly 20-40% of replies. Below that it stops being
-   * characteristic; above it, "Yes sir / Certainly sir / Of course sir" in
-   * succession reads as a machine performing deference.
-   */
-  it('lands inside the intended range over a long conversation', () => {
-    const lines = Array.from({ length: 60 }, (_, i) => addressed(`Reply number ${i}.`));
-    // Counted across both forms. This counted "sir" alone, and when a second
-    // form was added it reported half the true rate and failed - measuring the
-    // vocabulary rather than the behaviour it was written to protect.
-    const withAddress = lines.filter((line) => carriesAddress(line)).length;
-    const rate = withAddress / lines.length;
-
-    expect(rate).toBeGreaterThanOrEqual(0.2);
-    expect(rate).toBeLessThanOrEqual(0.4);
+describe('stripping an address from the front of a sentence', () => {
+  it('takes the comma with it and restores the capital', () => {
+    expect(addressed('Sir, the file is missing.')).toBe('The file is missing.');
+    expect(addressed('Boss, that is done.')).toBe('That is done.');
   });
 
-  // The specific failure being designed out: a run of them.
-  it('never addresses twice in a row', () => {
-    const lines = Array.from({ length: 40 }, (_, i) => addressed(`Line ${i}.`));
-
-    for (let i = 1; i < lines.length; i += 1) {
-      // Across both forms. Checking "sir" alone would let "sir" followed by
-      // "boss" pass as though it were not a run, which is exactly the effect
-      // the rule exists to prevent.
-      const both = carriesAddress(lines[i] as string) && carriesAddress(lines[i - 1] as string);
-      expect(both, `lines ${i - 1} and ${i}`).toBe(false);
-    }
-  });
-
-  it('does not add a second address to a sentence that already has one', () => {
-    const once = addressed('Very good, sir.', { force: true });
-    expect(once.match(/sir/gi)).toHaveLength(1);
-  });
-
-  it('reports its own recent rate', () => {
-    for (let i = 0; i < 12; i += 1) addressed(`Line ${i}.`);
-    expect(recentAddressRate()).toBeGreaterThan(0);
-    expect(recentAddressRate()).toBeLessThanOrEqual(0.4);
+  it('does not recapitalise something that is not a word', () => {
+    // A filename raised to title case is a different filename.
+    expect(addressed('Sir, report-q3.pdf is missing.')).toBe('report-q3.pdf is missing.');
   });
 });

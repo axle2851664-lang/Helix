@@ -140,7 +140,7 @@ export function BackupPanel() {
         </div>
 
         <p className="hx-settings__note">
-          An export is a single file you save where you like, sir. It is the only one of these two
+          An export is a single file you save where you like. It is the only one of these two
           that survives losing this machine - a snapshot lives in the same browser profile as
           everything it is protecting. The file is not encrypted and holds everything Helix knows
           about you, so it wants keeping somewhere you would keep the originals.
@@ -313,7 +313,7 @@ export function BackupPanel() {
         )}
 
         <p className="hx-settings__note">
-          A snapshot guards against a mistake inside Helix, sir - a restore gone wrong, a project
+          A snapshot guards against a mistake inside Helix - a restore gone wrong, a project
           deleted in error. It is on this disk, in this browser profile, and it goes when they do.
         </p>
       </section>

@@ -81,7 +81,7 @@ export function EarthWorkspace() {
         <h2 className="hx-panel__title">Projection and tiles</h2>
         <p className="hx-settings__note">
           Cesium, Mapbox, NASA, OpenStreetMap and Sentinel all address imagery the same way: a
-          zoom level and an x/y index in Web Mercator. This computes it as you type, sir. Get it
+          zoom level and an x/y index in Web Mercator. This computes it as you type. Get it
           wrong and every provider is wrong identically, which is the sort of fault that hides
           behind imagery that looks plausible and is a few hundred metres out.
         </p>
@@ -119,7 +119,7 @@ export function EarthWorkspace() {
         </div>
 
         {!point || !tile || !bounds ? (
-          <p className="hx-muted">Those are not coordinates I can read, sir.</p>
+          <p className="hx-muted">Those are not coordinates I can read.</p>
         ) : (
           <>
             <div className="hx-row">

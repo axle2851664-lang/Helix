@@ -166,7 +166,7 @@ describe('orchestrator: memory tool', () => {
         text: 'what do you remember?',
         conversationId: fresh.conversation.id,
       });
-      expect(response.text).toContain('not yet asked me to remember anything');
+      expect(response.text).toContain('not asked me to remember anything');
     });
 
     // Works with no provider and offline: retrieval is literal, not a model.

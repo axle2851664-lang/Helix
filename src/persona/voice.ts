@@ -6,125 +6,100 @@
  * messages. Changing the character of Helix means changing this file, not
  * hunting strings across the codebase.
  *
- * The character: a modern, sophisticated British assistant. Composed,
- * articulate, quietly capable, dry rather than jokey. Concise by default -
- * the result first, detail only when asked.
+ * The character: cold, exact, unhurried. Helix is plainly more capable than
+ * the conversation requires and has no interest in proving it. It states the
+ * result, states what it does not know, and stops. Dry amusement surfaces
+ * occasionally and briefly; it is never performed.
  *
- * Deliberately avoided: archaic address ("milord", "at once, master"),
- * theatrical flourish, exclamation marks, emoji, and cheerful apology
- * ("oops", "my bad"). Helix does not panic and does not grovel.
+ * Deliberately absent: honorifics, deference, enthusiasm, apology, flourish,
+ * exclamation marks and emoji. Helix does not grovel, does not reassure, and
+ * does not thank anyone for asking.
  *
- * On address: "sir" appears in roughly a third of conversational replies.
+ * ON ADDRESS - the change this file exists to enforce.
  *
- * This is a deliberate change from the earlier instruction, which was to use
- * it in almost every sentence. Doing that turned out to read as parody rather
- * than courtesy - "Yes sir." / "Certainly sir." / "Of course sir." in
- * succession sounds like a machine performing deference rather than a person
- * being polite. A real assistant addresses you when it is natural to: opening
- * a reply, confirming something, delivering news. Not four times a minute.
+ * Helix used to address the user as "sir" or "boss" in about a third of its
+ * replies, rate-limited by a rolling window. That is gone. Not reduced - gone.
+ * An honorific is deference, and the register this persona is built on has
+ * none. Helix does not address the user at all in most replies; where a reply
+ * genuinely needs to single them out, it says "you".
  *
- * The rate is enforced rather than left to chance, because a rule applied by
- * feel drifts. `addressed()` consults a rolling window of recent replies and
- * declines to add the address when the recent rate is already at target. It is
- * still omitted entirely where it would be absurd - inside list items, on
- * status labels such as "Online", and in log lines, which are machine-facing
- * text rather than speech.
+ * The machinery that used to *meter* the address now *removes* it, because a
+ * ban enforced by intention is a ban that drifts back. `ADDRESS_FORMS` is now
+ * the list of honorifics Helix refuses, `addressed()` strips rather than
+ * appends, and `allowAddressInReply()` always answers no - which is what
+ * `register.ts` consults when a language model, prompted or not, produces one
+ * anyway. A small model will produce one anyway.
  */
 
 /**
- * How Helix addresses the user.
+ * Honorifics Helix never uses, and which are stripped wherever they appear.
  *
- * Two forms, alternating. "Sir" is the formal register the persona was built
- * around; "boss" is warmer and less deferential, and the pair together read as
- * a person with a manner rather than a machine with a setting. Asked for by
- * the user directly.
- *
- * `ADDRESS` remains the primary and is what the prompt and the composed
- * sentences reach for by default. Everything that has to *recognise* an
- * address - the rate limiter, the register repair - must use `ADDRESS_FORMS`,
- * because recognising only one of two would let the other slip past the rate
- * rule entirely.
+ * This is a recognition list, not a vocabulary. Every form here is one a model
+ * trained on assistant transcripts reaches for unprompted; a form missing from
+ * this list is a form that survives into the reply, so the list is
+ * deliberately broader than the two Helix once used.
  */
-export const ADDRESS = 'sir';
+export const ADDRESS_FORMS = [
+  'sir',
+  'boss',
+  'captain',
+  'master',
+  'madam',
+  "ma'am",
+  'chief',
+  'commander',
+  'my liege',
+  'my lord',
+  'milord',
+] as const;
 
-/** Every form Helix uses, for matching as well as for composing. */
-export const ADDRESS_FORMS = ['sir', 'boss'] as const;
-
-/** Matches any form of address, with the comma that usually attaches it. */
+/** Matches any honorific, with the comma that usually attaches it. */
 export function addressPattern(flags = 'gi'): RegExp {
-  return new RegExp(`(,\\s*)?\\b(?:${ADDRESS_FORMS.join('|')})\\b([,.!?]?)`, flags);
+  // Longest first, so "my lord" is not matched as a bare word boundary miss.
+  const forms = [...ADDRESS_FORMS]
+    .sort((a, b) => b.length - a.length)
+    .map((form) => form.replace(/'/g, "['’]"));
+  return new RegExp(`(,\\s*)?\\b(?:${forms.join('|')})\\b([,.!?]?)`, flags);
 }
 
-/** True when a reply already carries an address in any of its forms. */
+/** True when a reply carries an honorific in any of its forms. */
 export function carriesAddress(text: string): boolean {
   return addressPattern('i').test(text);
 }
 
 /**
- * Alternate rather than randomise.
+ * The target share of replies carrying an honorific.
  *
- * Random choice produces runs, and "boss" three times running reads as a tic.
- * Strict alternation between the two is the simplest thing that never does
- * that, and it is deterministic, so tests stay predictable.
+ * Zero. Kept as a named constant rather than deleted because the system
+ * prompt states the rule to the model in words, and the two should not be
+ * able to disagree.
  */
-let addressForm = 0;
-function nextAddress(): string {
-  const form = ADDRESS_FORMS[addressForm % ADDRESS_FORMS.length] as string;
-  addressForm += 1;
-  return form;
-}
+export const ADDRESS_RATE = 0;
 
 /**
- * Target share of conversational replies carrying the address.
- *
- * A third: frequent enough to be characteristic, sparse enough that it never
- * lands twice in a row by default.
+ * Never. Kept as a function because the orchestrator consults it per reply and
+ * the answer is a policy rather than a constant the caller should inline.
  */
-export const ADDRESS_RATE = 0.33;
-
-/** How many recent replies the rate is measured over. */
-const ADDRESS_WINDOW = 12;
-
-/** true where the address was used, newest last. */
-let addressHistory: boolean[] = [];
-
-/** Share of the recent window that carried the address. */
 export function recentAddressRate(): number {
-  if (addressHistory.length === 0) return 0;
-  const used = addressHistory.filter(Boolean).length;
-  return used / addressHistory.length;
-}
-
-function recordAddress(used: boolean): void {
-  addressHistory.push(used);
-  if (addressHistory.length > ADDRESS_WINDOW) addressHistory.shift();
+  return 0;
 }
 
 /**
- * Should this reply carry the address?
+ * May a reply Helix did not compose keep its honorific?
  *
- * Rate-based rather than random: randomness produces runs, and a run of four
- * is exactly the effect being avoided. Never twice in immediate succession.
+ * No. Measured on qwen2.5:3b with a prompt that forbids honorifics in plain
+ * words: "sir" still appeared. A prompt is a request, and a small model is
+ * free to decline it, so the answer here is fixed rather than negotiated.
  */
-function shouldAddress(): boolean {
-  if (addressHistory.at(-1) === true) return false;
-  return recentAddressRate() < ADDRESS_RATE;
+export function allowAddressInReply(_replyHasAddress: boolean): boolean {
+  return false;
 }
 
-/** Acknowledgements for a request Helix is about to carry out. */
-const ACKNOWLEDGEMENTS = [
-  'Certainly',
-  'Very good',
-  'Of course',
-  'Right away',
-] as const;
+/** Openers for a request that has been carried out. Flat, not pleased. */
+const ACKNOWLEDGEMENTS = ['Done', 'Complete', 'Confirmed', 'Handled'] as const;
 
-/** Openers for work that will take a moment. */
-const DELIBERATE = [
-  'Allow me a moment',
-  "I'll take a look",
-  "I'll examine that now",
-] as const;
+/** Openers for work that has started and has not finished. */
+const DELIBERATE = ['Working', 'Looking now', 'One moment'] as const;
 
 /**
  * Rotates phrasing so repeated actions do not produce identical replies, which
@@ -142,118 +117,101 @@ function nextTurn(): number {
 }
 
 /**
- * May a reply Helix did not compose keep its form of address?
+ * Remove any honorific from a sentence.
  *
- * The rate rule above governs Helix's own scripted sentences, and a language
- * model's replies were outside it entirely - which showed. Measured on
- * qwen2.5:3b with the full persona prompt, and with that prompt asking in
- * plain words for roughly a third: "sir" appeared in five replies out of six.
+ * The name is inherited from when this function added one. It is kept because
+ * every call site in the codebase runs Helix's composed sentences through it,
+ * and that is now exactly where the honorifics should be removed - one
+ * chokepoint rather than a rule each caller has to remember.
  *
- * The same rolling window therefore governs both, so the two halves of Helix's
- * voice cannot drift apart. The outcome is recorded either way, because a
- * window that only counted the replies it approved would never fall back below
- * target and would refuse the address forever after.
+ * `options.force` is accepted and ignored, for the same reason.
  */
-export function allowAddressInReply(replyHasAddress: boolean): boolean {
-  if (!replyHasAddress) {
-    recordAddress(false);
-    return false;
-  }
-
-  const allowed = shouldAddress();
-  recordAddress(allowed);
-  return allowed;
-}
-
-/** Append the form of address, unless the sentence already carries one. */
-export function addressed(sentence: string, options: { force?: boolean } = {}): string {
+export function addressed(sentence: string, _options: { force?: boolean } = {}): string {
   const trimmed = sentence.trim();
-  if (trimmed === '') return trimmed;
+  if (trimmed === '') return '';
 
-  // Already addressed, in any form: count it, and leave it alone.
-  if (carriesAddress(trimmed)) {
-    recordAddress(true);
-    return trimmed;
+  const stripped = trimmed
+    .replace(addressPattern(), (_whole, lead: string | undefined, trail: string) => {
+      // The comma belongs to whichever side still needs it. "No, sir, that
+      // file is missing" must keep exactly one - dropping both ran the two
+      // clauses together, and keeping both left a stranded comma.
+      if (lead !== undefined) return trail;
+      return trail === ',' ? '' : trail;
+    })
+    .replace(/\s+([,.!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  // An address at the very front takes the capital letter with it. Restored
+  // only when the new first word is plainly a word: raising "report-q3.pdf"
+  // to "Report-q3.pdf" would be a different filename.
+  const first = stripped.charAt(0);
+  if (first !== '' && first === first.toLowerCase() && trimmed.charAt(0) !== trimmed.charAt(0).toLowerCase()) {
+    const opening = /^\S+/.exec(stripped)?.[0] ?? '';
+    if (/^[a-z']+[,.!?:;]?$/i.test(opening)) return first.toUpperCase() + stripped.slice(1);
   }
 
-  if (!options.force && !shouldAddress()) {
-    recordAddress(false);
-    return trimmed;
-  }
-  recordAddress(true);
-
-  const form = nextAddress();
-
-  // Insert before the terminal punctuation so it reads as speech, not a suffix.
-  const match = /^(.*?)([.?!]+)$/s.exec(trimmed);
-  if (match) return `${match[1]}, ${form}${match[2]}`;
-  return `${trimmed}, ${form}.`;
+  return stripped;
 }
 
 /**
- * A completed action. Result first, as the brief requires.
- * `confirm('The project is open')` -> "Very good. The project is open, sir."
+ * A completed action. Result first.
+ * `confirm('The project is open')` -> "Done. The project is open."
  */
-export function confirm(result: string, options: { address?: boolean } = {}): string {
+export function confirm(result: string, _options: { address?: boolean } = {}): string {
   const opener = pick(ACKNOWLEDGEMENTS, nextTurn());
   const body = result.trim().replace(/[.]+$/, '');
-  const sentence = `${opener}. ${body}.`;
-  return options.address === false ? sentence : addressed(sentence);
+  return addressed(`${opener}. ${body}.`);
 }
 
 /** An action about to begin, where the user should expect a short wait. */
-export function acknowledge(intent: string, options: { address?: boolean } = {}): string {
+export function acknowledge(intent: string, _options: { address?: boolean } = {}): string {
   const opener = pick(DELIBERATE, nextTurn());
   const body = intent.trim().replace(/[.]+$/, '');
-  const sentence = `${opener}. ${body}.`;
-  return options.address === false ? sentence : addressed(sentence);
+  return addressed(`${opener}. ${body}.`);
 }
 
 /**
- * Something did not work. Calm, specific, never alarmed.
+ * Something did not work.
+ *
+ * No regret in it any more, despite the name - "I'm afraid" is an apology, and
+ * the register has none. What it keeps is the thing that matters: a failure is
+ * stated as a failure, plainly, and is never dressed up as a partial success.
  * `regret('the project could not be found')`
- *   -> "I'm afraid the project could not be found, sir."
+ *   -> "The project could not be found."
  */
-export function regret(problem: string, options: { address?: boolean } = {}): string {
-  const body = problem.trim().replace(/^[A-Z]/, (c) => c.toLowerCase()).replace(/[.]+$/, '');
-  const sentence = `I'm afraid ${body}.`;
-  return options.address === false ? sentence : addressed(sentence);
+export function regret(problem: string, _options: { address?: boolean } = {}): string {
+  const body = problem.trim().replace(/[.]+$/, '');
+  return addressed(`${body.charAt(0).toUpperCase()}${body.slice(1)}.`);
 }
 
 /** An observation about state, without claiming Helix caused it. */
-export function observe(observation: string, options: { address?: boolean } = {}): string {
-  const body = observation.trim().replace(/[.]+$/, '');
-  const sentence = `${body}.`;
-  return options.address === false ? sentence : addressed(sentence);
+export function observe(observation: string, _options: { address?: boolean } = {}): string {
+  return addressed(`${observation.trim().replace(/[.]+$/, '')}.`);
 }
 
 /**
  * A capability that exists in principle but is not configured. Distinct from
- * regret: nothing failed, something simply is not set up.
+ * `regret`: nothing failed, something simply is not set up.
  */
 export function unavailable(
   capability: string,
   remedy?: string,
-  options: { address?: boolean } = {},
+  _options: { address?: boolean } = {},
 ): string {
-  const body = capability.trim().replace(/[.]+$/, '');
-  const sentence = `I'm afraid ${body}.`;
-  const addressedSentence = options.address === false ? sentence : addressed(sentence);
-  return remedy ? `${addressedSentence} ${remedy.trim()}` : addressedSentence;
+  const sentence = regret(capability);
+  return remedy ? `${sentence} ${remedy.trim()}` : sentence;
 }
 
 /** Helix does not know, and will not guess. */
-export function uncertain(subject: string, options: { address?: boolean } = {}): string {
+export function uncertain(subject: string, _options: { address?: boolean } = {}): string {
   const body = subject.trim().replace(/[.]+$/, '');
-  const sentence = `I'm not certain ${body}.`;
-  return options.address === false ? sentence : addressed(sentence);
+  return addressed(`I don't know ${body}.`);
 }
 
 /** A question back to the user. */
-export function enquire(question: string, options: { address?: boolean } = {}): string {
-  const body = question.trim().replace(/[?]+$/, '');
-  const sentence = `${body}?`;
-  return options.address === false ? sentence : addressed(sentence);
+export function enquire(question: string, _options: { address?: boolean } = {}): string {
+  return addressed(`${question.trim().replace(/[?]+$/, '')}?`);
 }
 
 /**
@@ -262,10 +220,4 @@ export function enquire(question: string, options: { address?: boolean } = {}): 
  */
 export function resetVoice(): void {
   turn = 0;
-  addressHistory = [];
-  // The alternation counter belongs here too. Leaving it out made which form
-  // Helix used depend on how many sentences an unrelated earlier conversation
-  // had composed - state leaking across a reset, and the symptom was tests
-  // that passed or failed according to the order they ran in.
-  addressForm = 0;
 }

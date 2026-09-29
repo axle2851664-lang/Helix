@@ -372,9 +372,9 @@ export class HelixOrchestrator {
       // reaches the user, in Helix's voice rather than a console's.
       const raw = result.text.trim();
       const spoken = repair(raw, {
-        // The same rolling window that governs Helix's own sentences, so a
-        // model that reaches for "sir" every time is brought back to the rate
-        // rather than left to set it.
+        // Always false. Honorifics are not metered any more, they are removed:
+        // the call is kept so the policy lives in `voice.ts` with the rest of
+        // the register rather than being inlined here as a bare `false`.
         allowAddress: allowAddressInReply(carriesAddress(raw)),
       });
       if (spoken.findings.length > 0) {
@@ -678,7 +678,7 @@ ${lines}${notice}`,
             if (all.length === 0) {
               return {
                 text: observe(
-                  'You have not yet asked me to remember anything. Say "remember that ..." and I shall keep it',
+                  'You have not asked me to remember anything. Say "remember that ..." and I will keep it',
                 ),
                 handled: true,
               };
@@ -860,9 +860,6 @@ ${lines}`,
   #connectionCaveat(): string {
     return regret(
       'no API key is connected as yet, so I am still unable to answer questions with it',
-      // The sentence this follows is already addressed; a second "sir" in one
-      // reply reads as parody rather than courtesy.
-      { address: false },
     );
   }
 

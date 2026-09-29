@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { buildBrief, buildPlan, type BriefProject, type BriefingInput } from './briefing.js';
 import { countItems, spokenRepeatsCard } from './cards.js';
 import { inboxRequirement, researchRequirement } from './requirements.js';
-import { resetVoice } from '../persona/voice.js';
+import { carriesAddress, resetVoice } from '../persona/voice.js';
 
 const NOW = Date.UTC(2026, 7, 30);
 const DAY = 86_400_000;
@@ -53,16 +53,15 @@ describe('the two halves of a reply', () => {
   });
 
   /**
-   * The address is now deliberately intermittent. Requiring it on every reply
-   * is what made Helix read as a parody of a butler rather than as one, so the
-   * assertion is that it appears at all rather than that it appears always.
+   * This asserted the opposite twice over: first that Helix addressed the user
+   * in every reply, then - when that read as parody - that it did so in some
+   * of them. It now does so in none. An honorific is deference, and the
+   * register has none.
    */
-  it('addresses the user sometimes, not relentlessly', () => {
-    const spoken = cards().map((reply) => reply.spoken.toLowerCase());
-    const withAddress = spoken.filter((line) => line.includes('sir')).length;
-
-    expect(withAddress).toBeGreaterThan(0);
-    expect(withAddress).toBeLessThan(spoken.length);
+  it('never addresses the user by a title', () => {
+    for (const reply of cards()) {
+      expect(carriesAddress(reply.spoken), reply.spoken).toBe(false);
+    }
   });
 
   // A card that hides what it cannot tell you is worse than no card.

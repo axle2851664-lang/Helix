@@ -59,7 +59,7 @@ describe('why local inference could not be reached', () => {
     const provider = new OllamaProvider({ transport: failing('tauri', '') });
 
     await provider.getAvailableModels();
-    expect(provider.isConfigured().reason).toContain('unable to reach');
+    expect(provider.isConfigured().reason).toContain('not reachable');
   });
 
   /** A recovered service must not keep reporting the old failure. */

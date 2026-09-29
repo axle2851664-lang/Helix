@@ -33,13 +33,13 @@ export function ConversationsWorkspace({
       <div className={`hx-notice${privacy.saveConversationHistory ? '' : ' hx-notice--warn'}`}>
         {privacy.saveConversationHistory ? (
           <>
-            <strong>History is being saved.</strong> Conversations remain on this device, sir,
+            <strong>History is being saved.</strong> Conversations remain on this device
             until you delete them.
           </>
         ) : (
           <>
             <strong>History is not being saved.</strong> Conversations last for this session only,
-            sir, and are discarded when Helix closes. Turn on &ldquo;Keep conversation history&rdquo; in
+            and are discarded when Helix closes. Turn on &ldquo;Keep conversation history&rdquo; in
             Settings &rarr; Privacy to keep them.{' '}
             <button
               type="button"
@@ -55,7 +55,7 @@ export function ConversationsWorkspace({
       {items.length === 0 ? (
         <div className="hx-panel hx-empty">
           <Icon name="conversation" size={26} />
-          <p>No conversations as yet, sir.</p>
+          <p>No conversations yet.</p>
           <p className="hx-muted">You may begin one from the home screen.</p>
         </div>
       ) : (

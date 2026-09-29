@@ -107,7 +107,7 @@ export function CameraWorkspace() {
         data: captured.blob,
       });
       setCaptured(null);
-      say('Very good. The capture has been saved to the project, sir.');
+      say('Saved to the project.');
     } catch (error) {
       say(toUserMessage(error));
       logger.warn('Could not save a capture.', error);
@@ -150,7 +150,7 @@ export function CameraWorkspace() {
               {!snapshot.live && (
                 <div className="hx-preview__idle">
                   <Icon name="gesture" size={26} />
-                  <p>The camera is off, sir.</p>
+                  <p>The camera is off.</p>
                   <p className="hx-muted">Nothing is captured until you turn it on.</p>
                 </div>
               )}
@@ -227,7 +227,7 @@ export function CameraWorkspace() {
 
           {projectList.length === 0 && (
             <p className="hx-muted">
-              You have no projects to save into as yet, sir. One can be created from Upload Project.
+              You have no projects to save into. One can be created from Upload Project.
             </p>
           )}
         </section>

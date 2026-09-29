@@ -31,8 +31,8 @@ describe('streaming a reply', () => {
   it('hands over each piece as it arrives, in order', async () => {
     const { provider } = streamingTransport([
       { kind: 'chunk', text: 'Good ' },
-      { kind: 'chunk', text: 'evening, ' },
-      { kind: 'chunk', text: 'sir.' },
+      { kind: 'chunk', text: 'evening' },
+      { kind: 'chunk', text: '.' },
       { kind: 'done', model: 'qwen2.5:3b' },
     ]);
 
@@ -41,8 +41,8 @@ describe('streaming a reply', () => {
       pieces.push(text),
     );
 
-    expect(pieces).toEqual(['Good ', 'evening, ', 'sir.']);
-    expect(result.text).toBe('Good evening, sir.');
+    expect(pieces).toEqual(['Good ', 'evening', '.']);
+    expect(result.text).toBe('Good evening.');
     expect(result.model).toBe('qwen2.5:3b');
   });
 

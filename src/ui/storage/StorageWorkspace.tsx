@@ -75,7 +75,7 @@ export function StorageWorkspace() {
     return (
       <div className="hx-page">
         <div className="hx-panel hx-empty">
-          <p className="hx-muted">Measuring, sir.</p>
+          <p className="hx-muted">Measuring.</p>
         </div>
       </div>
     );
@@ -168,7 +168,7 @@ export function StorageWorkspace() {
           ))}
         </ul>
         <p className="hx-settings__note">
-          Imported file sizes are exact, sir - they were recorded on import. The rest are the
+          Imported file sizes are exact - they were recorded on import. The rest are the
           serialised length of each record, which is close to what is written but not identical
           to it, so they are marked as approximate rather than presented as measurements.
         </p>

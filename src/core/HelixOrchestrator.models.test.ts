@@ -167,7 +167,7 @@ describe('orchestrator: model switching', () => {
   it('always states that no API key is connected when switching', async () => {
     for (const phrase of ['switch to sonnet', 'switch to haiku']) {
       const response = await ask(phrase);
-      expect(response.text, phrase).toContain('no API key is connected');
+      expect(response.text, phrase).toContain('No API key is connected');
     }
   });
 

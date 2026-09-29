@@ -101,7 +101,7 @@ export function GraphWorkspace() {
    */
   const vaultNote = useMemo(() => {
     if (isDemo()) {
-      return 'Demo fixtures, sir. Invented, seeded, and identical every run - safe to record.';
+      return 'Demo fixtures. Invented, seeded, identical every run - safe to record.';
     }
     const blocker = realVaultBlocker();
     if (blocker) return blocker;
@@ -230,7 +230,7 @@ export function GraphWorkspace() {
 
               {focused.missing ? (
                 <p className="hx-muted">
-                  This note is linked to but has never been written, sir.
+                  This note is linked to but has never been written.
                 </p>
               ) : (
                 <>
@@ -255,7 +255,7 @@ export function GraphWorkspace() {
             </>
           ) : (
             <p className="hx-muted">
-              Click a node to inspect it, sir. Shift-click a second to trace the shortest path
+              Click a node to inspect it. Shift-click a second to trace the shortest path
               between them.
             </p>
           )}

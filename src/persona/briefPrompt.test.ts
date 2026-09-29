@@ -39,7 +39,7 @@ describe('the brief prompt', () => {
   /** The rule that stopped Helix inventing an inbox. */
   it('forbids claiming to have looked at mail', () => {
     expect(BRIEF_SYSTEM_PROMPT).toMatch(/cannot see/i);
-    expect(BRIEF_SYSTEM_PROMPT).toMatch(/have not looked yet|haven't looked yet/i);
+    expect(BRIEF_SYSTEM_PROMPT).toMatch(/have not looked|haven't looked/i);
   });
 
   /**
@@ -49,14 +49,26 @@ describe('the brief prompt', () => {
    */
   it('keeps the worked examples, which are the part that was measured to work', () => {
     expect(BRIEF_SYSTEM_PROMPT).toContain('Helix, are you there?');
-    expect(BRIEF_SYSTEM_PROMPT).toContain("I'm here, sir.");
+    expect(BRIEF_SYSTEM_PROMPT).toContain("I'm here.");
     expect(BRIEF_SYSTEM_PROMPT.match(/User:/g)?.length).toBeGreaterThanOrEqual(3);
   });
 
-  it('still forbids the two failures the full prompt names', () => {
+  it('still forbids the failures the full prompt names', () => {
     expect(BRIEF_SYSTEM_PROMPT).toContain('Affirmative');
     expect(BRIEF_SYSTEM_PROMPT).toContain('milord');
     expect(BRIEF_SYSTEM_PROMPT).toContain('As an AI');
+  });
+
+  /**
+   * The rule a small model breaks first, and the one the user asked for by
+   * name. It is short enough to survive the cut and is checked here so it
+   * cannot be trimmed out the next time this prompt is over budget.
+   */
+  it('still bans the honorific, by name and by example', () => {
+    expect(BRIEF_SYSTEM_PROMPT).toMatch(/[Nn]ever address the user by a title/);
+    expect(BRIEF_SYSTEM_PROMPT).toContain('"sir"');
+    expect(BRIEF_SYSTEM_PROMPT).toContain('"boss"');
+    expect(BRIEF_SYSTEM_PROMPT).toContain(`Wrong: "It's done, sir."`);
   });
 
   it('keeps the honesty rules, which are not a stylistic nicety', () => {

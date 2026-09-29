@@ -167,14 +167,14 @@ export class OllamaProvider implements InferenceProvider {
         configured: false,
         reason:
           this.#lastProbeError ??
-          "I'm unable to reach the local AI service at present, sir. Please start the configured local model service.",
+          "The local AI service is not reachable. Start the configured local model service.",
       };
     }
 
     if (this.#cachedModels !== null && this.#cachedModels.length === 0) {
       return {
         configured: false,
-        reason: "I'm afraid no local model is currently installed, sir.",
+        reason: 'No local model is installed.',
       };
     }
 
@@ -208,7 +208,7 @@ export class OllamaProvider implements InferenceProvider {
         installedModels: 0,
         activeModel: this.#model,
         message:
-          "I'm unable to reach the local AI service at present, sir. Please start the configured local model service.",
+          "The local AI service is not reachable. Start the configured local model service.",
       };
     }
 
@@ -217,7 +217,7 @@ export class OllamaProvider implements InferenceProvider {
         serviceRunning: true,
         installedModels: 0,
         activeModel: null,
-        message: "I'm afraid no local model is currently installed, sir.",
+        message: 'No local model is installed.',
       };
     }
 
