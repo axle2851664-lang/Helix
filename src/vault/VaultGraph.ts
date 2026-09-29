@@ -1,25 +1,46 @@
 import { linkTargets, normalizeTarget, titleFromContent } from './wikilinks.js';
 
 /**
- * The vault as a graph: notes are nodes, wikilinks are edges.
+ * The vault as a graph: documents are nodes, wikilinks are edges.
+ *
+ * ON THE WORD "NOTE", WHICH USED TO BE ALL OVER THIS FILE.
+ *
+ * Every node here is a file on the user's disk - a markdown or text file in a
+ * vault folder, which Helix reads and never wrote. Calling those "notes" was
+ * natural when they were the only note-like thing Helix knew about. It is
+ * wrong now: Helix has a Notepad, and a note there is a different thing with
+ * different rules - Helix's own storage, written only when asked, deleted
+ * outright, and never on the disk at all.
+ *
+ * Two things that are not the same must not share a word, because the user
+ * cannot see which one they have got. So in Helix a *note* is a Notepad note,
+ * and everything in this file is a *document*: a file the user wrote
+ * elsewhere and Helix is reading.
  *
  * Two decisions worth stating:
  *
- * - **A link to a note that does not exist still becomes a node**, marked
- *   `missing`. Dropping them would hide the fact that a note references
- *   something absent, which is exactly the sort of gap worth seeing on a graph.
+ * - **A link to a document that does not exist still becomes a node**, marked
+ *   `missing`. Dropping them would hide the fact that a document references
+ *   something absent, which is exactly the sort of gap worth seeing on a
+ *   graph.
  * - **Edges are undirected for layout and degree**, because visually a link is
  *   a relationship either way, but the original direction is retained so the
- *   inspector can say which note pointed at which.
+ *   inspector can say which document pointed at which.
  */
 
-export type NoteType = 'note' | 'client' | 'project' | 'meeting' | 'invoice' | 'missing';
+export type VaultDocumentType =
+  | 'document'
+  | 'client'
+  | 'project'
+  | 'meeting'
+  | 'invoice'
+  | 'missing';
 
 export interface VaultNode {
   id: string;
   /** Display title. */
   title: string;
-  type: NoteType;
+  type: VaultDocumentType;
   /** Source path, for citation. Absent for `missing` nodes. */
   path?: string;
   /** Raw text, for search and the inspector. */
@@ -45,25 +66,25 @@ export interface VaultDocument {
   content: string;
   sizeBytes: number;
   /** Optional explicit type; inferred from the path when omitted. */
-  type?: NoteType;
+  type?: VaultDocumentType;
 }
 
-/** Infer a note's type from its folder, so colour-by-type means something. */
-export function inferType(path: string): NoteType {
+/** Infer a document's type from its folder, so colour-by-type means something. */
+export function inferType(path: string): VaultDocumentType {
   const lower = path.toLowerCase();
   if (/(^|[\\/])clients?([\\/]|$)/.test(lower)) return 'client';
   if (/(^|[\\/])projects?([\\/]|$)/.test(lower)) return 'project';
   if (/(^|[\\/])(meetings?|calls?)([\\/]|$)/.test(lower)) return 'meeting';
   if (/(^|[\\/])(invoices?|billing|finance)([\\/]|$)/.test(lower)) return 'invoice';
-  return 'note';
+  return 'document';
 }
 
 export interface GraphStats {
   nodes: number;
   edges: number;
   missing: number;
-  byType: Record<NoteType, number>;
-  /** Notes with no links in or out. */
+  byType: Record<VaultDocumentType, number>;
+  /** Documents with no links in or out. */
   orphans: number;
 }
 
@@ -113,7 +134,7 @@ export class VaultGraph {
     const graph = new VaultGraph();
 
     // Pass one: every real document becomes a node, so links in pass two can
-    // tell a present note from an absent one.
+    // tell a present document from an absent one.
     for (const document of documents) {
       const title = titleFromContent(document.fileName, document.content);
       const id = normalizeTarget(title);
@@ -138,7 +159,7 @@ export class VaultGraph {
 
       for (const rawTarget of linkTargets(document.content)) {
         const targetId = normalizeTarget(rawTarget);
-        // A note linking to itself is not a relationship worth drawing.
+        // A document linking to itself is not a relationship worth drawing.
         if (targetId === sourceId) continue;
 
         if (!graph.#nodes.has(targetId)) {
@@ -162,7 +183,7 @@ export class VaultGraph {
   #addEdge(source: string, target: string): void {
     // Undirected key, so A->B and B->A are one edge with a combined weight.
     //
-    // The separator is a NUL, because a note id can contain very nearly any
+    // The separator is a NUL, because a document id can contain very nearly any
     // other character and a collision there would silently merge two distinct
     // edges. It is written as an escape rather than typed literally: a raw
     // control character in source is invisible in an editor, in a diff and in
@@ -191,7 +212,7 @@ export class VaultGraph {
     }
   }
 
-  /** Most-connected notes first. Drives node radius and the hub list. */
+  /** Most-connected documents first. Drives node radius and the hub list. */
   hubs(limit = 10): VaultNode[] {
     return this.nodes
       .filter((node) => !node.missing)
@@ -206,13 +227,13 @@ export class VaultGraph {
 
   stats(): GraphStats {
     const byType = {
-      note: 0,
+      document: 0,
       client: 0,
       project: 0,
       meeting: 0,
       invoice: 0,
       missing: 0,
-    } satisfies Record<NoteType, number>;
+    } satisfies Record<VaultDocumentType, number>;
 
     for (const node of this.#nodes.values()) byType[node.type] += 1;
 
@@ -226,7 +247,7 @@ export class VaultGraph {
   }
 
   /**
-   * Shortest path between two notes, for shift-click tracing.
+   * Shortest path between two documents, for shift-click tracing.
    *
    * Breadth-first: edges are unweighted for traversal, so the fewest hops is
    * the shortest path. Returns an empty array when no route exists, which is

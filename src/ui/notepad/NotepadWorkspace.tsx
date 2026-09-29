@@ -285,8 +285,9 @@ export function NotepadWorkspace({
 
         <p className="hx-settings__note">
           Notes live in Helix, not on your disk, and nothing here is written unless you
-          ask for it. Credentials are refused rather than stored, and they are left out
-          of every copy Helix makes.
+          ask for it. Files you imported are in Files, and a vault of markdown on your
+          disk is in Graph - neither is this. Credentials are refused rather than
+          stored, and they are left out of every copy Helix makes.
         </p>
       </section>
     </div>

@@ -121,8 +121,8 @@ describe('ForceLayout', () => {
   it('separates exactly coincident nodes without producing NaN', () => {
     const layout = new ForceLayout();
     const stacked = [
-      { id: 'a', title: 'A', type: 'note' as const, degree: 0, missing: false },
-      { id: 'b', title: 'B', type: 'note' as const, degree: 0, missing: false },
+      { id: 'a', title: 'A', type: 'document' as const, degree: 0, missing: false },
+      { id: 'b', title: 'B', type: 'document' as const, degree: 0, missing: false },
     ];
     layout.load(stacked, []);
     // Force them onto the same point.
@@ -219,7 +219,7 @@ describe('ForceLayout', () => {
 
   it('ignores edges whose endpoints were filtered out', () => {
     const layout = new ForceLayout();
-    const single = [{ id: 'a', title: 'A', type: 'note' as const, degree: 1, missing: false }];
+    const single = [{ id: 'a', title: 'A', type: 'document' as const, degree: 1, missing: false }];
     layout.load(single, [{ source: 'a', target: 'gone', weight: 1 }]);
     expect(() => layout.settle(20)).not.toThrow();
   });
@@ -243,7 +243,7 @@ describe('ForceLayout', () => {
       const nodes = Array.from({ length: count }, (_, i) => ({
         id: `n${i}`,
         title: `N${i}`,
-        type: 'note' as const,
+        type: 'document' as const,
         degree: 2,
         missing: false,
       }));

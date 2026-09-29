@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { GraphCanvas } from './GraphCanvas.js';
 import { Icon } from '../components/Icon.js';
-import { VaultGraph, type NoteType, type VaultNode } from '../../vault/VaultGraph.js';
+import { VaultGraph, type VaultDocumentType, type VaultNode } from '../../vault/VaultGraph.js';
 import { generateDemoVault } from '../../vault/demoVault.js';
 import { REAL_VAULT, isDemo, realVaultBlocker } from '../../vault/config.js';
 import { useHelix } from '../HelixProvider.js';
@@ -15,25 +15,34 @@ import type { VaultDocument } from '../../vault/VaultGraph.js';
  * seeded fixtures, so the arrangement is identical every run.
  */
 
-const TYPE_LABELS: Record<NoteType, string> = {
+const TYPE_LABELS: Record<VaultDocumentType, string> = {
   client: 'Clients',
   project: 'Projects',
   meeting: 'Meetings',
   invoice: 'Invoices',
-  note: 'Notes',
+  // Not 'Notes'. A note in Helix is a Notepad note; these are files the
+  // user wrote elsewhere and Helix is only reading.
+  document: 'Documents',
   missing: 'Not written',
 };
 
-const TYPE_COLOURS: Record<NoteType, string> = {
+const TYPE_COLOURS: Record<VaultDocumentType, string> = {
   client: '#e0243c',
   project: '#e08a24',
   meeting: '#4ba3e3',
   invoice: '#35c759',
-  note: '#8c8794',
+  document: '#8c8794',
   missing: '#55505a',
 };
 
-const ALL_TYPES: NoteType[] = ['client', 'project', 'meeting', 'invoice', 'note', 'missing'];
+const ALL_TYPES: VaultDocumentType[] = [
+  'client',
+  'project',
+  'meeting',
+  'invoice',
+  'document',
+  'missing',
+];
 
 export function GraphWorkspace() {
   const { platform } = useHelix();
@@ -77,7 +86,7 @@ export function GraphWorkspace() {
   // restart the layout.
   const graph = useMemo(() => VaultGraph.build(documents ?? []), [documents]);
 
-  const [hidden, setHidden] = useState<Set<NoteType>>(new Set());
+  const [hidden, setHidden] = useState<Set<VaultDocumentType>>(new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [pathIds, setPathIds] = useState<string[]>([]);
   const [query, setQuery] = useState('');
@@ -96,7 +105,7 @@ export function GraphWorkspace() {
   /**
    * Why the graph looks the way it does. An empty graph has several very
    * different causes - still reading, no folders configured, a host that
-   * cannot reach a filesystem, or genuinely no notes - and showing nothing
+   * cannot reach a filesystem, or genuinely no documents - and showing nothing
    * without saying which is the state this screen was worst at.
    */
   const vaultNote = useMemo(() => {
@@ -110,7 +119,7 @@ export function GraphWorkspace() {
     }
     if (documents === null) return 'Reading your folders...';
     if (documents.length === 0) {
-      return `No notes found in ${REAL_VAULT.roots.join(', ')}. Markdown and text files only.`;
+      return `No documents found in ${REAL_VAULT.roots.join(', ')}. Markdown and text files only.`;
     }
     return `${documents.length} file${documents.length === 1 ? '' : 's'} from ${REAL_VAULT.roots.join(', ')}.`;
   }, [documents, platform]);
@@ -124,7 +133,7 @@ export function GraphWorkspace() {
 
   const focused = focusedId ? graph.get(focusedId) : undefined;
 
-  /** Title search. Empty query means no list, not every note. */
+  /** Title search. Empty query means no list, not every document. */
   const matches = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (needle === '') return [];
@@ -134,10 +143,10 @@ export function GraphWorkspace() {
       .slice(0, 12);
   }, [graph, query]);
 
-  /** Most-connected notes, which is the fastest way into an unfamiliar vault. */
+  /** Most-connected documents, the fastest way into an unfamiliar vault. */
   const hubs = useMemo(() => graph.hubs(8), [graph]);
 
-  const toggleType = (type: NoteType) => {
+  const toggleType = (type: VaultDocumentType) => {
     setHidden((current) => {
       const next = new Set(current);
       if (next.has(type)) next.delete(type);
@@ -146,7 +155,7 @@ export function GraphWorkspace() {
     });
   };
 
-  /** Shift-click traces from the focused note to the clicked one. */
+  /** Shift-click traces from the focused document to the clicked one. */
   const trace = (id: string) => {
     if (!focusedId || focusedId === id) {
       setFocusedId(id);
@@ -174,10 +183,10 @@ export function GraphWorkspace() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search the vault..."
-            aria-label="Search notes by title"
+            aria-label="Search documents by title"
           />
           {query.trim() !== '' && (
-            <NodeList nodes={matches} empty="No note by that name." onSelect={focus} />
+            <NodeList nodes={matches} empty="No document by that name." onSelect={focus} />
           )}
         </section>
 
@@ -230,7 +239,7 @@ export function GraphWorkspace() {
 
               {focused.missing ? (
                 <p className="hx-muted">
-                  This note is linked to but has never been written.
+                  This document is linked to but has never been written.
                 </p>
               ) : (
                 <>
@@ -255,7 +264,7 @@ export function GraphWorkspace() {
             </>
           ) : (
             <p className="hx-muted">
-              Click a node to inspect it. Shift-click a second to trace the shortest path
+              Click a document to inspect it. Shift-click a second to trace the shortest path
               between them.
             </p>
           )}
@@ -296,7 +305,7 @@ export function GraphWorkspace() {
           <div className="hx-graph__path-banner">
             <Icon name="activity" size={14} />
             {pathIds.length === 1
-              ? 'Same note.'
+              ? 'Same document.'
               : `${pathIds.length - 1} ${pathIds.length === 2 ? 'hop' : 'hops'}: ` +
                 pathIds.map((id) => graph.get(id)?.title ?? id).join(' → ')}
             <button type="button" className="hx-btn hx-btn--quiet" onClick={() => setPathIds([])}>

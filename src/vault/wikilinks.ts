@@ -1,8 +1,8 @@
 /**
  * Wikilink parsing.
  *
- * `[[Target]]` between notes becomes an edge in the vault graph. The syntax has
- * three common variants, all of which appear in real note collections:
+ * `[[Target]]` between documents becomes an edge in the vault graph. The syntax has
+ * three common variants, all of which appear in real vault collections:
  *
  *   [[Target]]              plain
  *   [[Target|shown text]]   aliased - the pipe is display only
@@ -14,7 +14,7 @@
  */
 
 export interface Wikilink {
-  /** The note being linked to, normalised for matching. */
+  /** The document being linked to, normalised for matching. */
   target: string;
   /** The text as written, for display. */
   raw: string;
@@ -25,8 +25,8 @@ export interface Wikilink {
 }
 
 /**
- * Normalise a note title for matching: case-insensitive, whitespace collapsed.
- * `[[Iron Man]]`, `[[iron man]]` and `[[Iron  Man]]` are the same note.
+ * Normalise a document title for matching: case-insensitive, whitespace collapsed.
+ * `[[Iron Man]]`, `[[iron man]]` and `[[Iron  Man]]` are the same document.
  */
 export function normalizeTarget(target: string): string {
   return target.trim().toLowerCase().replace(/\s+/g, ' ');

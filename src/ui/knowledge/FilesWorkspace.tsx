@@ -100,11 +100,23 @@ export function FilesWorkspace() {
           <Icon name="folder" size={26} />
           <p>No files yet.</p>
           <p className="hx-muted">Import some from Upload Project and I will index them.</p>
+          {/*
+            Said here because this is where someone looking for a note they
+            wrote would land, find nothing, and conclude it was lost.
+          */}
+          <p className="hx-muted">
+            These are files you brought to Helix. Notes you asked Helix to write are in
+            the Notepad, not here.
+          </p>
         </div>
       ) : (
         <>
           <section className="hx-panel">
             <h2 className="hx-panel__title">Search file contents</h2>
+            <p className="hx-settings__note">
+              Files you imported. This does not search your Notepad - ask Helix to find
+              a note, or open the Notepad.
+            </p>
             <div className="hx-field__actions">
               <input
                 className="hx-input"

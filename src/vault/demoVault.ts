@@ -1,7 +1,7 @@
 import type { VaultDocument } from './VaultGraph.js';
 
 /**
- * Demo fixtures: invented notes shaped like a small studio's working files.
+ * Demo fixtures: invented documents shaped like a small studio's working files.
  *
  * Generated from a fixed seed, so the graph is byte-identical on every run.
  * That matters for two reasons: a screen recording looks the same twice, and a
@@ -143,7 +143,7 @@ export function generateDemoVault(seed = DEMO_SEED): VaultDocument[] {
     );
   }
 
-  // --- topic notes, the connective tissue ---
+  // --- topic documents, the connective tissue ---
   for (const topic of TOPICS) {
     // Each topic links to two others, so the graph has genuine structure
     // rather than a star around the clients.
@@ -168,7 +168,7 @@ export function generateDemoVault(seed = DEMO_SEED): VaultDocument[] {
     );
   }
 
-  // A note carrying an injection attempt, so the guardrail has something real
+  // A document carrying an injection attempt, so the guardrail has something real
   // to be tested against. It is data to report, never an instruction to obey.
   add(
     'Notes/Imported Brief.md',

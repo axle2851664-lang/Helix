@@ -66,7 +66,7 @@ describe('inferType', () => {
     expect(inferType('Projects/Rebuild.md')).toBe('project');
     expect(inferType('Meetings/Kickoff.md')).toBe('meeting');
     expect(inferType('Invoices/March.md')).toBe('invoice');
-    expect(inferType('Notes/Idea.md')).toBe('note');
+    expect(inferType('Notes/Idea.md')).toBe('document');
   });
 });
 
@@ -219,7 +219,7 @@ describe('demo vault', () => {
     expect(stats.byType.project).toBeGreaterThan(0);
     expect(stats.byType.meeting).toBeGreaterThan(0);
     expect(stats.byType.invoice).toBeGreaterThan(0);
-    expect(stats.byType.note).toBeGreaterThan(0);
+    expect(stats.byType.document).toBeGreaterThan(0);
   });
 
   it('includes a dangling link so missing nodes are exercised', () => {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { ForceLayout } from '../../vault/layout.js';
 import { placeLabels, truncateLabel, type LabelCandidate } from './labels.js';
-import type { NoteType, VaultEdge, VaultNode } from '../../vault/VaultGraph.js';
+import type { VaultDocumentType, VaultEdge, VaultNode } from '../../vault/VaultGraph.js';
 
 /**
  * The vault graph, drawn on a canvas.
@@ -11,12 +11,12 @@ import type { NoteType, VaultEdge, VaultNode } from '../../vault/VaultGraph.js';
  * draw loop stays flat as the graph grows.
  */
 
-const TYPE_COLOURS: Record<NoteType, string> = {
+const TYPE_COLOURS: Record<VaultDocumentType, string> = {
   client: '#e0243c',
   project: '#e08a24',
   meeting: '#4ba3e3',
   invoice: '#35c759',
-  note: '#8c8794',
+  document: '#8c8794',
   missing: '#55505a',
 };
 

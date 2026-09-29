@@ -115,7 +115,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     id: 'files',
     group: 'know',
     title: 'Files',
-    subtitle: 'Indexed files and knowledge.',
+    subtitle: 'Files you imported, and what Helix can search inside them.',
     aliases: ['documents', 'knowledge', 'library'],
     phase: 4,
     implemented: true,
@@ -245,8 +245,12 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     id: 'graph',
     group: 'know',
     title: 'Graph',
-    subtitle: 'Your notes and the links between them.',
-    aliases: ['vault', 'notes graph', 'links', 'map of notes', 'knowledge graph'],
+    // Not "your notes". These are markdown files in a vault folder on your
+    // disk, which Helix reads and never wrote. A note in Helix is a Notepad
+    // note, and the two must not share a word - the user cannot see which
+    // one they have got.
+    subtitle: 'Files in your vault, and the links between them.',
+    aliases: ['vault', 'vault graph', 'links', 'map of my vault', 'knowledge graph'],
     phase: 4,
     implemented: true,
     inSidebar: true,
