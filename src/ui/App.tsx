@@ -16,6 +16,17 @@ import { WORKSPACES, type WorkspaceId } from './workspaces/registry.js';
 const SIDEBAR_OVERLAY_WIDTH = 820;
 
 /**
+ * Workspaces that own their whole screen.
+ *
+ * Every other workspace gets a title and a subtitle above it, which is right
+ * for a panel of controls and wrong for a surface you are looking at or
+ * writing on. The home screen was already exempt; the Notepad is exempt for
+ * the same reason - a heading reading "Notepad / Notes you asked Helix to
+ * keep" above a page you are typing on is furniture between you and the page.
+ */
+const FULL_BLEED: ReadonlySet<WorkspaceId> = new Set<WorkspaceId>(['home', 'notepad']);
+
+/**
  * The Helix application shell: three columns - navigation, workspace, status.
  *
  * Kept thin on purpose. It owns layout, navigation and the current
@@ -189,7 +200,7 @@ function HelixWorkspaceShell() {
           onToggleSidebar={() => setSidebarOpen((open) => !open)}
         />
 
-        {workspace !== 'home' && (
+        {!FULL_BLEED.has(workspace) && (
           <div className="hx-main__head">
             <div>
               <h1 className="hx-main__title">{descriptor.title}</h1>
@@ -212,6 +223,8 @@ function HelixWorkspaceShell() {
 
         <div
           className={`hx-main__body${workspace === 'home' ? ' hx-main__body--home' : ''}${
+            workspace === 'notepad' ? ' hx-main__body--notepad' : ''
+          }${
             workspace === 'graph' ? ' hx-main__body--graph' : ''
           }`}
         >

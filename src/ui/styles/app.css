@@ -3447,66 +3447,238 @@ body {
 }
 
 /* ======================= the notepad =================================
-   Two panes: the notes, and the one being read. On a narrow screen they
-   stack, list first, because choosing what to read comes before
-   reading it. */
+   A page, not a file browser.
 
-.hx-notepad {
-  display: grid;
-  grid-template-columns: minmax(200px, 300px) 1fr;
-  gap: 14px;
-  align-items: start;
+   The first version was a list beside an editor, which is the shape of
+   every file manager ever written - and that was the problem: the
+   Notepad kept being taken for Files because it was built like Files.
+   The layout is the loudest statement a screen makes about what it is,
+   so this one is a single column with room around it, and the other
+   notes live in a switcher that is summoned and dismissed.
+
+   Nothing here draws a panel. The bar, the title and the body all sit
+   on the page background with no borders, because a border around a
+   writing surface makes it a form field. */
+
+.hx-main__body--notepad {
+  padding: 0;
+  overflow: hidden;
 }
 
-@media (max-width: 820px) {
-  .hx-notepad {
-    grid-template-columns: 1fr;
-  }
-}
-
-.hx-notepad__list {
+.hx-pad {
+  height: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 18px 24px 0;
+  overflow: hidden;
+}
+
+/* A thin row of verbs. Not a toolbar - there are four things you can do
+   here and they are all one word. */
+.hx-pad__bar {
+  width: 100%;
+  max-width: 68ch;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.hx-pad__spacer {
+  flex: 1;
+}
+
+.hx-pad__verb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: #8a8a8a;
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.hx-pad__verb:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5e5e5;
+}
+
+.hx-pad__verb--on {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.hx-pad__verb--quiet:hover {
+  color: #e5e5e5;
+}
+
+.hx-pad__state {
+  padding: 5px 9px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8a8a8a;
+}
+
+.hx-pad__confirm,
+.hx-pad__error {
+  width: 100%;
+  max-width: 68ch;
+  margin-top: 10px;
+}
+
+.hx-pad__confirm {
+  display: flex;
+  align-items: center;
   gap: 10px;
-  /* The editor grows with its content; the list scrolls instead of
-     pushing the page down past the note being written. */
-  max-height: 70vh;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #e5e5e5;
+}
+
+/* The page itself. */
+.hx-pad__page {
+  width: 100%;
+  max-width: 68ch;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 26px;
+}
+
+.hx-pad__title,
+.hx-pad__body {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #e5e5e5;
+  font-family: inherit;
+  padding: 0;
+}
+
+.hx-pad__title:focus,
+.hx-pad__body:focus {
+  /* No focus ring on a page. The cursor is the focus indicator, and a
+     box around the thing you are writing in is a form field. */
+  outline: none;
+}
+
+.hx-pad__title {
+  font-size: 22px;
+  line-height: 1.3;
+  margin-bottom: 14px;
+}
+
+.hx-pad__title::placeholder,
+.hx-pad__body::placeholder {
+  color: #4a4a4a;
+}
+
+.hx-pad__body {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+  font-size: 14.5px;
+  line-height: 1.75;
   overflow-y: auto;
 }
 
-.hx-notelist {
+.hx-pad__foot {
+  width: 100%;
+  max-width: 68ch;
+  margin: 0;
+  padding: 12px 0 16px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #555555;
+}
+
+/* --- the switcher: the other notes, summoned and dismissed --- */
+
+.hx-pad__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.62);
+  cursor: default;
+}
+
+.hx-pad__switcher {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(460px, calc(100% - 48px));
+  max-height: min(60vh, 520px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+.hx-pad__filter {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.02);
+  color: #e5e5e5;
+  font: inherit;
+  font-size: 13px;
+}
+
+.hx-pad__filter:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.26);
+}
+
+.hx-pad__list {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  overflow-y: auto;
 }
 
-.hx-notelist__row {
+.hx-pad__row {
   width: 100%;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 8px 9px;
   border: 0;
   border-radius: 2px;
   background: transparent;
   color: inherit;
+  font: inherit;
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
 }
 
-.hx-notelist__row:hover {
-  background: rgba(255, 255, 255, 0.05);
+.hx-pad__row:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.hx-notelist__row--on {
-  background: rgba(255, 255, 255, 0.09);
+.hx-pad__row--on {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.hx-notelist__title {
+.hx-pad__row-title {
   /* One line. A note whose first line is a paragraph must not make its
      row three times the height of every other row. */
   min-width: 0;
@@ -3515,59 +3687,30 @@ body {
   white-space: nowrap;
 }
 
-.hx-notelist__when {
+.hx-pad__row-when {
   flex: none;
   font-size: 11px;
   color: #8a8a8a;
 }
 
-.hx-notepad__editor {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.hx-notepad__title {
-  font-size: 15px;
-}
-
-.hx-notepad__body {
-  min-height: 46vh;
-  resize: vertical;
-  line-height: 1.6;
-  /* The one place in Helix where what the user typed is the content, so
-     it keeps its own line breaks and its own spacing. */
-  white-space: pre-wrap;
-  font-family: inherit;
-}
-
-/* The standing note under the editor. It is a reminder, not a heading:
-   at the inherited size it was the largest text on the screen and read
-   as the point of the page. */
-.hx-notepad__editor .hx-settings__note {
-  font-size: 11.5px;
+.hx-pad__empty {
+  margin: 4px 0;
+  padding: 8px 9px;
+  font-size: 12.5px;
   line-height: 1.6;
   color: #8a8a8a;
 }
 
-/* Flash-drive presets. Buttons rather than a select, because there are
-   three and the list will not grow much - and because the ticks below
-   stay visible, which is what keeps a preset from feeling like a
-   different, hidden way of choosing. */
-.hx-portable__presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.hx-portable__preset--on {
-  border-color: rgba(255, 255, 255, 0.45);
-  color: #ffffff;
-}
-
-.hx-notepad__head-actions {
-  display: flex;
-  gap: 6px;
-  align-items: center;
+@media (max-width: 560px) {
+  .hx-pad {
+    padding: 12px 16px 0;
+  }
+  .hx-pad__title {
+    font-size: 19px;
+  }
+  /* The standing note is the first thing to go: on a phone it is a third
+     of the writing surface, and it says nothing you need while typing. */
+  .hx-pad__foot {
+    display: none;
+  }
 }
