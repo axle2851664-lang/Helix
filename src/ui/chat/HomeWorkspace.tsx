@@ -40,6 +40,18 @@ const STATE_LINGER_MS = 1600;
  */
 const WORD_DECAY_MS = 90;
 
+/**
+ * How big the core's canvas is, for a given window.
+ *
+ * The canvas has to hold the whole energy field, which reaches well past the
+ * sphere, so it is a good deal larger than the sphere looks. Sized against the
+ * window rather than fixed, because at 560 on a laptop it collided with the
+ * composer and on a phone it simply did not fit.
+ */
+function coreSizeFor(width: number, height: number): number {
+  return Math.round(Math.max(280, Math.min(560, width * 0.62, height * 0.66)));
+}
+
 interface HomeWorkspaceProps {
   conversationId: string | null;
   /** Creates the conversation on demand, so empty ones are never made. */
@@ -145,6 +157,32 @@ export function HomeWorkspace({
    * sets it, and the core does not swell while Helix talks. That is the honest
    * failure; an oscillator would look identical and mean nothing.
    */
+  /**
+   * Recomputed on resize, which rebuilds the field.
+   *
+   * Debounced, because the canvas is torn down and every orbit regenerated
+   * when this changes, and doing that on every pixel of a window drag is the
+   * one thing on this screen that would actually stutter.
+   */
+  const [coreSize, setCoreSize] = useState(() =>
+    typeof window === 'undefined' ? 480 : coreSizeFor(window.innerWidth, window.innerHeight),
+  );
+  useEffect(() => {
+    let timer = 0;
+    const onResize = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(
+        () => setCoreSize(coreSizeFor(window.innerWidth, window.innerHeight)),
+        160,
+      );
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('resize', onResize);
+    };
+  }, []);
+
   const [level, setLevel] = useState(0);
   const speakingLevel = useRef(0);
 
@@ -385,6 +423,7 @@ export function HomeWorkspace({
             state={coreState}
             level={level}
             reduceMotion={config.reduceMotion === true}
+            size={coreSize}
             onActivate={() => void toggleCall()}
             label={
               voiceState.state === 'listening' ? 'Stop listening' : 'Speak to Helix'
