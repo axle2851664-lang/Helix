@@ -31,6 +31,7 @@ import { HelixOrchestrator } from './HelixOrchestrator.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { MemoryManager } from '../memory/MemoryManager.js';
+import { NotepadManager } from '../notepad/NotepadManager.js';
 import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import { StorageManager } from '../storage/StorageManager.js';
 import { BackupManager } from '../backup/BackupManager.js';
@@ -115,6 +116,8 @@ export interface KernelServices {
   readonly conversations: ConversationStore;
   readonly projects: ProjectManager;
   readonly memory: MemoryManager;
+  /** Helix's own notes (Notepad). */
+  readonly notepad: NotepadManager;
   readonly knowledge: KnowledgeIndex;
   readonly storage: StorageManager;
   readonly backup: BackupManager;
@@ -275,6 +278,7 @@ export class HelixKernel {
     const conversations = new ConversationStore({ store, settings, logger, bus });
     const projects = new ProjectManager({ store, logger, paths, bus });
     const memory = new MemoryManager({ store, settings, logger, bus });
+    const notepad = new NotepadManager({ store, logger, bus });
     const knowledge = new KnowledgeIndex({ store, projects, logger, bus });
 
 
@@ -529,6 +533,7 @@ export class HelixKernel {
         settings,
         knowledge,
         memory,
+        notepad,
         images: { search: images, results: imageResults },
         docs,
         google: { gmail: mail, calendar },
@@ -549,6 +554,7 @@ export class HelixKernel {
       activity,
       projects,
       memory,
+      notepad,
       knowledge,
       logger,
       bus,
@@ -861,6 +867,7 @@ export class HelixKernel {
       conversations,
       projects,
       memory,
+      notepad,
       knowledge,
       storage,
       ai,

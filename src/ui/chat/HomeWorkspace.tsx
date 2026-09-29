@@ -47,6 +47,8 @@ interface HomeWorkspaceProps {
   onNavigate: (workspace: WorkspaceId) => void;
   /** Called when a tool resolved a project the UI should open. */
   onOpenProject: (projectId: string) => void;
+  /** Called when a tool resolved a note the Notepad should open on. */
+  onOpenNote: (noteId: string) => void;
 }
 
 export function HomeWorkspace({
@@ -54,6 +56,7 @@ export function HomeWorkspace({
   ensureConversation,
   onNavigate,
   onOpenProject,
+  onOpenNote,
 }: HomeWorkspaceProps) {
   const {
     orchestrator,
@@ -247,8 +250,11 @@ export function HomeWorkspace({
     try {
       const id = await ensureConversation();
       const response = await orchestrator.submit({ text, conversationId: id });
-      // A resolved project takes precedence over a plain workspace change.
+      // A resolved target takes precedence over a plain workspace change: the
+      // tool found the specific thing, and landing on the list instead would
+      // make the user search for what Helix has already located.
       if (response.openProjectId) onOpenProject(response.openProjectId);
+      else if (response.openNoteId) onOpenNote(response.openNoteId);
       else if (response.navigateTo) onNavigate(response.navigateTo);
 
       // Only the short line is ever spoken. The card is deliberately left on

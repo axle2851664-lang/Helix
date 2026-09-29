@@ -24,6 +24,7 @@ export type IconName =
   | 'microphone'
   | 'paperclip'
   | 'panel'
+  | 'notepad'
   | 'send'
   | 'activity'
   | 'chip'
@@ -38,6 +39,8 @@ const PATHS: Record<IconName, string> = {
   brain:
     'M9.5 4.5A2.5 2.5 0 0 0 7 7a2.5 2.5 0 0 0-1 4.8V15a3 3 0 0 0 4.5 2.6M9.5 4.5A2.5 2.5 0 0 1 12 7v11M9.5 4.5a2.5 2.5 0 0 1 5 0M14.5 4.5A2.5 2.5 0 0 1 17 7a2.5 2.5 0 0 1 1 4.8V15a3 3 0 0 1-4.5 2.6',
   folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  // A page with ruled lines: a note, rather than a file or a folder.
+  notepad: 'M6 3h9l4 4v14H6zM15 3v4h4M9 12h7M9 16h5',
   globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z',
   code: 'M8 17l-5-5 5-5M16 7l5 5-5 5M14 4l-4 16',
   image: 'M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6',

@@ -8,6 +8,8 @@ import { resolveWorkspace, type WorkspaceId } from '../ui/workspaces/registry.js
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { getModelOrDefault, resolveModel } from '../models/catalog.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
+import type { NotepadManager } from '../notepad/NotepadManager.js';
+import { notepadIntent } from '../notepad/intent.js';
 import type { KnowledgeHit, KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import {
   allowAddressInReply,
@@ -97,6 +99,8 @@ export interface HelixResponse {
   navigateTo?: WorkspaceId;
   /** Set when a tool resolved a project the UI should open. */
   openProjectId?: string;
+  /** Set when a tool resolved a note the UI should open in the Notepad. */
+  openNoteId?: string;
   /**
    * The structured half of a two-part reply. The text above is what Helix says
    * out loud; this is what it puts on screen. They are never the same content -
@@ -133,6 +137,8 @@ export interface OrchestratorOptions {
   activity: ActivityManager;
   projects: ProjectManager;
   memory: MemoryManager;
+  /** Helix's own notes. Absent in tests that do not exercise the Notepad. */
+  notepad?: NotepadManager;
   knowledge: KnowledgeIndex;
   logger: Logger;
   bus?: EventBus;
@@ -159,6 +165,7 @@ export class HelixOrchestrator {
   readonly #activity: ActivityManager;
   readonly #projects: ProjectManager;
   readonly #memory: MemoryManager;
+  readonly #notepad: NotepadManager | undefined;
   readonly #knowledge: KnowledgeIndex;
   readonly #logger: Logger;
   readonly #ai: AIRouter | undefined;
@@ -185,6 +192,7 @@ export class HelixOrchestrator {
     this.#activity = options.activity;
     this.#projects = options.projects;
     this.#memory = options.memory;
+    this.#notepad = options.notepad;
     this.#knowledge = options.knowledge;
     this.#logger = options.logger.child('orchestrator');
     this.#ai = options.ai;
@@ -197,6 +205,12 @@ export class HelixOrchestrator {
 
     // File search sits just below memory: "search my files for X" is explicit.
     this.registerTool(this.#fileSearchTool());
+    // The Notepad sits just above memory. The two instruction sets overlap -
+    // "note that ..." is a memory instruction and "note this down" is a note -
+    // and the notepad matcher is the more specific of the pair, so it is asked
+    // first and declines everything memory owns. See notepad/intent.ts, which
+    // excludes "remember", "forget" and the rest by name rather than by luck.
+    if (this.#notepad) this.registerTool(this.#notepadTool(this.#notepad));
     // Memory runs first: "remember that ..." is an explicit instruction and
     // must never be mistaken for a project or navigation request.
     this.registerTool(this.#memoryTool());
@@ -438,7 +452,12 @@ export class HelixOrchestrator {
       'what do my files say',
       'search my documents',
       'look in my files',
-      'search my notes',
+      // 'search my notes' was here, and it was right when the only notes
+      // Helix had were markdown files in a vault. It is wrong now: the
+      // Notepad is Helix's own notes, in Helix's own storage, and a search
+      // for them was being answered out of the file index - which reported
+      // "no files are indexed yet" to someone who had just written three
+      // notes. The Notepad tool owns that phrasing; see #notepadTool.
     ];
 
     return {
@@ -567,6 +586,206 @@ ${lines}${notice}`,
    * Fully working offline and with no provider: storage and retrieval are
    * literal, no model involved.
    */
+  /**
+   * The Notepad, reachable by voice and by typing.
+   *
+   * It is a tool rather than a screen-only feature because "write this down"
+   * has to work while the user is doing something else - which is the whole
+   * reason anyone dictates a note. Every branch here goes through
+   * `NotepadManager`, so the credential refusal, the length ceiling and the
+   * explicit-only rule hold whatever the request came in as.
+   *
+   * Two things this tool will not do:
+   *
+   *   - It never writes a note from the conversation. `create` writes exactly
+   *     the words the instruction carried, and when the instruction carried
+   *     none it says so and asks, rather than reaching into the transcript for
+   *     something plausible.
+   *   - It never deletes without going through the action pipeline, which is
+   *     what puts a confirmation naming the note in front of it.
+   */
+  #notepadTool(notepad: NotepadManager): HelixTool {
+    return {
+      name: 'notepad',
+      description: 'Write, find, open or delete notes in the Notepad.',
+      // Above file search at 450, deliberately and not by tie-break. The two
+      // overlap on the word "notes", and the Notepad is the more specific
+      // reading: a note is a thing Helix holds, a file is a thing the user
+      // imported.
+      priority: 460,
+      matches: (request) => notepadIntent(request.text) !== null,
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const intent = notepadIntent(request.text);
+        if (!intent) {
+          // Unreachable: `matches` has already run. Stated rather than
+          // assumed, because a tool that throws here would take the reply.
+          return { text: observe('That was not a Notepad request'), handled: false, failure: 'NOT_APPLICABLE' };
+        }
+
+        switch (intent.action) {
+          case 'open':
+            return { text: observe('Notepad open'), handled: true, navigateTo: 'notepad' };
+
+          case 'export':
+            // The Flash Drive screen is where a copy is actually made, and it
+            // is where the choice of what goes in it lives. Sending the user
+            // there is honest; claiming to have exported anything is not.
+            return {
+              text: observe('Take It With You is where a copy is made. Choose what goes in it there'),
+              handled: true,
+              navigateTo: 'portable',
+            };
+
+          case 'create': {
+            if (intent.subject === '') {
+              // "Write this down" with nothing after it. There is no honest
+              // way to guess what "this" was, and pulling the last thing said
+              // out of the transcript would be Helix deciding what to keep.
+              return {
+                text: enquire('What should I write down'),
+                handled: false,
+                failure: 'VALIDATION_FAILED',
+                navigateTo: 'notepad',
+              };
+            }
+
+            try {
+              const note = await notepad.save({ content: intent.subject });
+              return {
+                text: confirm(`Noted: "${note.title}"`),
+                handled: true,
+                navigateTo: 'notepad',
+                openNoteId: note.id,
+              };
+            } catch (error) {
+              // A refusal is the manager doing its job - a credential, or a
+              // note too long to hold. Its message is the useful one.
+              return {
+                text: regret(error instanceof Error ? error.message : 'that note could not be written'),
+                handled: false,
+                failure: 'VALIDATION_FAILED',
+              };
+            }
+          }
+
+          case 'append': {
+            const found = await notepad.search(intent.subject, { limit: 1 });
+            const target = found[0];
+            if (!target) {
+              return {
+                text: observe(`No note matches "${intent.subject}"`),
+                handled: false,
+                failure: 'NOT_FOUND',
+                navigateTo: 'notepad',
+              };
+            }
+            // The instruction said "add this", and "this" is not in it. The
+            // note is opened at the place the addition goes; inventing the
+            // text would be worse than opening the note.
+            return {
+              text: observe(`"${target.note.title}" is open. Say or type what to add`),
+              handled: true,
+              navigateTo: 'notepad',
+              openNoteId: target.note.id,
+            };
+          }
+
+          case 'search': {
+            const found = await notepad.search(intent.subject, { limit: 6 });
+            if (found.length === 0) {
+              return {
+                text: observe(`Nothing in the Notepad about "${intent.subject}"`),
+                handled: true,
+                navigateTo: 'notepad',
+              };
+            }
+
+            const first = found[0];
+            return {
+              // The spoken line is never the card. One note is named out loud
+              // because that is what a person can hold; the rest are to look
+              // at.
+              text:
+                found.length === 1
+                  ? observe(`One note: "${first?.note.title}"`)
+                  : observe(`${found.length} notes. The closest is "${first?.note.title}"`),
+              handled: true,
+              navigateTo: 'notepad',
+              ...(found.length === 1 && first ? { openNoteId: first.note.id } : {}),
+              card: {
+                kind: 'result',
+                title: `Notes about "${intent.subject}"`,
+                sections: [
+                  {
+                    items: found.map((match) => ({
+                      label: match.note.title,
+                      // The line the match was on, quoted. Never a summary:
+                      // that would be Helix's words presented as the user's.
+                      detail: match.excerpt,
+                      meta: new Date(match.note.updatedAt).toLocaleDateString(),
+                      source: 'Notepad',
+                    })),
+                  },
+                ],
+                caveat:
+                  'Literal word matching, not meaning: a note that says the same thing in other words will not appear. Ordered by how the match was found - a title first, then the body.',
+              },
+            };
+          }
+
+          case 'delete': {
+            if (intent.subject === '') {
+              return {
+                text: enquire('Which note should I delete'),
+                handled: false,
+                failure: 'VALIDATION_FAILED',
+                navigateTo: 'notepad',
+              };
+            }
+
+            const found = await notepad.search(intent.subject, { limit: 1 });
+            const target = found[0];
+            if (!target) {
+              return {
+                text: observe(`No note matches "${intent.subject}"`),
+                handled: false,
+                failure: 'NOT_FOUND',
+              };
+            }
+
+            if (!this.#runner) {
+              // Without the runner there is nothing to ask with, and a delete
+              // that cannot ask is a delete that must not happen.
+              return {
+                text: unavailable(
+                  'I can only delete a note once you have confirmed it, and I have no way to ask you just now',
+                ),
+                handled: false,
+                failure: 'CAPABILITY_UNAVAILABLE',
+              };
+            }
+
+            const outcome = await this.#runner.run('notepad.delete', { id: target.note.id });
+            if (outcome.status === 'ok') {
+              return { text: confirm(`Deleted "${target.note.title}"`), handled: true };
+            }
+            if (outcome.status === 'refused' && outcome.reason === 'not-confirmed') {
+              // A cancellation is an answer, not a failure. The tool ran, it
+              // asked, and it did what it was told.
+              return { text: observe(`"${target.note.title}" is still there`), handled: true };
+            }
+            return {
+              text: regret(`the note could not be deleted: ${outcome.message}`),
+              handled: false,
+              failure: 'ACTION_FAILED',
+            };
+          }
+        }
+      },
+    };
+  }
+
   #memoryTool(): HelixTool {
     const savePrefixes = [
       'remember that ',

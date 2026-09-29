@@ -342,3 +342,64 @@ describe('BackupManager', () => {
     expect(context.backup.summarise(archive).some((entry) => entry.items > 0)).toBe(true);
   });
 });
+
+describe('carrying only what was chosen', () => {
+  /**
+   * The bug this exists to prevent, and it reached a user-facing screen.
+   *
+   * The Flash Drive asks, one item at a time, what should leave the machine -
+   * and then called `export('full')`, which wrote every namespace regardless.
+   * Tick "Helix itself" and nothing else and the stick still carried the whole
+   * conversation history, under a manifest that said it did not. The
+   * checkboxes described a choice that was never passed on.
+   */
+  it('leaves out a namespace that was not asked for', async () => {
+    const { backup, memory, store } = await makeContext();
+    await memory.save({ content: 'I take my answers short.' });
+    await store.set('notepad', 'note_1', { id: 'note_1', title: 'Suppliers', content: 'Acme' });
+
+    const archive = await backup.build('full', { only: ['notepad'] });
+    const namespaces = archive.sections.map((section) => section.namespace);
+
+    expect(namespaces).toEqual(['notepad']);
+    expect(namespaces).not.toContain('memory');
+  });
+
+  /**
+   * Left out, and recorded as left out. Silently absent would let a restore
+   * rebuild a partial state the user believes is complete.
+   */
+  it('records what it left out and why', async () => {
+    const { backup } = await makeContext();
+    const archive = await backup.build('full', { only: ['notepad'] });
+
+    expect(archive.omitted.map((entry) => entry.namespace)).toContain('memory');
+    for (const entry of archive.omitted) {
+      expect(entry.reason.length, entry.namespace).toBeGreaterThan(20);
+    }
+  });
+
+  it('still writes everything when nothing narrows it', async () => {
+    const { backup } = await makeContext();
+    const archive = await backup.build('full');
+
+    expect(archive.sections.map((section) => section.namespace)).toContain('memory');
+    expect(archive.sections.map((section) => section.namespace)).toContain('notepad');
+  });
+
+  /**
+   * The Notepad has to survive the round trip, or "take your notes with you"
+   * is a copy that cannot be brought back.
+   */
+  it('round-trips a note through an export and a parse', async () => {
+    const { backup, store } = await makeContext();
+    const note = { id: 'note_1', title: 'Suppliers', content: 'Acme are late.', tags: ['work'] };
+    await store.set('notepad', note.id, note);
+
+    const exported = await backup.export('full', { only: ['notepad'] });
+    const parsed = parseArchive(exported.text);
+    const section = parsed.sections.find((entry) => entry.namespace === 'notepad');
+
+    expect(section?.entries).toEqual([['note_1', note]]);
+  });
+});

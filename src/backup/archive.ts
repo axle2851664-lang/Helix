@@ -23,7 +23,18 @@
  */
 
 export const ARCHIVE_FORMAT = 'helix.backup';
-export const ARCHIVE_VERSION = 1;
+/**
+ * Bumped to 2 when the Notepad was added.
+ *
+ * Not cosmetic. An archive carrying a `notepad` section handed to a Helix
+ * that has never heard of one is refused by the namespace check below, with
+ * the message "that backup contains notepad, which is not part of Helix" -
+ * true, unhelpful, and alarming. With the version raised, the older Helix
+ * refuses it one check earlier and says what is actually wrong: the backup
+ * was written by a newer Helix, update before restoring. Archives at version
+ * 1 still read here, which is the half of compatibility that matters.
+ */
+export const ARCHIVE_VERSION = 2;
 
 /**
  * Every namespace an archive may contain, and what each holds.
@@ -36,6 +47,7 @@ export const ARCHIVE_VERSION = 1;
 export const ARCHIVABLE = {
   settings: 'Your preferences.',
   memory: 'What you asked Helix to remember.',
+  notepad: 'The notes you wrote in the Notepad.',
   conversations: 'Saved conversation history.',
   'project-assets': 'The record of each imported file: name, size, kind.',
   'asset-blobs': 'The contents of those files.',

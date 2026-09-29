@@ -88,6 +88,7 @@ export type ActionGroup =
   | 'files'
   | 'knowledge'
   | 'memory'
+  | 'notepad'
   | 'workspace'
   | 'settings'
   | 'media'

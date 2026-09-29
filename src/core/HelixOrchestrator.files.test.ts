@@ -100,11 +100,25 @@ describe('orchestrator: file search tool', () => {
       'search my files for deadline',
       'what do my files say about deadline',
       'find in my files deadline',
-      'search my notes for deadline',
+      'look in my files for deadline',
     ]) {
       const response = await ask(phrase);
       expect(response.text, phrase).toContain('notes.md');
     }
+  });
+
+  /**
+   * "search my notes" used to be one of the phrasings above, and it was right
+   * when the only notes Helix had were markdown files someone had imported.
+   * The Notepad is Helix's own notes in Helix's own storage, and answering a
+   * search for them out of the file index told people who had just written
+   * three notes that nothing was indexed.
+   */
+  it('leaves the Notepad to the Notepad', async () => {
+    await addFile('notes.md', 'The deadline is Friday.');
+    const response = await ask('search my notes for deadline');
+
+    expect(response.text).not.toContain('notes.md');
   });
 
   it('says plainly when nothing matches', async () => {

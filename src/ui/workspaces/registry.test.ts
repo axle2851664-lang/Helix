@@ -23,6 +23,7 @@ describe('workspace registry', () => {
     expect(SIDEBAR_WORKSPACES.map((w) => w.id)).toEqual([
       'conversations',
       'memory',
+      'notepad',
       'files',
       'inbox',
       'outbox',
@@ -63,6 +64,7 @@ describe('workspace registry', () => {
       'inbox',
       'memory',
       'models',
+      'notepad',
       'outbox',
       'portable',
       'settings',

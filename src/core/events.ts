@@ -50,6 +50,11 @@ export interface HelixEventMap {
   MEMORY_SAVED: { memoryId: string; category: string };
   MEMORY_DELETED: { memoryId: string };
 
+  // --- Notepad. Helix's own notes, written only when the user asks. The
+  //     events carry the note's id and kind and never a word of its text. ---
+  NOTE_SAVED: { noteId: string; category: string };
+  NOTE_DELETED: { noteId: string };
+
   // --- Models (spec 3) ---
   MODEL_INSTALLED: { modelId: string; sizeBytes: number };
   MODEL_REMOVED: { modelId: string };

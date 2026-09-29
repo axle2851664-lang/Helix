@@ -1,6 +1,7 @@
 import type { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import { HelixError } from '../core/HelixError.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
+import type { NotepadManager } from '../notepad/NotepadManager.js';
 import type { ImageSearch } from '../images/ImageSearch.js';
 import type { ImageResultsStore } from '../images/ImageResultsStore.js';
 import type { DocsProvider } from '../integrations/google/DocsProvider.js';
@@ -60,6 +61,12 @@ export interface BuiltinActionServices {
   settings: SettingsManager;
   knowledge: KnowledgeIndex;
   memory: MemoryManager;
+  /**
+   * Absent in tests that do not exercise the Notepad. Where it is absent, the
+   * delete action is not registered at all, so a Helix without a notepad
+   * refuses to delete a note rather than pretending to have deleted one.
+   */
+  notepad?: NotepadManager;
   /** Absent in tests that do not exercise image search. */
   images?: { search: ImageSearch; results: ImageResultsStore };
   /** Absent in tests that do not exercise Google Docs. */
@@ -218,11 +225,59 @@ function forgetMemory(memory: MemoryManager): ActionDefinition {
   };
 }
 
+/**
+ * Deleting a note.
+ *
+ * It goes through the action pipeline rather than straight to the store for
+ * one reason: that is what puts a confirmation in front of it, and the
+ * confirmation shows the note's title rather than its id. An id is not
+ * something a person can judge, and a confirmation nobody can judge is a
+ * formality. Nothing restores a deleted note, and the confirmation says so.
+ */
+function deleteNote(notepad: NotepadManager): ActionDefinition {
+  return {
+    id: 'notepad.delete',
+    label: 'Delete a note',
+    group: 'notepad',
+    summary: 'Delete one note from the Notepad.',
+    parameters: {
+      id: {
+        type: 'string',
+        description: 'Which note to delete.',
+        required: true,
+        maxLength: 100,
+      },
+    },
+    permission: null,
+    confirmation: 'destructive',
+    // There is no bin and no archive. The confirmation is the only chance.
+    reversible: false,
+    appliesTo: ['note'],
+    describe: async (params) => {
+      const note = await notepad.get(readString(params, 'id'));
+      return note ? `Delete the note "${note.title}"` : 'Delete a note that no longer exists.';
+    },
+    run: async (params) => {
+      const id = readString(params, 'id');
+      const note = await notepad.get(id);
+      if (!note) {
+        throw new HelixError('NOT_FOUND', 'There is no note like that to delete.', {
+          technical: `No note with id ${id}`,
+        });
+      }
+
+      await notepad.remove(id);
+      return { message: `Deleted: "${note.title}"` };
+    },
+  };
+}
+
 export function builtinActions(services: BuiltinActionServices): ActionDefinition[] {
   return [
     changeSetting(services.settings),
     searchFiles(services.knowledge),
     forgetMemory(services.memory),
+    ...(services.notepad ? [deleteNote(services.notepad)] : []),
     ...phoneActions({ settings: services.settings }),
     ...(services.images
       ? imageActions({

@@ -126,17 +126,41 @@ export class BackupManager {
   /* ---------------------------------------------------------------- */
 
   /**
-   * Read everything out of storage into an archive.
+   * Read storage into an archive.
    *
    * The snapshot namespace is deliberately excluded. A backup containing every
    * previous backup doubles on each round and is worthless besides - restoring
    * one would bring back a stale list of the others.
+   *
+   * `only` narrows it to named namespaces, and exists because of a bug worth
+   * recording. The Flash Drive screen asks the user, one item at a time, what
+   * should leave the machine - and then called this with no way to say. The
+   * archive it wrote held everything: a user who ticked "Helix itself" and
+   * nothing else got their whole conversation history on the stick, under a
+   * manifest that said it was not there. The checkboxes described a choice
+   * that was never passed on.
+   *
+   * What is left out is recorded in `omitted` rather than silently absent, so
+   * a restore can say what is missing instead of quietly restoring a partial
+   * state the user believes is complete.
    */
-  async build(scope: ArchiveScope = 'full'): Promise<Archive> {
+  async build(
+    scope: ArchiveScope = 'full',
+    options: { only?: readonly ArchivableNamespace[] } = {},
+  ): Promise<Archive> {
     const sections = [];
     const omitted: Archive['omitted'] = [];
+    const wanted = options.only === undefined ? null : new Set(options.only);
 
     for (const namespace of NAMESPACES) {
+      if (wanted !== null && !wanted.has(namespace)) {
+        omitted.push({
+          namespace,
+          reason: `Left out because it was not selected. ${ARCHIVABLE[namespace]}`,
+        });
+        continue;
+      }
+
       if (namespace === BLOB_NAMESPACE && scope === 'records-only') {
         const count = (await this.#store.keys(namespace)).length;
         omitted.push({
@@ -170,12 +194,15 @@ export class BackupManager {
    * a third and a user deciding whether to keep file contents needs the actual
    * number, not a guess at it.
    */
-  async export(scope: ArchiveScope = 'full'): Promise<{
+  async export(
+    scope: ArchiveScope = 'full',
+    options: { only?: readonly ArchivableNamespace[] } = {},
+  ): Promise<{
     fileName: string;
     text: string;
     bytes: number;
   }> {
-    const archive = await this.build(scope);
+    const archive = await this.build(scope, options);
     const text = serialiseArchive(archive);
 
     return {

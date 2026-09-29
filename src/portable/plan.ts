@@ -83,6 +83,14 @@ export function portableItems(sizes: Partial<Record<PortableItemId, number>> = {
       bytes: size('settings'),
     },
     {
+      id: 'notepad',
+      label: 'Your Notepad',
+      detail: ARCHIVABLE.notepad,
+      ifLost:
+        'Everything you wrote down, in full and in plain text. A notepad is often the most personal thing on a machine.',
+      bytes: size('notepad'),
+    },
+    {
       id: 'memory',
       label: 'What Helix remembers',
       detail: ARCHIVABLE.memory,
@@ -187,4 +195,61 @@ export function formatBytes(bytes: number): string {
     unit += 1;
   }
   return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
+}
+
+
+/**
+ * Ready-made selections, for the two things people actually want.
+ *
+ * The item-by-item list stays, and it is still the honest shape of the
+ * question: a single "copy Helix to USB" button would quietly put a
+ * conversation history in a coat pocket. But two combinations come up often
+ * enough that making the user assemble them each time is friction with no
+ * safety in it, and both were asked for by name.
+ *
+ * A preset is a shortcut through the same machinery, never around it. Picking
+ * one sets the same ticks the user could have set by hand, `planPortable`
+ * still decides what is written, and the warning about an unencrypted disk
+ * still appears - because it is driven by what is selected, not by how it came
+ * to be selected. There is no preset that includes a credential, for the same
+ * reason there is no checkbox for one: no such item exists.
+ */
+export interface PortablePreset {
+  id: string;
+  label: string;
+  /** What it is for, in one line. */
+  detail: string;
+  items: readonly PortableItemId[];
+}
+
+export const PORTABLE_PRESETS: readonly PortablePreset[] = [
+  {
+    id: 'notepad-only',
+    label: 'Notepad only',
+    detail:
+      'Just the notes you wrote. No conversations, no files, no program - the smallest thing worth carrying.',
+    items: ['notepad'],
+  },
+  {
+    id: 'helix-and-notepad',
+    label: 'Helix and your Notepad',
+    detail:
+      'The program, so it runs on another machine, and your notes to work from. Nothing else about you goes with it.',
+    items: ['app', 'notepad'],
+  },
+  {
+    id: 'everything',
+    label: 'Everything Helix has',
+    detail:
+      'The program and every piece of your data. Read the warning below before choosing this one: an unencrypted disk holds all of it in plain text.',
+    items: ['app', 'settings', 'notepad', 'memory', 'conversations', 'project-assets', 'asset-blobs', 'knowledge'],
+  },
+];
+
+/** True when the current ticks are exactly this preset, so the UI can show it. */
+export function matchesPreset(preset: PortablePreset, selected: readonly string[]): boolean {
+  const chosen = new Set(selected);
+  return (
+    chosen.size === preset.items.length && preset.items.every((item) => chosen.has(item))
+  );
 }

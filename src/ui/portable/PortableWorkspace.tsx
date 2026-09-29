@@ -2,9 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useHelix } from '../HelixProvider.js';
 import { tauriInvoke } from '../../platform/TauriPlatform.js';
-import { NEVER_COPIED, formatBytes, planPortable, portableItems } from '../../portable/plan.js';
+import {
+  NEVER_COPIED,
+  PORTABLE_PRESETS,
+  formatBytes,
+  matchesPreset,
+  planPortable,
+  portableItems,
+} from '../../portable/plan.js';
 import { manifestText } from '../../portable/manifest.js';
 import type { PortableItemId } from '../../portable/plan.js';
+import { isArchivable, type ArchivableNamespace } from '../../backup/archive.js';
 
 /**
  * Taking Helix with you.
@@ -87,8 +95,21 @@ export function PortableWorkspace() {
     setOutcome(null);
 
     try {
-      const wantsData = plan.include.some((item) => item.id !== 'app');
-      const exported = wantsData ? await backup.export('full') : null;
+      /**
+       * Only what was ticked.
+       *
+       * This used to be `backup.export('full')`, which wrote every namespace
+       * whatever the user had chosen: tick "Helix itself" and nothing else,
+       * and the stick still carried the whole conversation history, under a
+       * manifest that said it did not. The checkboxes described a choice that
+       * was never passed on. `app` is filtered out because it is the program
+       * rather than a namespace - it travels as files, not in the archive.
+       */
+      const namespaces = plan.include
+        .map((item) => item.id)
+        .filter((id): id is ArchivableNamespace => id !== 'app' && isArchivable(id));
+      const exported =
+        namespaces.length > 0 ? await backup.export('full', { only: namespaces }) : null;
 
       const result = await invoke<{ folder: string; bytesWritten: number }>('portable_write', {
         mountPoint: drive.mountPoint,
@@ -176,6 +197,29 @@ export function PortableWorkspace() {
 
       <section className="hx-panel">
         <h2 className="hx-panel__title">What should go on it?</h2>
+
+        {/*
+          Shortcuts through the same machinery, never around it. Choosing one
+          sets the same ticks you could set by hand, so the plan, the size and
+          the unencrypted-disk warning below are all unchanged - they are
+          driven by what is selected, not by how it came to be selected.
+        */}
+        <div className="hx-portable__presets">
+          {PORTABLE_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              className={`hx-btn hx-btn--quiet hx-portable__preset${
+                matchesPreset(preset, [...selected]) ? ' hx-portable__preset--on' : ''
+              }`}
+              title={preset.detail}
+              onClick={() => setSelected(new Set(preset.items))}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
         <ul className="hx-portable__items">
           {portableItems().map((item) => (
             <li key={item.id}>

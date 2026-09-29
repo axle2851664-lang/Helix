@@ -11,6 +11,7 @@ import { OutboxWorkspace } from '../outbound/OutboxWorkspace.js';
 import { PortableWorkspace } from '../portable/PortableWorkspace.js';
 import { ImageSearchWorkspace } from '../images/ImageSearchWorkspace.js';
 import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
+import { NotepadWorkspace } from '../notepad/NotepadWorkspace.js';
 import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
 import { StorageWorkspace } from '../storage/StorageWorkspace.js';
 import { EarthWorkspace } from '../earth/EarthWorkspace.js';
@@ -34,6 +35,8 @@ export function WorkspaceView({
   onOpenProject,
   onNavigate,
   onOpenConversation,
+  onOpenNote,
+  openNoteId,
 }: {
   workspace: WorkspaceId;
   conversationId: string | null;
@@ -43,6 +46,10 @@ export function WorkspaceView({
   onOpenProject: (projectId: string) => void;
   onNavigate: (workspace: WorkspaceId) => void;
   onOpenConversation: (conversationId: string) => void;
+  /** Called when a tool resolved a note the Notepad should open on. */
+  onOpenNote: (noteId: string) => void;
+  /** Set when a tool resolved a note the Notepad should open on. */
+  openNoteId: string | null;
 }) {
   switch (workspace) {
     case 'home':
@@ -52,6 +59,7 @@ export function WorkspaceView({
           ensureConversation={ensureConversation}
           onNavigate={onNavigate}
           onOpenProject={onOpenProject}
+          onOpenNote={onOpenNote}
         />
       );
     case 'conversations':
@@ -62,6 +70,8 @@ export function WorkspaceView({
       return <SystemWorkspace />;
     case 'memory':
       return <MemoryWorkspace />;
+    case 'notepad':
+      return <NotepadWorkspace openNoteId={openNoteId} onClose={() => onNavigate('home')} />;
     case 'files':
       return <FilesWorkspace />;
     case 'web-research':

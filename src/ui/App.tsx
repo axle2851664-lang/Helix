@@ -64,6 +64,14 @@ function HelixWorkspaceShell() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   /**
+   * A note a tool resolved and the Notepad should open on.
+   *
+   * Held here rather than inside the Notepad because the thing that resolves
+   * it - "find my note about suppliers" - happens on the home screen, before
+   * the Notepad is mounted.
+   */
+  const [openNoteId, setOpenNoteId] = useState<string | null>(null);
+  /**
    * Closed until asked for.
    *
    * The panel is eight rows of live detail, and open by default it was the
@@ -126,6 +134,14 @@ function HelixWorkspaceShell() {
     setConversationId(null);
     navigate('home');
   }, [navigate]);
+
+  const openNote = useCallback(
+    (noteId: string) => {
+      setOpenNoteId(noteId);
+      navigate('notepad');
+    },
+    [navigate],
+  );
 
   const openProject = useCallback(
     (projectId: string) => {
@@ -206,8 +222,10 @@ function HelixWorkspaceShell() {
             selectedProjectId={selectedProjectId}
             onSelectProject={setSelectedProjectId}
             onOpenProject={openProject}
+            onOpenNote={openNote}
             onNavigate={navigate}
             onOpenConversation={openConversation}
+            openNoteId={openNoteId}
           />
         </div>
       </div>
