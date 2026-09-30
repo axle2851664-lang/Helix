@@ -350,16 +350,27 @@ export class HelixOrchestrator {
         }));
 
       /**
-       * The demonstrations go in as conversation turns, not inside the system
-       * message.
+       * The demonstrations, and why a local model no longer gets them.
        *
-       * They used to be a User:/You: transcript in the prompt, and a local
-       * model read that as a script to continue: asked "so what is my name",
-       * Helix answered "You: I don't have enough information." - label and
-       * all. A weak instruction-follower treats a system message as one block
-       * of text and produces the most recent pattern in it. As turns, they are
-       * consumed as a conversation that already happened.
+       * They used to be a User:/You: transcript inside the system prompt, and
+       * a local model read that as a script to continue - it answered "so what
+       * is my name" with "You: I don't have enough information.", the label
+       * included. Moving them out to real conversation turns fixed that, and
+       * introduced a second problem on the same class of model: six assistant
+       * turns it has no memory of writing. Asked "hello", one replied "You
+       * have not written this." - disputing the authorship of its own history
+       * rather than answering.
+       *
+       * So they go to a cloud model, which handles few-shot turns as intended
+       * and has the context budget for them, and not to a local one. What the
+       * local path loses is a nicety: the register it was teaching is already
+       * enforced after the fact by `register.ts`, which repairs mechanically
+       * rather than asking, and recitation is caught by `echo.ts`. What it
+       * gains is a shorter prompt on the machine with the least to spare, and
+       * a message list containing nothing Helix did not actually say.
        */
+      const demonstrations = local ? [] : exampleTurns();
+
       /**
        * What Helix has been asked to remember, in front of the model.
        *
@@ -386,7 +397,7 @@ export class HelixOrchestrator {
           role: 'system' as const,
           content: (local ? BRIEF_SYSTEM_PROMPT : SYSTEM_PROMPT) + knowledge,
         },
-        ...exampleTurns(),
+        ...demonstrations,
         ...history,
       ];
 
@@ -444,6 +455,9 @@ export class HelixOrchestrator {
           model: result.model,
           reason: echo.reason,
           found: echo.found,
+          // The whole reply, because a rejected one is invisible to the user
+          // by design and there is otherwise no way to find out what it said.
+          reply: raw,
         });
         return {
           text: regret(
