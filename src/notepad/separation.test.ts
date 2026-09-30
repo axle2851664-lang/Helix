@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NotepadManager } from './NotepadManager.js';
-import { notepadIntent } from './intent.js';
+import { understand } from '../understanding/understand.js';
+import { ConversationState } from '../understanding/state.js';
 import { inferType, type VaultDocumentType } from '../vault/VaultGraph.js';
 import { ARCHIVABLE } from '../backup/archive.js';
 import { WORKSPACES } from '../ui/workspaces/registry.js';
@@ -137,8 +138,14 @@ describe('separate instructions', () => {
       'find my note about suppliers',
       'what did I write about margins',
       'open my notes',
+      // Phrasings nobody wrote down, understood by decomposition.
+      'pull up my notebook',
+      'can you jot this down',
     ]) {
-      expect(notepadIntent(said), said).not.toBeNull();
+      const state = new ConversationState();
+      state.advance();
+      const step = understand(said, state).steps[0];
+      expect(step?.match?.capability.id, said).toBe('notepad');
     }
   });
 
@@ -153,7 +160,10 @@ describe('separate instructions', () => {
       'index my files',
       'show me the graph',
     ]) {
-      expect(notepadIntent(said), said).toBeNull();
+      const state = new ConversationState();
+      state.advance();
+      const step = understand(said, state).steps[0];
+      expect(step?.match?.capability.id, said).not.toBe('notepad');
     }
   });
 });

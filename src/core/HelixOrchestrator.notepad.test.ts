@@ -75,15 +75,25 @@ describe('orchestrator: the notepad', () => {
       expect(response.handled).toBe(true);
       const notes = await notepad.list();
       expect(notes).toHaveLength(1);
-      expect(notes[0]?.content).toBe('margins are too thin');
+      // "the" is kept. The old matcher stripped a leading article, which is
+      // fine for "the margins" and wrong for "the Acme contract" - the words
+      // after the instruction are the note, exactly as dictated.
+      expect(notes[0]?.content).toBe('the margins are too thin');
     });
 
-    it('opens the Notepad on the note it just wrote', async () => {
+    /**
+     * Writing a note no longer throws the Notepad on screen. The composer
+     * lives on the home screen, so navigating away ended the conversation -
+     * and the note is named back in the reply, which is what the user needs.
+     */
+    it('stays in the conversation after writing a note', async () => {
       const { ask, notepad } = await makeContext();
       const response = await ask('make a note called Suppliers');
 
-      expect(response.navigateTo).toBe('notepad');
-      expect(response.openNoteId).toBe((await notepad.list())[0]?.id);
+      expect(response.handled).toBe(true);
+      expect(response.navigateTo).toBeUndefined();
+      expect(await notepad.count()).toBe(1);
+      expect(response.text).toContain('Suppliers');
     });
 
     /**
@@ -119,13 +129,14 @@ describe('orchestrator: the notepad', () => {
       await notepad.save({ content: 'Margins\n\nToo thin on the Acme line.' });
     };
 
-    it('finds a note and opens it when there is only one', async () => {
+    it('names the note when there is only one, without leaving the conversation', async () => {
       const { ask, notepad } = await makeContext();
       await seed(notepad);
 
       const response = await ask('find my note about suppliers');
       expect(response.handled).toBe(true);
-      expect(response.openNoteId).toBeDefined();
+      expect(response.text).toContain('Suppliers');
+      expect(response.navigateTo).toBeUndefined();
     });
 
     /**
