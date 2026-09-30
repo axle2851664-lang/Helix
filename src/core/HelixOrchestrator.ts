@@ -50,7 +50,8 @@ import { BRIEF_SYSTEM_PROMPT, SYSTEM_PROMPT } from '../persona/systemPrompt.js';
 import { exampleTurns } from '../persona/examples.js';
 import { detectEcho } from '../persona/echo.js';
 import { claimsPhantomState } from '../persona/stateClaim.js';
-import { personalFact, personalQuestion } from '../memory/disclosure.js';
+import { personalFact, personalQuestion, toSecondPerson } from '../memory/disclosure.js';
+import { promptableMemories, volunteersPrivateFact } from '../memory/sensitivity.js';
 import { slangPrompt, slangRequest } from '../persona/slang.js';
 import { imageIntent } from '../images/query.js';
 import { docsIntent, draftPrompt } from '../integrations/google/docsIntent.js';
@@ -385,7 +386,24 @@ export class HelixOrchestrator {
        * is: every token here is read before the first token of the answer.
        */
       const remembered = await this.#memory.list().catch(() => []);
-      const facts = remembered.slice(0, local ? 8 : 20).map((record) => record.content);
+
+      /**
+       * What may be put in front of the model, which is not everything.
+       *
+       * It used to be everything, pasted in on every turn including a
+       * greeting, and it produced this:
+       *
+       *   User:  hello helix
+       *   Helix: 1937 Riddell RD
+       *
+       * The user asked Helix to know private things about them, and Helix
+       * does. But knowing has to mean "can tell you when you ask", not "has it
+       * loaded into a text generator where it can fall out at any moment".
+       * `promptableMemories` holds back an address or a contact detail
+       * entirely, and gives a local model nothing at all - a direct question
+       * is answered by the memory tool, exactly and without a model.
+       */
+      const facts = promptableMemories(remembered, { local, limit: local ? 8 : 20 });
       const knowledge =
         facts.length === 0
           ? ''
@@ -486,6 +504,34 @@ export class HelixOrchestrator {
        *   User:  Which tool
        *   Helix: I'm not sure.
        */
+      /**
+       * Something private, said to someone who did not ask.
+       *
+       * The belt to the braces in `promptableMemories`. Filtering the context
+       * stops the commonest leak; this catches a fact that reached the model
+       * some other way - through the conversation history, or retained from
+       * earlier in the session. `asked` is what keeps it from firing on
+       * success: answering "where do I live" with where they live is correct.
+       */
+      const leak = volunteersPrivateFact(raw, remembered, {
+        asked: personalQuestion(request.text) !== null,
+      });
+      if (leak.leaked) {
+        // The leaked value is deliberately not logged. Writing it to a log to
+        // record that it should not have been said would be the same mistake
+        // in a quieter place.
+        this.#logger.warn('A model volunteered a private fact nobody asked for.', {
+          model: result.model,
+        });
+        return {
+          text: regret(
+            `${result.model} started reading your own details back at you unprompted, so I have not shown that reply. Ask again, or switch to a stronger model in Models`,
+          ),
+          handled: false,
+          failure: 'MODEL_LEAKED_MEMORY',
+        };
+      }
+
       const phantom = claimsPhantomState(raw);
       if (phantom.claimed) {
         this.#logger.warn('A model reported a state Helix is not in.', {
@@ -961,7 +1007,7 @@ ${lines}${notice}`,
               handled: true,
             };
           }
-          return { text: observe(best.memory.content.replace(/^Their\b/, 'Your')), handled: true };
+          return { text: observe(toSecondPerson(best.memory.content)), handled: true };
         }
 
         /* --- the user telling Helix something about themselves --- */
@@ -995,7 +1041,10 @@ ${lines}${notice}`,
 
             // Always said out loud. A memory the user did not notice being
             // made is a memory they cannot choose to delete.
-            return { text: confirm(`Noted: ${fact.content.replace(/^Their\b/, 'your')}`), handled: true };
+            return {
+              text: confirm(`Noted: ${toSecondPerson(fact.content).replace(/^You/, 'you')}`),
+              handled: true,
+            };
           } catch (error) {
             // A refusal - a credential, or something past the ceiling - is the
             // answer, in the manager's own words.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { personalFact, personalQuestion } from './disclosure.js';
+import { personalFact, personalQuestion, toSecondPerson } from './disclosure.js';
 
 const kind = (said: string) => personalFact(said)?.kind ?? null;
 const content = (said: string) => personalFact(said)?.content ?? null;
@@ -146,5 +146,35 @@ describe('asking Helix what it knows about you', () => {
     ]) {
       expect(personalQuestion(said), said).toBeNull();
     }
+  });
+});
+
+describe('saying a stored fact back to the person it is about', () => {
+  /**
+   * Facts are stored in the third person, because that is how they read in a
+   * model's context alongside other notes. Said back to that same user they
+   * have to turn round, or "what is my name" is answered with "Their name is
+   * Michael" - which sounds like Helix is talking about somebody else.
+   */
+  it('turns the third person round', () => {
+    expect(toSecondPerson('Their name is Michael.')).toBe('Your name is Michael.');
+    expect(toSecondPerson('They live at 1937 Riddell RD.')).toBe('You live at 1937 Riddell RD.');
+    expect(toSecondPerson('They work as a plumber.')).toBe('You work as a plumber.');
+  });
+
+  it('leaves a sentence that is already right alone', () => {
+    expect(toSecondPerson('Your name is Michael.')).toBe('Your name is Michael.');
+  });
+
+  /** The preposition has to survive, or an address reads as a town. */
+  it('keeps "at" for an address and "in" for a place', () => {
+    expect(personalFact('I live at 1937 Riddell RD')?.content).toBe(
+      'They live at 1937 Riddell RD.',
+    );
+    expect(personalFact('my address is 1937 Riddell RD')?.content).toBe(
+      'They live at 1937 Riddell RD.',
+    );
+    expect(personalFact('I live in Manchester')?.content).toBe('They live in Manchester.');
+    expect(personalFact("I'm from Lagos")?.content).toBe('They live in Lagos.');
   });
 });

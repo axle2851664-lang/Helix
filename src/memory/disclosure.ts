@@ -93,8 +93,15 @@ const RULES: readonly Rule[] = [
     kind: 'name',
     say: (value) => `Their name is ${value}.`,
   },
+  // Split so the preposition survives. "They live in 1937 Riddell RD" is
+  // wrong in a way anyone would notice, and it is read back to the user.
   {
-    pattern: /^(?:i live in|i live at|i'?m from|i am from|my address is)\s+(.+)$/i,
+    pattern: /^(?:i live at|my address is)\s+(.+)$/i,
+    kind: 'location',
+    say: (value) => `They live at ${value}.`,
+  },
+  {
+    pattern: /^(?:i live in|i'?m from|i am from)\s+(.+)$/i,
     kind: 'location',
     say: (value) => `They live in ${value}.`,
   },
@@ -226,4 +233,21 @@ export function personalQuestion(said: string): PersonalQuestion | null {
   if (subject !== '') return { kind: 'other', subject };
 
   return null;
+}
+
+
+/**
+ * A stored fact, turned round to be said to the person it is about.
+ *
+ * Facts are held in the third person because that is how they read in a
+ * model's context - "Their name is Michael" alongside other notes about the
+ * user. Said back to that same user they have to be second person, or Helix
+ * answers "what is my name" with "Their name is Michael", which sounds like it
+ * is talking about somebody else.
+ */
+export function toSecondPerson(content: string): string {
+  return content
+    .replace(/^Their\b/, 'Your')
+    .replace(/^They\b/, 'You')
+    .replace(/^They're\b/, "You're");
 }

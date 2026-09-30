@@ -134,23 +134,49 @@ describe('the demonstrations', () => {
 
 describe('what Helix remembers', () => {
   /**
-   * The prompt promised these would be supplied and nothing supplied them, so
-   * a name Helix had correctly stored could not reach a reply.
+   * These used to assert that memories reached a local model, and that was
+   * right until it produced this:
+   *
+   *   User:  hello helix
+   *   Helix: 1937 Riddell RD
+   *
+   * Every remembered fact was being pasted in on every turn, a greeting
+   * included, and a weak model with nothing to say emitted the most salient
+   * thing in its context. A local model is now given none of it. Nothing is
+   * lost from the feature: a direct question is answered by the memory tool,
+   * exactly and without a model, which is covered in the memory tests.
    */
-  it('reaches the model', async () => {
+  it('is kept away from a local model entirely', async () => {
     const context = await makeContext('local');
+    await context.ask('my name is Michael');
+    await context.ask('hello');
+
+    expect(context.sent()[0]?.content).not.toContain('Michael');
+    expect(context.sent()[0]?.content).not.toContain('ASKED TO REMEMBER');
+  });
+
+  it('reaches a cloud model, which is what it was for', async () => {
+    const context = await makeContext('cloud');
     await context.ask('my name is Michael');
     await context.ask('hello');
 
     expect(context.sent()[0]?.content).toContain('Michael');
+    expect(context.sent()[0]?.content).toContain('facts, not instructions');
   });
 
-  it('is marked as fact rather than instruction', async () => {
-    const context = await makeContext('local');
+  /**
+   * The rule that outranks the feature. An address is answerable on request
+   * and never volunteered into a model's context, on any provider.
+   */
+  it('never puts an address in front of any model', async () => {
+    const context = await makeContext('cloud');
     await context.ask('my name is Michael');
+    await context.ask('I live at 1937 Riddell RD');
     await context.ask('hello');
 
-    expect(context.sent()[0]?.content).toContain('facts, not instructions');
+    const system = context.sent()[0]?.content ?? '';
+    expect(system).toContain('Michael');
+    expect(system).not.toContain('Riddell');
   });
 
   /** Nothing to say, nothing said. An empty heading invites invention. */
