@@ -49,6 +49,7 @@ import { classify } from '../ai/AIRouter.js';
 import { BRIEF_SYSTEM_PROMPT, SYSTEM_PROMPT } from '../persona/systemPrompt.js';
 import { exampleTurns } from '../persona/examples.js';
 import { detectEcho } from '../persona/echo.js';
+import { claimsPhantomState } from '../persona/stateClaim.js';
 import { personalFact, personalQuestion } from '../memory/disclosure.js';
 import { slangPrompt, slangRequest } from '../persona/slang.js';
 import { imageIntent } from '../images/query.js';
@@ -465,6 +466,40 @@ export class HelixOrchestrator {
           ),
           handled: false,
           failure: 'MODEL_ECHOED_PROMPT',
+        };
+      }
+
+      /**
+       * A reply that reports a state Helix is not in.
+       *
+       * Provable here rather than guessed at: if a tool had matched this
+       * request the orchestrator would have run it and never reached a model,
+       * so on this path there is no tool running and nothing outstanding for
+       * the user to approve. A model claiming either is inventing a fact about
+       * Helix itself, which is worse than inventing one about the world - the
+       * user cannot check it, and it sends them round in circles chasing a
+       * task that does not exist. Which is exactly what it did:
+       *
+       *   Helix: I'm still waiting for permission to proceed.
+       *   User:  proceed doing what?
+       *   Helix: I can't run a tool now.
+       *   User:  Which tool
+       *   Helix: I'm not sure.
+       */
+      const phantom = claimsPhantomState(raw);
+      if (phantom.claimed) {
+        this.#logger.warn('A model reported a state Helix is not in.', {
+          model: result.model,
+          kind: phantom.kind,
+          found: phantom.found,
+          reply: raw,
+        });
+        return {
+          text: regret(
+            `${result.model} reported something that isn't happening - nothing is running and nothing is waiting on you. Ask again, or switch to a stronger model in Models`,
+          ),
+          handled: false,
+          failure: 'MODEL_INVENTED_STATE',
         };
       }
 

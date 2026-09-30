@@ -134,3 +134,63 @@ describe('the demonstrations', () => {
     }
   });
 });
+
+
+describe('the menu of refusals, which is gone', () => {
+  /**
+   * The failure this was rewritten for. The brief prompt listed six states to
+   * distinguish - including "running a tool now" and "waiting on permission" -
+   * and four canned refusals to reach for. That is five ways to say "no" in a
+   * twelve-line prompt, and a model with nothing to say to "hello" ordered off
+   * the menu:
+   *
+   *   User: hello
+   *   Helix: You've sent a greeting.
+   *   User: I supposed so brp
+   *   Helix: I'm still waiting for permission to proceed.
+   *   User: proceed doing what?
+   *   Helix: I can't run a tool now.
+   *
+   * Nothing was waiting for permission and no tool existed. Neither prompt is
+   * used anywhere a tool can run: if a tool matches a request the orchestrator
+   * executes it and never reaches a model. They were describing a situation
+   * that cannot occur, and the model reported it as fact.
+   */
+  it('never tells the model to say it is waiting for permission', () => {
+    for (const [name, prompt] of [
+      ['full', SYSTEM_PROMPT],
+      ['brief', BRIEF_SYSTEM_PROMPT],
+    ] as const) {
+      expect(prompt, name).not.toMatch(/say you need permission/i);
+      expect(prompt, name).not.toMatch(/waiting on permission/i);
+      expect(prompt, name).not.toMatch(/awaiting confirmation/i);
+    }
+  });
+
+  it('never offers a list of states to pick from', () => {
+    for (const [name, prompt] of [
+      ['full', SYSTEM_PROMPT],
+      ['brief', BRIEF_SYSTEM_PROMPT],
+    ] as const) {
+      expect(prompt, name).not.toMatch(/running a tool now/i);
+      expect(prompt, name).not.toMatch(/keep them distinct/i);
+    }
+  });
+
+  /**
+   * And says the opposite, so the instruction inverts the failure instead of
+   * inviting it.
+   */
+  it('tells the model plainly that nothing is running', () => {
+    for (const prompt of [SYSTEM_PROMPT, BRIEF_SYSTEM_PROMPT]) {
+      expect(prompt).toMatch(/nothing is running/i);
+      expect(prompt).toMatch(/never say you are running something/i);
+    }
+  });
+
+  /** "You've sent a greeting." was the other half of having nothing to say. */
+  it('forbids restating what the user just did', () => {
+    expect(BRIEF_SYSTEM_PROMPT).toMatch(/never restate what the user just did/i);
+    expect(BRIEF_SYSTEM_PROMPT).toMatch(/greet them back/i);
+  });
+});
