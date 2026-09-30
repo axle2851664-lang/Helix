@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { inspect, repair } from './register.js';
-import { SYSTEM_PROMPT } from './systemPrompt.js';
+import { BANNED_REPLIES, PERSONA_EXAMPLES } from './examples.js';
 
 describe('the measured failure', () => {
   /**
@@ -282,21 +282,25 @@ describe('the prompt and the checker agree', () => {
    * would drift apart the first time either was edited. Every phrase the prompt
    * writes out as wrong is checked here to be one the checker catches.
    */
-  it('every phrase the prompt calls wrong is one the checker finds', () => {
-    const wrong = [...SYSTEM_PROMPT.matchAll(/Wrong: "([^"]+)"/g)].map((match) => match[1] ?? '');
-
-    expect(wrong.length).toBeGreaterThan(5);
-    for (const phrase of wrong) {
+  /**
+   * These used to be scraped out of the system prompt, which is where the bad
+   * and good examples lived. They live in examples.ts now - the prompt stopped
+   * quoting them, because a list of bad sentences in front of a small model is
+   * a list of sentences it may produce. The agreement they check is unchanged
+   * and matters as much as it ever did: a rule the checker cannot see is a
+   * rule that does not exist.
+   */
+  it('every reply named as wrong is one the checker finds', () => {
+    expect(BANNED_REPLIES.length).toBeGreaterThan(5);
+    for (const phrase of BANNED_REPLIES) {
       expect(inspect(phrase).length, `the checker misses ${phrase}`).toBeGreaterThan(0);
     }
   });
 
-  it('every good example in the prompt passes the checker', () => {
-    const good = [...SYSTEM_PROMPT.matchAll(/^ {2}You: (.+)$/gm)].map((match) => match[1] ?? '');
-
-    expect(good.length).toBeGreaterThan(4);
-    for (const reply of good) {
-      expect(inspect(reply), `the checker rejects ${reply}`).toEqual([]);
+  it('every demonstrated reply passes the checker', () => {
+    expect(PERSONA_EXAMPLES.length).toBeGreaterThan(4);
+    for (const example of PERSONA_EXAMPLES) {
+      expect(inspect(example.helix), `the checker rejects ${example.helix}`).toEqual([]);
     }
   });
 });

@@ -101,13 +101,71 @@ describe('orchestrator: memory tool', () => {
       expect(await context.memory.count()).toBe(0);
     });
 
-    // The central privacy rule: ordinary conversation is never remembered.
-    it('does not store an ordinary statement', async () => {
-      await ask('my sister is called Mira');
+    /**
+     * The central privacy rule, and where it now sits.
+     *
+     * Ordinary conversation is still never remembered: there is no path from
+     * a question, an answer, or a passing remark to a memory. What changed is
+     * narrow and deliberate - telling Helix a fact about yourself counts as
+     * asking it to know that fact, because in ordinary speech it is one. This
+     * test used to assert that "my sister is called Mira" was discarded; it
+     * now asserts that the things around it still are.
+     */
+    it('does not store ordinary conversation', async () => {
       await ask('what should I cook tonight?');
       await ask('I prefer dark interfaces');
+      await ask('I think that build is broken');
+      await ask('hello');
 
       expect(await context.memory.count()).toBe(0);
+    });
+
+    it('does store a fact the user states about themselves', async () => {
+      const response = await ask('my sister is called Mira');
+
+      expect(await context.memory.count()).toBe(1);
+      expect((await context.memory.list())[0]?.content).toContain('Mira');
+      // Always said out loud: a memory the user did not notice being made is
+      // one they cannot choose to delete.
+      expect(response.text.toLowerCase()).toContain('mira');
+    });
+
+    /**
+     * The conversation this came from. The user said their name three times
+     * and Helix discarded it three times, then answered "what is my name"
+     * with "I am Helix."
+     */
+    it('learns a name and gives it back', async () => {
+      await ask('Ok my name is Michael');
+      expect(await context.memory.count()).toBe(1);
+
+      const response = await ask('So what is my name');
+      expect(response.handled).toBe(true);
+      expect(response.text).toContain('Michael');
+    });
+
+    it('says it has not been told rather than guessing a name', async () => {
+      const response = await ask('what is my name');
+
+      expect(response.text.toLowerCase()).toContain("haven't told me");
+      expect(await context.memory.count()).toBe(0);
+    });
+
+    /** Correcting yourself should not leave Helix holding both answers. */
+    it('replaces a fact rather than accumulating it', async () => {
+      await ask('my name is Michael');
+      await ask('my name is Mike');
+
+      expect(await context.memory.count()).toBe(1);
+      expect((await context.memory.list())[0]?.content).toContain('Mike');
+    });
+
+    /** The credential refusal runs on this path exactly as on every other. */
+    it('refuses a credential offered as a fact about the user', async () => {
+      const response = await ask('my password is hunter2isnotsecure');
+
+      expect(await context.memory.count()).toBe(0);
+      expect(response.text.toLowerCase()).toMatch(/credential|password|key/);
     });
 
     it('refuses a credential and says why', async () => {
