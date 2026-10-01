@@ -80,6 +80,36 @@ const REVISE = [
   /^(?:shorter|simpler|longer|bigger|smaller)\b/i,
 ];
 
+/**
+ * Words that carry no instruction on their own.
+ *
+ * "No, it's yes" was being read as a redirection: the "no" matched, and what
+ * was left - "it's yes" - named nothing, so the layer helpfully carried the
+ * previous action forward and opened Files again. The user was correcting
+ * Helix's English, not asking for anything.
+ *
+ * A redirection has to redirect *to* something. When everything after the
+ * marker is noise, there is no correction here at all.
+ */
+const NOISE: ReadonlySet<string> = new Set([
+  'yes', 'yeah', 'yep', 'yup', 'ye', 'no', 'nope', 'nah', 'ok', 'okay', 'k',
+  'sure', 'fine', 'right', 'alright', 'alr', 'cool', 'nice', 'good', 'great',
+  'thanks', 'thank', 'thx', 'ta', 'cheers', 'please', 'lol', 'haha', 'bro',
+  'bruh', 'mate', 'dude', 'huh', 'hmm', 'um', 'uh', 'er', 'oh', 'ah', 'well',
+  'it', 'its', "it's", 'that', 'this', 'is', 'was', 'the', 'a', 'an', 'i',
+  'you', 'me', 'my', 'your', 'bet', 'word', 'facts', 'true',
+]);
+
+/** True when a phrase is nothing but filler, affirmation or punctuation. */
+export function isNoise(text: string): boolean {
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z'\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  return words.length === 0 || words.every((word) => NOISE.has(word));
+}
+
 function firstMatch(text: string, patterns: readonly RegExp[]): RegExpExecArray | null {
   for (const pattern of patterns) {
     const match = pattern.exec(text);
@@ -120,8 +150,9 @@ export function findCorrection(text: string): Correction | null {
   const replace = firstMatch(trimmed, REPLACE);
   if (replace) {
     const remainder = trimmed.slice(replace[0].length).trim();
-    // "No." on its own is a refusal, not a redirection to something unnamed.
-    if (remainder === '') return null;
+    // "No." on its own is a refusal, not a redirection to something unnamed,
+    // and "no, it's yes" redirects to nothing either.
+    if (remainder === '' || isNoise(remainder)) return null;
     return { kind: 'replace', remainder, marker: marked(replace[0].trim()) };
   }
 
@@ -129,7 +160,9 @@ export function findCorrection(text: string): Correction | null {
    * A softener with something after it and no other marker is a redirection:
    * "actually, the Helix notes" changes the target and nothing else.
    */
-  if (softener) return { kind: 'replace', remainder: trimmed, marker: softener[0].trim() };
+  if (softener && !isNoise(trimmed)) {
+    return { kind: 'replace', remainder: trimmed, marker: softener[0].trim() };
+  }
 
   return null;
 }

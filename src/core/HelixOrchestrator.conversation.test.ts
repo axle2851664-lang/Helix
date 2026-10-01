@@ -224,3 +224,55 @@ describe('what it must not take over', () => {
     expect(asked.failure).toBe('PROVIDER_NOT_CONFIGURED');
   });
 });
+
+describe('questions about Helix itself', () => {
+  /**
+   * A 1B model told the user they could grant file access by typing a magic
+   * phrase. They typed it, and the understanding layer opened the Files
+   * screen - which looked like proof the invented mechanism worked. Both
+   * halves of that are fixed: the question is answered from the real
+   * permission record, and the phrase is no longer read as a command.
+   */
+  it('answers a permission question itself, rather than letting a model invent one', async () => {
+    const { say } = await talk();
+
+    const asked = await say('How do i give you permission');
+    expect(asked.handled).toBe(true);
+    expect(asked.text.toLowerCase()).toContain('nothing to type');
+
+    const typed = await say('i want to give you permission to access my files');
+    expect(typed.navigateTo).toBeUndefined();
+  });
+
+  it('does not invent a menu or a service', async () => {
+    const { say } = await talk();
+
+    const response = await say('where is the menu');
+    expect(response.handled).toBe(true);
+    expect(response.text).toContain('Settings');
+  });
+
+  it('answers what it can do from the registry', async () => {
+    const { say } = await talk();
+
+    const response = await say('what can you do');
+    expect(response.handled).toBe(true);
+    expect(response.text.toLowerCase()).toContain('notepad');
+  });
+});
+
+describe('chat that is not an instruction', () => {
+  /**
+   * Every one of these was acted on. The user was correcting Helix's English,
+   * thanking it, or asking it to explain itself, and Helix went looking
+   * through their files.
+   */
+  it('falls through to conversation instead of acting', async () => {
+    for (const said of ['Which file', 'ok thx', 'nothing', 'no its "yes"', 'Why is it open']) {
+      const { say } = await talk();
+      const response = await say(said);
+      expect(response.navigateTo, said).toBeUndefined();
+      expect(response.failure, said).toBe('PROVIDER_NOT_CONFIGURED');
+    }
+  });
+});

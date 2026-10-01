@@ -9,8 +9,17 @@ import { ProjectManager } from '../projects/ProjectManager.js';
 import { getModelOrDefault, resolveModel } from '../models/catalog.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
 import type { NotepadManager } from '../notepad/NotepadManager.js';
-import { understand, understandClause, type Understanding } from '../understanding/understand.js';
+import {
+  isQuestion,
+  understand,
+  understandClause,
+  type Understanding,
+} from '../understanding/understand.js';
 import { segment } from '../understanding/segment.js';
+import { answerAbout, selfQuestion } from '../understanding/selfKnowledge.js';
+import { CAPABILITIES } from '../understanding/registry.js';
+import { PERMISSIONS } from '../security/permissions.js';
+import type { PermissionManager } from '../security/PermissionManager.js';
 import type { Match } from '../understanding/match.js';
 import { ConversationStates, type ConversationState, type FocusedObject } from '../understanding/state.js';
 import type { KnowledgeHit, KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
@@ -53,6 +62,7 @@ import { BRIEF_SYSTEM_PROMPT, SYSTEM_PROMPT } from '../persona/systemPrompt.js';
 import { exampleTurns } from '../persona/examples.js';
 import { detectEcho } from '../persona/echo.js';
 import { claimsPhantomState } from '../persona/stateClaim.js';
+import { sizeNote } from '../ai/modelSize.js';
 import { personalFact, personalQuestion, toSecondPerson } from '../memory/disclosure.js';
 import { promptableMemories, volunteersPrivateFact } from '../memory/sensitivity.js';
 import { slangPrompt, slangRequest } from '../persona/slang.js';
@@ -158,6 +168,11 @@ export interface OrchestratorOptions {
   memory: MemoryManager;
   /** Helix's own notes. Absent in tests that do not exercise the Notepad. */
   notepad?: NotepadManager;
+  /**
+   * Read, never written. It is here so Helix can answer "what are you allowed
+   * to do" from the real record instead of letting a model guess at it.
+   */
+  permissions?: PermissionManager;
   knowledge: KnowledgeIndex;
   logger: Logger;
   bus?: EventBus;
@@ -191,6 +206,7 @@ export class HelixOrchestrator {
    * during a conversation, not what they write down.
    */
   readonly #states = new ConversationStates();
+  readonly #permissions: PermissionManager | undefined;
   readonly #knowledge: KnowledgeIndex;
   readonly #logger: Logger;
   readonly #ai: AIRouter | undefined;
@@ -218,6 +234,7 @@ export class HelixOrchestrator {
     this.#projects = options.projects;
     this.#memory = options.memory;
     this.#notepad = options.notepad;
+    this.#permissions = options.permissions;
     this.#knowledge = options.knowledge;
     this.#logger = options.logger.child('orchestrator');
     this.#ai = options.ai;
@@ -230,6 +247,10 @@ export class HelixOrchestrator {
 
     // File search sits just below memory: "search my files for X" is explicit.
     this.registerTool(this.#fileSearchTool());
+    // Questions about Helix itself are answered from Helix's own registries,
+    // above everything else - a model asked how Helix works will invent an
+    // answer, and the user has no way to check it.
+    this.registerTool(this.#selfKnowledgeTool());
     // The understanding layer runs before every keyword matcher and declines
     // whatever it is not confident about, so the tools below are unaffected.
     if (this.#notepad) this.registerTool(this.#understandingTool(this.#notepad));
@@ -500,8 +521,9 @@ export class HelixOrchestrator {
           reply: raw,
         });
         return {
-          text: regret(
-            `${result.model} returned its own instructions instead of an answer. Ask again, or switch to a stronger model in Models`,
+          text: HelixOrchestrator.#rejected(
+            'That reply was the model repeating its own instructions, so I have not shown it',
+            result.model,
           ),
           handled: false,
           failure: 'MODEL_ECHOED_PROMPT',
@@ -545,8 +567,9 @@ export class HelixOrchestrator {
           model: result.model,
         });
         return {
-          text: regret(
-            `${result.model} started reading your own details back at you unprompted, so I have not shown that reply. Ask again, or switch to a stronger model in Models`,
+          text: HelixOrchestrator.#rejected(
+            'That reply started reading your own details back at you unprompted, so I have not shown it',
+            result.model,
           ),
           handled: false,
           failure: 'MODEL_LEAKED_MEMORY',
@@ -562,8 +585,9 @@ export class HelixOrchestrator {
           reply: raw,
         });
         return {
-          text: regret(
-            `${result.model} reported something that isn't happening - nothing is running and nothing is waiting on you. Ask again, or switch to a stronger model in Models`,
+          text: HelixOrchestrator.#rejected(
+            "That reply claimed something was running or waiting on you, and nothing is, so I have not shown it",
+            result.model,
           ),
           handled: false,
           failure: 'MODEL_INVENTED_STATE',
@@ -772,6 +796,54 @@ ${lines}${notice}`,
    * literal, no model involved.
    */
   /**
+   * Questions about Helix, answered by Helix.
+   *
+   * A 1B model, asked how to grant file permission, replied "You can type 'I
+   * want to give you permission to access my files' at any time." There is no
+   * such mechanism; it invented one, the user typed it in good faith, and the
+   * understanding layer opened the Files screen - which looked like proof the
+   * invented mechanism worked. The same exchange produced a menu that does not
+   * exist and services that were never running.
+   *
+   * That is not a hallucination about the world, which a user can check. It is
+   * a hallucination about the program in front of them, which they cannot.
+   * These questions now never reach a model: the answers are read from the
+   * permission registry, the capability registry and the model router, all of
+   * which know the truth.
+   */
+  #selfKnowledgeTool(): HelixTool {
+    return {
+      name: 'about-helix',
+      description: 'Answer questions about what Helix is, can do, and is allowed to do.',
+      // Above everything, including the understanding layer: "how do I give
+      // you permission to access my files" names a capability and is not a
+      // request to open it.
+      priority: 950,
+      matches: (request) => selfQuestion(request.text) !== null,
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const question = selfQuestion(request.text);
+        if (!question) {
+          return { text: observe('That was not about Helix'), handled: false, failure: 'NOT_APPLICABLE' };
+        }
+
+        const permissions = this.#permissions?.list() ?? [];
+
+        return {
+          text: answerAbout(question.topic, {
+            capabilities: CAPABILITIES.map((entry) => entry.label.toLowerCase()),
+            permissions: {
+              granted: permissions.filter((entry) => entry.record.state === 'granted').length,
+              total: Object.keys(PERMISSIONS).length,
+            },
+          }),
+          handled: true,
+        };
+      },
+    };
+  }
+
+  /**
    * The understanding layer, in front of every keyword matcher.
    *
    * It runs first and claims a request only when it is confident enough to say
@@ -861,6 +933,27 @@ ${lines}${notice}`,
    * "called" or "about". The instruction is stripped from the front and what
    * is left is what the user wanted written - commas and all.
    */
+  /**
+   * What to say when a guard has thrown a reply away.
+   *
+   * Written for the person, not the log. The old wording led with the model
+   * id - "Llama3.2:1b reported something that isn't happening" - which reads
+   * as a fault report about a component the user has never heard of. It now
+   * leads with what happened to them, and only then names the model.
+   *
+   * The size note is the part that was missing entirely. A user spent twenty
+   * turns believing Helix was broken when the real answer was that their
+   * model was a tenth of the size needed to hold a conversation, and nothing
+   * ever told them. It appears only here - when something has already visibly
+   * gone wrong - rather than as a nag on every turn.
+   */
+  static #rejected(what: string, model: string): string {
+    const size = sizeNote(model);
+    return size === null
+      ? `${regret(what)} Ask again, or switch to a stronger model in Models.`
+      : `${regret(what)} ${size}`;
+  }
+
   static #contentOf(text: string): string {
     return text
       .trim()
@@ -1566,6 +1659,10 @@ ${lines}`,
       description: 'Open one of your projects by name.',
       priority: 200,
       matches: (request) => {
+        // "Why is it open" is not a request to open anything. It contained
+        // "open", which was enough to send Helix looking for a project called
+        // "why" and answering "You have no projects as yet".
+        if (isQuestion(request.text)) return false;
         const lower = request.text.toLowerCase();
         if (!verbs.some((verb) => lower.includes(verb))) return false;
         // Requires something to search for beyond filler words.
@@ -2630,6 +2727,7 @@ ${lines}${more}`,
       priority: 100,
       matches: (request) => {
         const lower = request.text.toLowerCase();
+        if (isQuestion(request.text)) return false;
         if (!verbs.some((verb) => lower.includes(verb))) return false;
         return resolveWorkspace(lower) !== null;
       },

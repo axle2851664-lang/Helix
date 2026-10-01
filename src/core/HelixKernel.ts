@@ -555,6 +555,7 @@ export class HelixKernel {
       projects,
       memory,
       notepad,
+      permissions,
       knowledge,
       logger,
       bus,

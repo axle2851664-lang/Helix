@@ -1,4 +1,4 @@
-import { findCorrection, type Correction } from './corrections.js';
+import { findCorrection, isNoise, type Correction } from './corrections.js';
 import { matchCapabilities, type Match } from './match.js';
 import { normalise, type Normalised } from './normalise.js';
 import { findReference, resolveReference, type Reference } from './references.js';
@@ -110,9 +110,32 @@ const UNMISTAKABLE = new Set([
  * verb, and a question leads with its question word.
  */
 const QUESTION_OPENERS = new Set([
-  'what', 'who', 'where', 'when', 'why', 'how', 'is', 'are', 'was', 'were',
-  'can', 'could', 'do', 'does', 'did', 'should', 'would', 'will',
+  'what', 'who', 'where', 'when', 'why', 'how', 'which', 'whose', 'is', 'are',
+  'was', 'were', 'can', 'could', 'do', 'does', 'did', 'should', 'would',
+  'will', 'am', 'have', 'has', 'had',
 ]);
+
+function opensWithAQuestion(normalised: Normalised): boolean {
+  const first = normalised.tokens[0];
+  return first !== undefined && QUESTION_OPENERS.has(first);
+}
+
+/**
+ * Is this a question rather than an instruction?
+ *
+ * Exported because the older keyword matchers need the same distinction and
+ * should not each invent their own. "Why is it open" contains "open", which
+ * was enough for the project tool to go looking for a project called "why" and
+ * answer "You have no projects as yet" - to a user who was asking why Helix
+ * had just opened something.
+ *
+ * Polite requests are not questions by the time this sees them: `normalise`
+ * strips "can you", "could you" and the rest, so "can you open my notes?"
+ * arrives as "open my notes".
+ */
+export function isQuestion(text: string): boolean {
+  return opensWithAQuestion(normalise(text, vocabulary()));
+}
 
 function namesAnAction(normalised: Normalised): boolean {
   const first = normalised.tokens[0];
@@ -153,7 +176,28 @@ export function understandClause(text: string, state: ConversationState): Unders
   const resolved = reference ? resolveReference(reference, state) : null;
   if (resolved) because.push(`${resolved.how} is ${resolved.object.label}`);
 
-  const matches = matchCapabilities(effective, { normalised });
+  /**
+   * A question about what Helix just did is not an instruction to do it again.
+   *
+   * "Which file", "why did you open the files", "why is it open" were all
+   * being claimed - "which" and "what" are search words, "file" is a subject,
+   * and the score came out at 0.9. The user was asking Helix to explain
+   * itself and Helix went looking through their files.
+   *
+   * A clause that opens with a question word is therefore only an instruction
+   * when a phrase in the registry says so - "what did I write about X" is a
+   * real search and is listed as one. Everything else falls through to
+   * conversation, which is where a question belongs.
+   *
+   * Note that genuine polite requests never reach here as questions:
+   * `normalise` strips "can you", "could you" and the rest before this runs,
+   * so "can you open my notes?" arrives as "open my notes".
+   */
+  const matches = matchCapabilities(effective, { normalised }).filter(
+    (candidate) =>
+      !opensWithAQuestion(normalised) ||
+      candidate.capability.implied.some((phrase) => normalised.text.includes(phrase)),
+  );
   let best = matches[0];
 
   /**
@@ -211,7 +255,7 @@ export function understandClause(text: string, state: ConversationState): Unders
   }
 
   // A correction that only names a target keeps the verb it is correcting.
-  if (!best && correction?.kind === 'replace' && state.lastAction) {
+  if (!best && correction?.kind === 'replace' && !isNoise(effective) && state.lastAction) {
     const carried = matchCapabilities(
       `${state.lastAction.verb} ${state.lastAction.capability} ${effective}`,
     );

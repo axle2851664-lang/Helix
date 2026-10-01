@@ -248,3 +248,81 @@ describe('what it leaves alone', () => {
     expect(matchCapabilities('tell me a joke')).toEqual([]);
   });
 });
+
+describe('the transcript this was tightened for', () => {
+  /**
+   * Every one of these was claimed by the layer and acted on. The user was
+   * asking Helix to explain itself, or correcting its English, and Helix went
+   * looking through their files.
+   */
+  it('never reads a question about Helix as an instruction', () => {
+    for (const said of [
+      'Which file',
+      'why did you open the files',
+      'Why is it open',
+      'what console is not running',
+      'where is the menu',
+      'how do i give you permission',
+      'do you know what it means',
+    ]) {
+      expect(read(said).outcome, said).toBe('decline');
+    }
+  });
+
+  /**
+   * "No, it's yes" is the user correcting Helix's English. The "no" matched a
+   * redirection, what was left named nothing, and the layer carried the
+   * previous action forward and opened Files again.
+   */
+  it('never treats an empty correction as a reason to repeat the last action', () => {
+    state.record({
+      capability: 'files',
+      verb: 'open',
+      succeeded: true,
+      utterance: 'open my files',
+    });
+    state.setTopic('files');
+    state.advance();
+
+    for (const said of ['no its "yes"', 'no, yeah', 'actually, ok', 'nope', 'ye']) {
+      expect(read(said).outcome, said).toBe('decline');
+    }
+  });
+
+  it('still understands a redirection that names something', () => {
+    state.record({
+      capability: 'notepad',
+      verb: 'open',
+      succeeded: true,
+      utterance: 'open my Blender notes',
+    });
+    state.advance();
+
+    expect(read('No, I meant the Helix notes.').match?.capability.id).toBe('notepad');
+  });
+
+  /**
+   * The polite forms must survive, because they are how most people ask. They
+   * never reach the question guard: `normalise` strips "can you" first.
+   */
+  it('still understands a polite request', () => {
+    for (const said of [
+      'Can you open my notes?',
+      'Could you pull up my notebook?',
+      'Would you show me my notes?',
+    ]) {
+      expect(read(said).outcome, said).toBe('act');
+    }
+  });
+
+  /** And the one question that genuinely is a search stays a search. */
+  it('still understands a question the registry lists as a search', () => {
+    expect(read('what did I write about margins').match?.verb).toBe('search');
+  });
+
+  it('ignores chat that happens to contain a capability word', () => {
+    for (const said of ['ok thx', 'nothing', 'well now you know', 'Alr bet bro', 'BROOO']) {
+      expect(read(said).outcome, said).toBe('decline');
+    }
+  });
+});
