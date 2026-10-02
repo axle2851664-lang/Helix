@@ -9,6 +9,7 @@ import { toUserMessage } from '../../core/HelixError.js';
 import type { VoiceSnapshot } from '../../voice/VoiceManager.js';
 import type { Conversation, ConversationMessage } from '../../conversations/ConversationStore.js';
 import type { WorkspaceId } from '../workspaces/registry.js';
+import type { HelixResponse } from '../../core/HelixOrchestrator.js';
 
 /**
  * The main Helix interaction surface.
@@ -61,6 +62,8 @@ interface HomeWorkspaceProps {
   onOpenProject: (projectId: string) => void;
   /** Called when a tool resolved a note the Notepad should open on. */
   onOpenNote: (noteId: string) => void;
+  /** Called when Helix asked for a change to the interface itself. */
+  onUi: (ui: HelixResponse['ui']) => void;
 }
 
 export function HomeWorkspace({
@@ -69,6 +72,7 @@ export function HomeWorkspace({
   onNavigate,
   onOpenProject,
   onOpenNote,
+  onUi,
 }: HomeWorkspaceProps) {
   const {
     orchestrator,
@@ -288,6 +292,11 @@ export function HomeWorkspace({
     try {
       const id = await ensureConversation();
       const response = await orchestrator.submit({ text, conversationId: id });
+      // The interface first: showing a panel or a clock sits over whatever
+      // workspace is open rather than replacing it, so it is not an
+      // alternative to navigating.
+      if (response.ui) onUi(response.ui);
+
       // A resolved target takes precedence over a plain workspace change: the
       // tool found the specific thing, and landing on the list instead would
       // make the user search for what Helix has already located.

@@ -149,10 +149,16 @@ function scoreCapability(capability: Capability, normalised: Normalised): Match 
   const because: string[] = [];
   let confidence = 0;
 
-  const implied = capability.implied.find((phrase) => normalised.text.includes(phrase));
+  /**
+   * Longest first, so "what time is it" wins over "what time" and the more
+   * specific phrasing is the one that is reported.
+   */
+  const implied = [...capability.implied]
+    .sort((a, b) => b.phrase.length - a.phrase.length)
+    .find((entry) => normalised.text.includes(entry.phrase));
   if (implied !== undefined) {
     confidence += 0.75;
-    because.push(`"${implied}" means the ${capability.label}`);
+    because.push(`"${implied.phrase}" means the ${capability.label}`);
   }
 
   const alias = capability.aliases.find((word) => normalised.tokens.includes(word));
@@ -168,7 +174,25 @@ function scoreCapability(capability: Capability, normalised: Normalised): Match 
 
   if (confidence === 0) return null;
 
-  const verb = verbFor(capability, normalised);
+  /**
+   * An implied phrase that names its verb settles it outright.
+   *
+   * "Bring the panel back" contains an opening verb and the word "back", which
+   * means close everywhere else - two signals pointing opposite ways, which no
+   * amount of weighing resolves correctly. The phrase says which it is.
+   */
+  const verb =
+    implied?.verb !== undefined
+      ? {
+          verb: implied.verb,
+          risk:
+            capability.verbs.find((entry) => entry.verb === implied.verb)?.risk ?? 'safe',
+          needsTarget:
+            capability.verbs.find((entry) => entry.verb === implied.verb)?.needsTarget ?? false,
+          score: 4,
+          word: implied.phrase,
+        }
+      : verbFor(capability, normalised);
   if (verb.word !== null) {
     confidence += 0.2;
     because.push(`"${verb.word}" means ${capability.verbs.find((v) => v.verb === verb.verb)?.summary ?? verb.verb}`);

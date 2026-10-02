@@ -3714,3 +3714,183 @@ body {
     display: none;
   }
 }
+
+/* ======================= the time ====================================
+   A system display Helix brings up, not a card on a dashboard. It is
+   the same language as the core: black, one source of warmth, no
+   borders, no panel. The digits are the whole screen.
+
+   The entrance is deliberately short. It should read as Helix deciding
+   to show you something, which is one movement - not a sequence of
+   things sliding in. */
+
+.hx-time {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: hx-time-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hx-time__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  cursor: default;
+  /* Nearly opaque: the clock is the focus, and the interface behind it
+     should be present rather than readable. */
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.975) 0%,
+    rgba(0, 0, 0, 0.995) 55%,
+    #000 100%
+  );
+  /* The transcript behind was legible through the gradient and read as
+     clutter under the digits. Blur finishes what the opacity starts. */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.hx-time__face {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 0 24px;
+  pointer-events: none;
+  animation: hx-time-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hx-time__clock {
+  display: flex;
+  align-items: baseline;
+  /* Tabular figures, or every digit change shifts the whole row. On a
+     clock showing milliseconds that is a permanent shimmer. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  font-size: clamp(56px, 13vw, 164px);
+  font-weight: 200;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: #fff6e6;
+  /* The core's warmth, behind the digits rather than on them. */
+  text-shadow:
+    0 0 40px rgba(255, 150, 50, 0.3),
+    0 0 110px rgba(255, 120, 30, 0.18);
+}
+
+/* Two dots, drawn. Structure rather than information, so they are dim
+   and narrow - at this size a full-weight colon shouts. */
+.hx-time__colon {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.22em;
+  width: 0.26em;
+  margin: 0 0.05em;
+  /* The row is baseline-aligned for the digits; the dots want the middle
+     of the cap height instead, or they sit under the numbers. */
+  align-self: center;
+  height: 0.52em;
+  transform: translateY(-0.05em);
+}
+
+.hx-time__colon::before,
+.hx-time__colon::after {
+  content: '';
+  width: 0.1em;
+  height: 0.1em;
+  border-radius: 50%;
+  background: #fff6e6;
+  opacity: 0.4;
+}
+
+.hx-time__ms {
+  margin-left: 0.18em;
+  font-size: 0.3em;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: #ffac44;
+  opacity: 0.85;
+}
+
+.hx-time__date {
+  font-size: clamp(11px, 1.4vw, 14px);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #8a8a8a;
+}
+
+/* What the number is and how good it is. Small, and present, because
+   three digits racing with no explanation implies a precision the
+   machine may not have. */
+.hx-time__source {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #555555;
+}
+
+.hx-time__dot {
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+@keyframes hx-time-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes hx-time-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-time,
+  .hx-time__face {
+    animation-duration: 1ms;
+  }
+}
+
+/* ---- the sidebar, now that it arrives rather than being there ---- */
+
+.hx-sidebar {
+  animation: hx-sidebar-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hx-sidebar-in {
+  from {
+    opacity: 0;
+    /* Its own width, so it comes from off-screen rather than growing. */
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-sidebar { animation-duration: 1ms; }
+}

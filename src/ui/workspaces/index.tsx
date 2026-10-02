@@ -10,6 +10,7 @@ import { InboxWorkspace } from '../mail/InboxWorkspace.js';
 import { OutboxWorkspace } from '../outbound/OutboxWorkspace.js';
 import { PortableWorkspace } from '../portable/PortableWorkspace.js';
 import { ImageSearchWorkspace } from '../images/ImageSearchWorkspace.js';
+import type { HelixResponse } from '../../core/HelixOrchestrator.js';
 import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
 import { NotepadWorkspace } from '../notepad/NotepadWorkspace.js';
 import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
@@ -36,6 +37,7 @@ export function WorkspaceView({
   onNavigate,
   onOpenConversation,
   onOpenNote,
+  onUi,
   openNoteId,
 }: {
   workspace: WorkspaceId;
@@ -48,6 +50,8 @@ export function WorkspaceView({
   onOpenConversation: (conversationId: string) => void;
   /** Called when a tool resolved a note the Notepad should open on. */
   onOpenNote: (noteId: string) => void;
+  /** Called when Helix asked for a change to the interface itself. */
+  onUi: (ui: HelixResponse['ui']) => void;
   /** Set when a tool resolved a note the Notepad should open on. */
   openNoteId: string | null;
 }) {
@@ -60,6 +64,7 @@ export function WorkspaceView({
           onNavigate={onNavigate}
           onOpenProject={onOpenProject}
           onOpenNote={onOpenNote}
+          onUi={onUi}
         />
       );
     case 'conversations':

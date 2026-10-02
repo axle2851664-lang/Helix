@@ -99,7 +99,7 @@ const NEW_THING = [
 const UNMISTAKABLE = new Set([
   'delete', 'remove', 'erase', 'open', 'save', 'export', 'add', 'append',
   'create', 'rename', 'close', 'send', 'find', 'search', 'show', 'list',
-  'pull',
+  'pull', 'back', 'enough', 'dismiss', 'hide',
 ]);
 
 /**
@@ -196,7 +196,7 @@ export function understandClause(text: string, state: ConversationState): Unders
   const matches = matchCapabilities(effective, { normalised }).filter(
     (candidate) =>
       !opensWithAQuestion(normalised) ||
-      candidate.capability.implied.some((phrase) => normalised.text.includes(phrase)),
+      candidate.capability.implied.some((entry) => normalised.text.includes(entry.phrase)),
   );
   let best = matches[0];
 

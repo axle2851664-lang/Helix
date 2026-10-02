@@ -8,6 +8,8 @@ import { StatusPanel } from './status/StatusPanel.js';
 import { HelixProvider, useHelix, useHelixState, useSettings } from './HelixProvider.js';
 import { WorkspaceView } from './workspaces/index.js';
 import { WORKSPACES, type WorkspaceId } from './workspaces/registry.js';
+import { TimeOverlay } from './time/TimeOverlay.js';
+import type { HelixResponse } from '../core/HelixOrchestrator.js';
 
 /**
  * Width at or below which the sidebar becomes an overlay drawer. Mirrors the
@@ -91,23 +93,26 @@ function HelixWorkspaceShell() {
    * away - but the resting state is now the quiet one.
    */
   const [statusOpen, setStatusOpen] = useState(false);
-  // Below this width the sidebar becomes an overlay, so it must start closed or
-  // it covers the workspace on load.
-  const [sidebarOpen, setSidebarOpen] = useState(
-    () => typeof window === 'undefined' || window.innerWidth > SIDEBAR_OVERLAY_WIDTH,
-  );
-  const [online, setOnline] = useState(() => platform.isOnline());
+  /**
+   * Hidden until asked for, at every width.
+   *
+   * It used to open itself on any screen wider than 820px, and then reassert
+   * that on every resize - which made a permanent navigation rail the resting
+   * state of the whole interface. What Helix is meant to look like at rest is
+   * the core and nothing else. The sidebar is untouched and fully functional;
+   * it is reached by asking for it, or by the button in the header, which is
+   * where it always was.
+   */
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Keep the sidebar's default in step with the viewport as it is resized,
-  // without fighting a choice the user has made at the current size.
-  useEffect(() => {
-    const query = window.matchMedia(`(max-width: ${SIDEBAR_OVERLAY_WIDTH}px)`);
-    const apply = (overlay: boolean) => setSidebarOpen(!overlay);
-    apply(query.matches);
-    const onChange = (event: MediaQueryListEvent) => apply(event.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
+  /**
+   * The overlay that currently owns the screen, or null.
+   *
+   * One at a time, deliberately: these are full-screen displays Helix brings
+   * up, and two of them at once would be two things claiming to be the focus.
+   */
+  const [overlay, setOverlay] = useState<'time' | null>(null);
+  const [online, setOnline] = useState(() => platform.isOnline());
 
   useEffect(() => {
     return platform.onConnectivityChange((next) => {
@@ -145,6 +150,21 @@ function HelixWorkspaceShell() {
     setConversationId(null);
     navigate('home');
   }, [navigate]);
+
+  /**
+   * Interface changes Helix asked for.
+   *
+   * Applied here because this is where the interface state lives. Nothing in
+   * this path touches a model: showing a panel and reading a clock are things
+   * the browser does, and routing them through one would be slower and, for
+   * the clock, wrong.
+   */
+  const applyUi = useCallback((ui: HelixResponse['ui']) => {
+    if (!ui) return;
+    if (ui.sidebar === 'show') setSidebarOpen(true);
+    if (ui.sidebar === 'hide') setSidebarOpen(false);
+    if (ui.overlay !== undefined) setOverlay(ui.overlay);
+  }, []);
 
   const openNote = useCallback(
     (noteId: string) => {
@@ -236,6 +256,7 @@ function HelixWorkspaceShell() {
             onSelectProject={setSelectedProjectId}
             onOpenProject={openProject}
             onOpenNote={openNote}
+            onUi={applyUi}
             onNavigate={navigate}
             onOpenConversation={openConversation}
             openNoteId={openNoteId}
@@ -246,6 +267,11 @@ function HelixWorkspaceShell() {
       {statusOpen && (
         <StatusPanel onClose={() => setStatusOpen(false)} onOpenSystem={() => navigate('system')} />
       )}
+
+      {/* Brought up by Helix, over whatever workspace is open, and cleared
+          the same way. Unmounted rather than hidden, so nothing invisible is
+          left over the interface swallowing clicks. */}
+      {overlay === 'time' && <TimeOverlay onClose={() => setOverlay(null)} />}
 
       {/* Mounted for the whole session: it is what lets Helix ask, and until
           something can ask, every permission and every destructive action is

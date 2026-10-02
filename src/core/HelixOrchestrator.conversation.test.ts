@@ -276,3 +276,168 @@ describe('chat that is not an instruction', () => {
     }
   });
 });
+
+describe('the interface, by voice', () => {
+  it('shows the sidebar however it is asked for', async () => {
+    for (const said of [
+      'Show the sidebar.',
+      'Open the sidebar.',
+      'Bring up the sidebar.',
+      'I want the sidebar.',
+      'Show me my controls.',
+      'Open the panel.',
+      'Bring the panel back.',
+    ]) {
+      const { say } = await talk();
+      const response = await say(said);
+      expect(response.ui?.sidebar, said).toBe('show');
+    }
+  });
+
+  it('hides it however it is asked for', async () => {
+    for (const said of [
+      'Hide the sidebar.',
+      'Close the sidebar.',
+      'Get rid of the sidebar.',
+      'Hide the panel.',
+    ]) {
+      const { say } = await talk();
+      const response = await say(said);
+      expect(response.ui?.sidebar, said).toBe('hide');
+    }
+  });
+
+  /** Local, every time. Showing a panel is not something to ask a model. */
+  it('never needs a model to move a panel', async () => {
+    const { say } = await talk();
+    const response = await say('show the sidebar');
+
+    expect(response.handled).toBe(true);
+    expect(response.failure).toBeUndefined();
+  });
+});
+
+describe('the clock', () => {
+  it('opens however the time is asked for', async () => {
+    for (const said of [
+      'Show me the time.',
+      'What time is it?',
+      'Display the time.',
+      'Tell me the time.',
+      'Give me the current time.',
+      "What's the exact time?",
+      'Show the clock.',
+    ]) {
+      const { say } = await talk();
+      const response = await say(said);
+      expect(response.ui?.overlay, said).toBe('time');
+    }
+  });
+
+  it('closes however that is asked for', async () => {
+    for (const said of ['Close the clock.', 'Hide the time.']) {
+      const { say } = await talk();
+      await say('show me the time');
+      const response = await say(said);
+      expect(response.ui?.overlay, said).toBeNull();
+    }
+  });
+
+  /**
+   * The contextual case from the brief. "That" has to resolve to the thing
+   * Helix just put on screen, not to whichever note was last touched.
+   */
+  it('understands "close that" as the clock it just opened', async () => {
+    for (const said of ['Close that.', 'Go back.', "That's enough."]) {
+      const { say } = await talk();
+      await say('show me the time');
+      const response = await say(said);
+      expect(response.ui?.overlay, said).toBeNull();
+    }
+  });
+
+  /** The time itself never comes from a model - it is read in the browser. */
+  it('never answers with a time of its own', async () => {
+    const { say } = await talk();
+    const response = await say('what time is it');
+
+    expect(response.ui?.overlay).toBe('time');
+    expect(response.text).not.toMatch(/\d{1,2}:\d{2}/);
+  });
+});
+
+describe('facts the user marks as true', () => {
+  it('stores a marked fact in long-term memory', async () => {
+    const { say, memory } = await talk();
+    const response = await say('The truth is that my project is called Helix.');
+
+    expect(await memory.count()).toBe(1);
+    const stored = (await memory.list())[0];
+    expect(stored?.content).toContain('my project is called Helix');
+    expect(stored?.tags).toContain('truth');
+    expect(stored?.tags).toContain('user-stated');
+    expect(response.text).toContain('You told me');
+  });
+
+  /**
+   * The rule the whole feature turns on: a question is answered, never
+   * stored, and an unmarked opinion is not stored either.
+   */
+  it('never stores a question or a bare opinion', async () => {
+    const { say, memory } = await talk();
+
+    await say('Is the Earth flat?');
+    await say('I think the Earth is flat.');
+    await say('the moon is made of cheese');
+
+    expect(await memory.count()).toBe(0);
+  });
+
+  it('stores a marked belief as a belief about the user', async () => {
+    const { say, memory } = await talk();
+    const response = await say('The truth is that I believe the Earth is flat.');
+
+    expect((await memory.list())[0]?.tags).toContain('user-belief');
+    expect(response.text).toContain('you believe');
+  });
+
+  /**
+   * Being told something does not make it so. A stored claim is read back as
+   * something the user said, never as something Helix knows.
+   */
+  it('never reads a stored claim back as verified fact', async () => {
+    const { say } = await talk();
+    await say('The truth is that the moon is made of cheese.');
+
+    const recalled = await say('what do you remember');
+    expect(recalled.text).toContain('You told me');
+    expect(recalled.text).not.toMatch(/^The moon is made of cheese/m);
+  });
+
+  it('replaces a fact rather than keeping both when corrected', async () => {
+    const { say, memory } = await talk();
+    await say('The truth is that the rent is due on the 3rd.');
+    const updated = await say('The new truth is that the rent is due on the 5th.');
+
+    expect(await memory.count()).toBe(1);
+    expect((await memory.list())[0]?.content).toContain('5th');
+    expect(updated.text).toContain('Updated');
+  });
+
+  it('drops a fact the user retracts', async () => {
+    const { say, memory } = await talk();
+    await say('The truth is that the office closes at six.');
+    await say("That's no longer true.");
+
+    expect(await memory.count()).toBe(0);
+  });
+
+  it('asks rather than guessing when an update names no replacement', async () => {
+    const { say, memory } = await talk();
+    await say('The truth is that the office closes at six.');
+    const response = await say('Change that fact');
+
+    expect(response.text.toLowerCase()).toContain('what should it say');
+    expect(await memory.count()).toBe(1);
+  });
+});

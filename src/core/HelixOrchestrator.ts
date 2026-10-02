@@ -64,6 +64,13 @@ import { detectEcho } from '../persona/echo.js';
 import { claimsPhantomState } from '../persona/stateClaim.js';
 import { sizeNote } from '../ai/modelSize.js';
 import { personalFact, personalQuestion, toSecondPerson } from '../memory/disclosure.js';
+import {
+  PROVENANCE_TAGS,
+  TRUTH_TAG,
+  phrase as sayTruth,
+  truthEdit,
+  truthStatement,
+} from '../memory/truth.js';
 import { promptableMemories, volunteersPrivateFact } from '../memory/sensitivity.js';
 import { slangPrompt, slangRequest } from '../persona/slang.js';
 import { imageIntent } from '../images/query.js';
@@ -115,7 +122,13 @@ export interface HelixRequest {
  * refusal that belong with it, and a second path into it would be the
  * duplicate system this was meant to avoid.
  */
-const HANDLED: ReadonlySet<string> = new Set(['notepad', 'portable', 'files']);
+const HANDLED: ReadonlySet<string> = new Set([
+  'notepad',
+  'portable',
+  'files',
+  'sidebar',
+  'clock',
+]);
 
 export interface HelixResponse {
   /** Text to show the user. Always truthful about what happened. */
@@ -130,6 +143,19 @@ export interface HelixResponse {
   openProjectId?: string;
   /** Set when a tool resolved a note the UI should open in the Notepad. */
   openNoteId?: string;
+  /**
+   * Changes to the interface itself, as opposed to which workspace is shown.
+   *
+   * A separate channel from `navigateTo` because these are not navigation:
+   * the sidebar and the clock sit over whatever workspace is open and leave it
+   * where it was. Both are handled entirely in the browser - no model is asked
+   * to show a panel or to read a clock.
+   */
+  ui?: {
+    sidebar?: 'show' | 'hide';
+    /** The overlay that should own the screen, or null to clear it. */
+    overlay?: 'time' | null;
+  };
   /**
    * The structured half of a two-part reply. The text above is what Helix says
    * out loud; this is what it puts on screen. They are never the same content -
@@ -954,6 +980,25 @@ ${lines}${notice}`,
       : `${regret(what)} ${size}`;
   }
 
+  /**
+   * How a stored memory is shown.
+   *
+   * A truth is read back attributed to the user, never asserted. "The truth is
+   * the moon is made of cheese" is kept faithfully and recalled as something
+   * the user said - rendering it as a bare statement would launder an
+   * assertion into a fact on the way out, which is the one thing a memory of
+   * someone else's claim must not do.
+   */
+  static #readBack(record: { content: string; tags?: string[] }): string {
+    if (record.tags?.includes(TRUTH_TAG) !== true) return record.content;
+
+    const claim = record.content.replace(/^Stated:\s*/, '');
+    const provenance = record.tags?.includes(PROVENANCE_TAGS['user-belief'])
+      ? 'user-belief'
+      : 'user-stated';
+    return sayTruth(claim, provenance);
+  }
+
   static #contentOf(text: string): string {
     return text
       .trim()
@@ -1007,6 +1052,52 @@ ${lines}${notice}`,
 
     const match = step.match;
     if (!match) return { text: '', handled: false, failure: 'NOT_APPLICABLE' };
+
+    /**
+     * The interface, rather than the data.
+     *
+     * Deliberately before the navigation branch and entirely local: showing a
+     * panel or a clock is something the browser does, and asking a model to do
+     * it would be slower, less reliable and - for a clock - wrong, since a
+     * model cannot know the time.
+     */
+    if (match.capability.id === 'sidebar' || match.capability.id === 'clock') {
+      const closing = match.verb === 'close';
+      state.setTopic(match.capability.id);
+      state.record({
+        capability: match.capability.id,
+        verb: match.verb,
+        succeeded: true,
+        utterance: request.text,
+      });
+
+      if (match.capability.id === 'sidebar') {
+        // Nothing is focused: the sidebar is not a thing later turns act on.
+        return {
+          text: observe(closing ? 'Sidebar hidden' : 'Sidebar up'),
+          handled: true,
+          ui: { sidebar: closing ? 'hide' : 'show' },
+        };
+      }
+
+      if (closing) {
+        state.clearFocus();
+        return { text: observe('Closed'), handled: true, ui: { overlay: null } };
+      }
+
+      /**
+       * Focused, so that "close that" one turn later resolves to the clock
+       * rather than to whichever note was last touched.
+       */
+      state.focusOn({ kind: 'clock', id: 'clock', label: 'the clock' });
+      return {
+        // The claim is exactly what is true: this is the machine's clock,
+        // read in the browser, to whatever resolution it reports.
+        text: observe('System clock'),
+        handled: true,
+        ui: { overlay: 'time' },
+      };
+    }
 
     if (match.capability.id !== 'notepad') {
       // Navigation for the capabilities whose screens do the work.
@@ -1084,6 +1175,14 @@ ${lines}${notice}`,
         }
         done('open', true);
         return { text: observe('Notepad open'), handled: true, navigateTo: 'notepad' };
+      }
+
+      case 'close': {
+        // Closing a note is letting go of it, not deleting it. Clearing focus
+        // is the whole operation: "it" stops meaning this note.
+        state.clearFocus();
+        done('close', true);
+        return { text: observe('Closed'), handled: true };
       }
 
       case 'export': {
@@ -1308,6 +1407,9 @@ ${lines}${notice}`,
           savePrefixes.some((prefix) => lower.startsWith(prefix.trim())) ||
           recallPhrases.some((phrase) => lower.includes(phrase)) ||
           forgetPrefixes.some((prefix) => lower.startsWith(prefix.trim())) ||
+          // Explicitly marked facts, and corrections to them.
+          truthStatement(request.text) !== null ||
+          truthEdit(request.text) !== null ||
           // Telling Helix your name is asking Helix to know your name, and
           // asking for it back is a recall. Neither used to reach here: the
           // user said "my name is Michael" three times and Helix discarded it
@@ -1320,6 +1422,82 @@ ${lines}${notice}`,
       execute: async (request) => {
         const text = request.text.trim();
         const lower = text.toLowerCase();
+
+        /* --- a correction to something stored as true --- */
+        const edit = truthEdit(text);
+        if (edit !== null) {
+          const stored = (await this.#memory.list()).filter(
+            (record) => record.tags?.includes(TRUTH_TAG) === true,
+          );
+          const newest = stored[0];
+
+          if (!newest) {
+            return {
+              text: observe('There is nothing stored as a fact to change'),
+              handled: true,
+            };
+          }
+
+          if (edit.kind === 'delete') {
+            await this.#memory.delete(newest.id);
+            return {
+              text: confirm(`Dropped: ${newest.content.replace(/^Stated:\s*/, '')}`),
+              handled: true,
+            };
+          }
+
+          if (edit.claim === '') {
+            // Changing a stored fact to nothing in particular is worse than
+            // changing nothing, so Helix asks rather than guessing.
+            return { text: enquire('What should it say instead'), handled: true };
+          }
+
+          // The newest explicit correction wins: the old record goes rather
+          // than sitting alongside something that contradicts it.
+          await this.#memory.delete(newest.id);
+          await this.#memory.save({
+            content: `Stated: ${edit.claim}`,
+            category: 'fact',
+            tags: [TRUTH_TAG, PROVENANCE_TAGS['user-stated']],
+          });
+          return { text: confirm(`Updated. ${sayTruth(edit.claim, 'user-stated')}`), handled: true };
+        }
+
+        /* --- something the user marked as true --- */
+        const truth = truthStatement(text);
+        if (truth !== null) {
+          if (!this.#memory.enabled) {
+            return {
+              text: unavailable(
+                'long-term memory is off, so I have not kept that',
+                'Turn it on in Settings under Privacy.',
+              ),
+              handled: false,
+              failure: 'PERMISSION_DENIED',
+            };
+          }
+
+          try {
+            await this.#memory.save({
+              // Prefixed, so that what is read back out of storage carries its
+              // own provenance even if it is ever read somewhere that forgets
+              // to check the tags.
+              content: `Stated: ${truth.claim}`,
+              category: 'fact',
+              tags: [TRUTH_TAG, PROVENANCE_TAGS[truth.provenance]],
+            });
+            return {
+              text: confirm(`Noted. ${sayTruth(truth.claim, truth.provenance)}`),
+              handled: true,
+            };
+          } catch (error) {
+            return {
+              text: regret(error instanceof Error ? error.message : 'that could not be kept'),
+              handled: false,
+              failure: 'VALIDATION_FAILED',
+            };
+          }
+        }
 
         /* --- a question about the user themselves --- */
         const asked = personalQuestion(text);
@@ -1461,7 +1639,10 @@ ${lines}${notice}`,
                 handled: true,
               };
             }
-            const preview = all.slice(0, 5).map((record) => `- ${record.content}`).join('\n');
+            const preview = all
+              .slice(0, 5)
+              .map((record) => `- ${HelixOrchestrator.#readBack(record)}`)
+              .join('\n');
             const more = all.length > 5 ? `\n...and ${all.length - 5} more.` : '';
             return {
               text:
