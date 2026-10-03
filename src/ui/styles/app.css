@@ -3731,7 +3731,25 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: hx-time-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Step one of the entrance: the interface dims. Short, because this is
+     the part the user should barely notice happening. */
+  animation: hx-time-in 180ms ease-out both;
+}
+
+/* The exit is the entrance reversed, and quicker. A screen being
+   dismissed should not make anyone wait for choreography. Duration
+   matches EXIT_MS in TimeOverlay.tsx - when they disagree the overlay
+   either unmounts mid-animation or lingers after it. */
+.hx-time--leaving {
+  animation: hx-time-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.hx-time--leaving .hx-time__face {
+  animation: hx-time-fall 260ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.hx-time--leaving .hx-time__face > * {
+  animation: none;
 }
 
 .hx-time__scrim {
@@ -3740,18 +3758,20 @@ body {
   border: 0;
   padding: 0;
   cursor: default;
-  /* Nearly opaque: the clock is the focus, and the interface behind it
-     should be present rather than readable. */
+  /* Dimmed, not erased. This was very nearly opaque, which hid the core
+     and its aura completely and made the clock read as a window that had
+     opened over Helix rather than as Helix having become a clock. The
+     centre is the lightest part, so the core still shows through beneath
+     the digits; the edges go to black so nothing at the margins competes.
+
+     No blur. Blur at this opacity turned the core into a smear, and what
+     little was left of it no longer read as the core. */
   background: radial-gradient(
     ellipse at center,
-    rgba(0, 0, 0, 0.975) 0%,
-    rgba(0, 0, 0, 0.995) 55%,
-    #000 100%
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.82) 45%,
+    rgba(0, 0, 0, 0.94) 100%
   );
-  /* The transcript behind was legible through the gradient and read as
-     clutter under the digits. Blur finishes what the opacity starts. */
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
 }
 
 .hx-time__face {
@@ -3759,28 +3779,45 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
   padding: 0 24px;
   pointer-events: none;
-  animation: hx-time-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  text-align: center;
+  /* Step two: the whole group settles up into place while its parts
+     resolve in order. */
+  animation: hx-time-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* The clock itself. The dominant element on the screen, and nothing else
+   on it is allowed to be close.
+
+   Sized in viewport units rather than clamped to a pixel ceiling, so the
+   proportion holds from a laptop to a 4K panel: at this size the eight
+   characters come to roughly 40% of the width, which is what keeps the
+   hierarchy identical at every resolution. The vh term is the guard
+   against a short, wide window - without it a resized app crops the
+   digits, which is the one failure the layout must not have. */
 .hx-time__clock {
   display: flex;
   align-items: baseline;
   /* Tabular figures, or every digit change shifts the whole row. On a
-     clock showing milliseconds that is a permanent shimmer. */
+     clock showing seconds that is a permanent shimmer. */
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
-  font-size: clamp(56px, 13vw, 164px);
+  font-size: clamp(44px, min(9.8vw, 19vh), 420px);
   font-weight: 200;
   letter-spacing: -0.02em;
   line-height: 1;
   color: #fff6e6;
-  /* The core's warmth, behind the digits rather than on them. */
+  /* The core's warmth, behind the digits rather than on them, breathing
+     very slightly so the display feels live without anything moving. The
+     glow varies; the digits themselves never do, because they have to
+     stay the most readable thing on the screen. */
   text-shadow:
     0 0 40px rgba(255, 150, 50, 0.3),
     0 0 110px rgba(255, 120, 30, 0.18);
+  animation:
+    hx-time-resolve 420ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both,
+    hx-time-breathe 5.5s ease-in-out 900ms infinite;
 }
 
 /* Two dots, drawn. Structure rather than information, so they are dim
@@ -3809,43 +3846,89 @@ body {
   opacity: 0.4;
 }
 
-.hx-time__ms {
-  margin-left: 0.18em;
-  font-size: 0.3em;
+/* AM or PM, on a twelve-hour system. A quarter the height of the digits:
+   it is a qualifier, not part of the number. */
+.hx-time__suffix {
+  margin-left: 0.14em;
+  font-size: 0.22em;
   font-weight: 300;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.14em;
+  color: #fff6e6;
+  opacity: 0.55;
+}
+
+/* Milliseconds. Its own line, directly under the clock and a fraction of
+   its size - the hierarchy between the two is the whole point of
+   separating them. Warm rather than white, so it reads as a secondary
+   readout at a glance rather than as more of the time. */
+.hx-time__ms {
+  margin-top: 0.12em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  font-size: clamp(14px, min(2.3vw, 4.4vh), 96px);
+  font-weight: 300;
+  letter-spacing: 0.22em;
+  /* The letter-spacing is applied after each glyph including the last,
+     which pushes the group off centre by half a space. */
+  text-indent: 0.22em;
+  line-height: 1;
   color: #ffac44;
-  opacity: 0.85;
+  opacity: 0.8;
+  text-shadow: 0 0 24px rgba(255, 140, 40, 0.25);
+  animation: hx-time-resolve 300ms ease-out 300ms both;
+}
+
+/* The day, the date and the zone, grouped so the gap above belongs to the
+   whole block rather than to the first line in it. */
+.hx-time__when {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6em;
+  /* Comfortable, proportional space between the readout and the calendar.
+     In em of its own small type it collapsed at large sizes. */
+  margin-top: clamp(28px, 4vh, 72px);
+  animation: hx-time-resolve 320ms ease-out 460ms both;
+}
+
+/* Slightly more prominent than the date, and still nowhere near the
+   clock. */
+.hx-time__day {
+  font-size: clamp(12px, 1.25vw, 26px);
+  font-weight: 400;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  text-transform: uppercase;
+  color: #cfc6ba;
 }
 
 .hx-time__date {
-  font-size: clamp(11px, 1.4vw, 14px);
+  font-size: clamp(10px, 1vw, 20px);
+  font-weight: 300;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  text-transform: uppercase;
+  color: #8a8276;
+}
+
+.hx-time__zone {
+  font-size: clamp(9px, 0.82vw, 16px);
+  font-weight: 300;
   letter-spacing: 0.3em;
+  text-indent: 0.3em;
   text-transform: uppercase;
-  color: #8a8a8a;
+  color: #5d574f;
 }
 
-/* What the number is and how good it is. Small, and present, because
-   three digits racing with no explanation implies a precision the
-   machine may not have. */
-.hx-time__source {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
+/* Only present when the clock is coarser than three digits imply. Said
+   plainly, and kept well out of the hierarchy. */
+.hx-time__caveat {
+  margin-top: clamp(20px, 3vh, 48px);
+  font-size: 10px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #555555;
-}
-
-.hx-time__dot {
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.6;
+  color: #4a443d;
+  animation: hx-time-resolve 300ms ease-out 620ms both;
 }
 
 @keyframes hx-time-in {
@@ -3853,23 +3936,75 @@ body {
   to { opacity: 1; }
 }
 
+@keyframes hx-time-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 @keyframes hx-time-rise {
   from {
     opacity: 0;
-    transform: translateY(14px) scale(0.985);
-    filter: blur(6px);
+    transform: translateY(16px) scale(0.99);
   }
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes hx-time-fall {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+}
+
+/* Each part arrives by resolving rather than sliding: a short blur that
+   clears. It reads as the number settling into focus, which is the one
+   effect that suits a clock - the digits are never thrown around. */
+@keyframes hx-time-resolve {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
     filter: none;
+    transform: none;
+  }
+}
+
+/* Alive, not animated. Only the glow moves; the glyphs hold still. */
+@keyframes hx-time-breathe {
+  0%, 100% {
+    text-shadow:
+      0 0 40px rgba(255, 150, 50, 0.3),
+      0 0 110px rgba(255, 120, 30, 0.18);
+  }
+  50% {
+    text-shadow:
+      0 0 52px rgba(255, 160, 60, 0.4),
+      0 0 140px rgba(255, 120, 30, 0.26);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hx-time,
-  .hx-time__face {
+  .hx-time--leaving,
+  .hx-time--leaving .hx-time__face,
+  .hx-time__face,
+  .hx-time__clock,
+  .hx-time__ms,
+  .hx-time__when,
+  .hx-time__caveat {
     animation-duration: 1ms;
+    animation-delay: 0ms;
+    animation-iteration-count: 1;
   }
 }
 
