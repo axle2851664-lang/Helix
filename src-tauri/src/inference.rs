@@ -75,6 +75,13 @@ const PROVIDERS: &[ProviderSpec] = &[
         path_prefix: "/v1beta/",
     },
     ProviderSpec {
+        id: "mistral",
+        base_url: "https://api.mistral.ai",
+        env_var: "MISTRAL_API_KEY",
+        auth: AuthStyle::Bearer,
+        path_prefix: "/v1/",
+    },
+    ProviderSpec {
         id: "anthropic",
         base_url: "https://api.anthropic.com",
         env_var: "ANTHROPIC_API_KEY",

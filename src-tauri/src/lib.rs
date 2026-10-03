@@ -22,11 +22,13 @@
 //! that Helix never writes outside its own folders survives the move only if
 //! this file refuses to offer the means.
 
+mod env_file;
 mod google;
 mod web;
 mod inference;
 mod listen;
 mod tailscale;
+mod voice;
 mod portable;
 mod vault;
 
@@ -136,6 +138,12 @@ fn install_root() -> Option<String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Before anything reads a key. Every credential is read with
+    // `std::env::var` at the moment it is needed, so this only has to happen
+    // once and only has to happen first. A variable already in the
+    // environment always wins - see env_file.
+    env_file::load();
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             volume_stats,
@@ -157,6 +165,10 @@ pub fn run() {
             listen::start_phone_listener,
             listen::phone_reply,
             vault::vault_documents,
+            voice::elevenlabs_configured,
+            voice::elevenlabs_voices,
+            voice::elevenlabs_transcribe,
+            voice::elevenlabs_speak,
             tailscale::tailscale_address
         ])
         .run(tauri::generate_context!())

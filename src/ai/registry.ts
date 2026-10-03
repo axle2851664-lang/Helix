@@ -137,6 +137,36 @@ export const MODEL_REGISTRY: readonly ModelInfo[] = [
     note: 'No Anthropic provider is built on this side yet, so nothing can run this. The Anthropic API is also paid, per token.',
   },
 
+  // ----------------------------------------------------------- Mistral
+  // Seeded, not discovered. The provider asks Mistral for its real list on
+  // first use and replaces these; until then they are what the Models screen
+  // has to go on, and they are marked `unverified` so nothing here can turn a
+  // guess into a claim about what is runnable.
+  {
+    id: 'mistral-large-latest',
+    name: 'Mistral Large',
+    family: 'Mistral',
+    author: 'Mistral AI',
+    inferenceProvider: 'mistral',
+    capabilities: ['chat', 'reasoning', 'coding', 'long-context'],
+    contextLength: 128_000,
+    maxOutputTokens: 8_192,
+    status: 'unverified',
+    note: 'Seeded from documentation. The live list replaces this once a key is set. Mistral is paid, per token.',
+  },
+  {
+    id: 'mistral-small-latest',
+    name: 'Mistral Small',
+    family: 'Mistral',
+    author: 'Mistral AI',
+    inferenceProvider: 'mistral',
+    capabilities: ['chat', 'coding', 'fast'],
+    contextLength: 128_000,
+    maxOutputTokens: 8_192,
+    status: 'unverified',
+    note: 'Seeded from documentation. The live list replaces this once a key is set. Mistral is paid, per token.',
+  },
+
   // ------------------------------------------------------- Local inference
   // Nothing runs locally yet. The entry exists so the router and the settings
   // can refer to local inference as a real option rather than a hypothetical,

@@ -126,11 +126,15 @@ export const SETTINGS_SCHEMA = {
     section: 'voice',
     label: 'Speech recognition',
     description: 'Provider used to turn speech into text.',
-    options: ['none', 'local', 'browser'],
+    options: ['none', 'local', 'browser', 'elevenlabs'],
     optionLabels: {
       none: 'None',
       local: 'Whisper on this machine (private)',
       browser: 'Browser speech (sends audio to Google)',
+      // Named for what it does, like the browser option above it. A provider
+      // that ships microphone audio to a third party is never presented as if
+      // it were local.
+      elevenlabs: 'ElevenLabs (sends audio to ElevenLabs)',
     },
     default: 'local',
   },
@@ -138,12 +142,13 @@ export const SETTINGS_SCHEMA = {
     kind: 'enum',
     section: 'voice',
     label: 'Text to speech',
-    options: ['none', 'browser', 'local', 'cloud'],
+    options: ['none', 'browser', 'local', 'cloud', 'elevenlabs'],
     optionLabels: {
       none: 'None',
       browser: 'Browser (Speech Synthesis)',
       local: 'Local model',
       cloud: 'Cloud provider',
+      elevenlabs: 'ElevenLabs (needs a key and a chosen voice)',
     },
     /**
      * On by default, which the speech *input* setting deliberately is not.
@@ -509,12 +514,13 @@ export const SETTINGS_SCHEMA = {
     section: 'providers',
     label: 'Inference provider',
     description: 'The infrastructure that runs the model. Not the model itself.',
-    options: ['none', 'local', 'gemini', 'cerebras', 'anthropic'],
+    options: ['none', 'local', 'gemini', 'cerebras', 'mistral', 'anthropic'],
     optionLabels: {
       none: 'None',
       local: 'Local inference (on this machine)',
       gemini: 'Google Gemini',
       cerebras: 'Cerebras',
+      mistral: 'Mistral',
       anthropic: 'Anthropic',
     },
     default: 'none',
@@ -525,12 +531,13 @@ export const SETTINGS_SCHEMA = {
     section: 'providers',
     label: 'Fallback provider',
     description: 'Used when the first choice fails. Helix always says when it falls back.',
-    options: ['none', 'local', 'gemini', 'cerebras', 'anthropic'],
+    options: ['none', 'local', 'gemini', 'cerebras', 'mistral', 'anthropic'],
     optionLabels: {
       none: 'None',
       local: 'Local inference (on this machine)',
       gemini: 'Google Gemini',
       cerebras: 'Cerebras',
+      mistral: 'Mistral',
       anthropic: 'Anthropic',
     },
     default: 'none',

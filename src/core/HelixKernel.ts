@@ -40,6 +40,11 @@ import { GmailTransport } from '../outbound/GmailTransport.js';
 import { VoiceManager } from '../voice/VoiceManager.js';
 import { BrowserSpeechRecognition } from '../voice/BrowserSpeechRecognition.js';
 import { LocalWhisperProvider } from '../voice/LocalWhisperProvider.js';
+import {
+  ElevenLabsSpeechToText,
+  ElevenLabsTextToSpeech,
+} from '../voice/ElevenLabsProvider.js';
+import type { SpeechToTextProvider } from '../voice/types.js';
 import { SpeechChain } from '../voice/SpeechChain.js';
 import { AIRouter } from '../ai/AIRouter.js';
 import { OllamaProvider } from '../ai/OllamaProvider.js';
@@ -47,6 +52,7 @@ import { GeminiProvider } from '../ai/GeminiProvider.js';
 import { DocsProvider } from '../integrations/google/DocsProvider.js';
 import { CalendarProvider } from '../integrations/google/CalendarProvider.js';
 import { CerebrasProvider } from '../ai/CerebrasProvider.js';
+import { MistralProvider } from '../ai/MistralProvider.js';
 import { assessInstalledModels, preferredLocalModel } from '../ai/localModels.js';
 import { fastestLocalModel } from '../ai/speed.js';
 import { assessDiskPressure } from '../storage/pressure.js';
@@ -322,20 +328,31 @@ export class HelixKernel {
       // move the user's voice off the machine because the local model had a
       // bad moment, which is not a trade anything should make on their behalf.
       ...(() => {
-        const wantsBrowser = settings.get('speechToTextProvider') === 'browser';
+        const choice = settings.get('speechToTextProvider');
+        const wantsBrowser = choice === 'browser';
+        const wantsElevenLabs = choice === 'elevenlabs';
         const browserUsable = BrowserSpeechRecognition.isSupported();
 
-        const providers = wantsBrowser && browserUsable
-          ? [new BrowserSpeechRecognition()]
-          : browserUsable
-            ? [new LocalWhisperProvider(), new BrowserSpeechRecognition()]
-            : [new LocalWhisperProvider()];
+        // The shell is where the ElevenLabs key is held, so the provider is
+        // only built where there is one to ask.
+        const shell = platform.kind === 'tauri' ? tauriInvoke() : null;
+
+        const providers: SpeechToTextProvider[] = wantsElevenLabs && shell
+          ? // Chosen explicitly, and the only remote recogniser that is. No
+            // local provider behind it: falling back to Whisper would be a
+            // different model giving a different answer without saying so.
+            [new ElevenLabsSpeechToText({ invoke: shell })]
+          : wantsBrowser && browserUsable
+            ? [new BrowserSpeechRecognition()]
+            : browserUsable
+              ? [new LocalWhisperProvider(), new BrowserSpeechRecognition()]
+              : [new LocalWhisperProvider()];
 
         return {
           stt: new SpeechChain({
             providers,
             // Never true by default. The setting is the user saying so.
-            allowRemoteFallback: wantsBrowser,
+            allowRemoteFallback: wantsBrowser || wantsElevenLabs,
             onProviderChange: (report) => {
               if (report.fellBackBecause === null) return;
               logger.warn('Speech fell back to another provider.', {
@@ -347,9 +364,17 @@ export class HelixKernel {
           }),
         };
       })(),
-      ...(BrowserSpeechSynthesis.isSupported()
-        ? { tts: new BrowserSpeechSynthesis() }
-        : {}),
+      ...(() => {
+        const wantsElevenLabs = settings.get('textToSpeechProvider') === 'elevenlabs';
+        const shell = platform.kind === 'tauri' ? tauriInvoke() : null;
+
+        if (wantsElevenLabs && shell) {
+          return { tts: new ElevenLabsTextToSpeech({ invoke: shell }) };
+        }
+        return BrowserSpeechSynthesis.isSupported()
+          ? { tts: new BrowserSpeechSynthesis() }
+          : {};
+      })(),
     });
     /**
      * The brain.
@@ -417,6 +442,7 @@ export class HelixKernel {
         ollama,
         new GeminiProvider({ transport: inferenceTransport }),
         new CerebrasProvider({ transport: inferenceTransport }),
+        new MistralProvider({ transport: inferenceTransport }),
       ],
       preferLocal: settings.get('preferLocalInference'),
       // A filter rather than a preference: with this on, a cloud provider is
