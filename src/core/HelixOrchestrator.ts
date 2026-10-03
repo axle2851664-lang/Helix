@@ -10,6 +10,16 @@ import { getModelOrDefault, resolveModel } from '../models/catalog.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
 import type { NotepadManager } from '../notepad/NotepadManager.js';
 import {
+  stopwatchElapsed,
+  timerRemaining,
+  wouldSleepThrough,
+  type AlarmRecord,
+  type StopwatchRecord,
+  type TimeKeeper,
+  type TimerRecord,
+} from '../time/TimeKeeper.js';
+import { formatDuration, parseClockTime, parseDuration, parseLabel } from '../time/parse.js';
+import {
   isQuestion,
   understand,
   understandClause,
@@ -128,6 +138,9 @@ const HANDLED: ReadonlySet<string> = new Set([
   'files',
   'sidebar',
   'clock',
+  'timer',
+  'alarm',
+  'stopwatch',
 ]);
 
 export interface HelixResponse {
@@ -195,6 +208,12 @@ export interface OrchestratorOptions {
   /** Helix's own notes. Absent in tests that do not exercise the Notepad. */
   notepad?: NotepadManager;
   /**
+   * Timers, alarms and stopwatches. Absent means those requests say so
+   * rather than appearing to work - a timer nobody is keeping is the worst
+   * kind of fake capability, because the user walks away trusting it.
+   */
+  timekeeper?: TimeKeeper;
+  /**
    * Read, never written. It is here so Helix can answer "what are you allowed
    * to do" from the real record instead of letting a model guess at it.
    */
@@ -226,6 +245,7 @@ export class HelixOrchestrator {
   readonly #projects: ProjectManager;
   readonly #memory: MemoryManager;
   readonly #notepad: NotepadManager | undefined;
+  readonly #timekeeper: TimeKeeper | undefined;
   /**
    * What each conversation is currently about. Working state, held in memory
    * and never persisted - the equivalent of what a person holds in their head
@@ -260,6 +280,7 @@ export class HelixOrchestrator {
     this.#projects = options.projects;
     this.#memory = options.memory;
     this.#notepad = options.notepad;
+    this.#timekeeper = options.timekeeper;
     this.#permissions = options.permissions;
     this.#knowledge = options.knowledge;
     this.#logger = options.logger.child('orchestrator');
@@ -1061,6 +1082,14 @@ ${lines}${notice}`,
      * it would be slower, less reliable and - for a clock - wrong, since a
      * model cannot know the time.
      */
+    if (
+      match.capability.id === 'timer'
+      || match.capability.id === 'alarm'
+      || match.capability.id === 'stopwatch'
+    ) {
+      return this.#runTimeStep(match, state, request);
+    }
+
     if (match.capability.id === 'sidebar' || match.capability.id === 'clock') {
       const closing = match.verb === 'close';
       state.setTopic(match.capability.id);
@@ -1134,6 +1163,246 @@ ${lines}${notice}`,
    * the user where they are, with the note they just touched in focus so the
    * next thing said can act on it.
    */
+
+  /**
+   * Timers, alarms and stopwatches.
+   *
+   * Everything here is arithmetic on the system clock, so no model is
+   * involved at any point. A model cannot know the time, cannot be relied on
+   * to turn "two and a half minutes" into a number, and would answer
+   * plausibly either way - which for a timer is the one failure mode that
+   * matters, because the user walks away believing it.
+   *
+   * Durations and clock times come from `parse.ts`, which refuses rather than
+   * guesses: a bare "set a timer for 5" is five minutes to most people and
+   * "90" is ninety seconds to about half of them, and there is no default
+   * that is not wrong some of the time.
+   */
+  #runTimeStep(
+    match: Match,
+    state: ConversationState,
+    request: HelixRequest,
+  ): HelixResponse {
+    const kind = match.capability.id as 'timer' | 'alarm' | 'stopwatch';
+    const keeper = this.#timekeeper;
+
+    const done = (succeeded: boolean) => {
+      if (succeeded) state.setTopic(kind);
+      state.record({ capability: kind, verb: match.verb, succeeded, utterance: request.text });
+    };
+
+    if (!keeper) {
+      done(false);
+      return {
+        text: regret('nothing is keeping time in this build, so that would not actually run'),
+        handled: false,
+        failure: 'UNAVAILABLE',
+      };
+    }
+
+    const text = request.text;
+    const now = Date.now();
+
+    /**
+     * Put it in focus, so "stop it" and "cancel that" land here next turn.
+     *
+     * The kind is the capability id, not a word of its own, because the
+     * focus carry in `understand.ts` prepends it to the sentence as a noun -
+     * "timer stop it" - and resolves from there. A kind the registry has
+     * never heard of carries nothing, which is a silent failure rather than a
+     * wrong answer, and so is worse.
+     */
+    const focus = (label: string, id: string) => {
+      state.focusOn({ kind, id, label });
+    };
+
+    // ---------------------------------------------------------- setting one
+
+    if (match.verb === 'create') {
+      if (kind === 'timer') {
+        const duration = parseDuration(text);
+        if (duration === null) {
+          // Asked, not assumed. See the note above.
+          done(false);
+          return {
+            text: observe('How long'),
+            handled: false,
+            failure: 'NEEDS_DETAIL',
+          };
+        }
+        const label = parseLabel(text);
+        const timer = keeper.startTimer(duration, label);
+        focus(label ?? 'the timer', timer.id);
+        done(true);
+        return {
+          text: observe(
+            label === null
+              ? `${formatDuration(duration)}, counting`
+              : `${formatDuration(duration)} for ${label}, counting`,
+          ),
+          handled: true,
+          ui: { overlay: 'time' },
+        };
+      }
+
+      if (kind === 'alarm') {
+        const at = parseClockTime(text, new Date(now));
+        if (at === null) {
+          done(false);
+          return { text: observe('What time'), handled: false, failure: 'NEEDS_DETAIL' };
+        }
+        const label = parseLabel(text);
+        const alarm = keeper.setAlarm(at.getTime(), label);
+        focus(label ?? 'the alarm', alarm.id);
+        done(true);
+
+        const when = at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+        /**
+         * The warning is said now or it is useless.
+         *
+         * There is no operating-system scheduling behind this: the alarm
+         * sounds only while Helix is running. Someone setting one for the
+         * morning needs to know that before they close the app and go to
+         * bed, not afterwards - and a missed one is reported as missed
+         * rather than rung hours late as though it had worked.
+         */
+        const fragile = wouldSleepThrough(at.getTime(), now);
+        return {
+          text: observe(
+            fragile
+              ? `Set for ${when}. It only sounds while I am running - leave me open`
+              : `Set for ${when}`,
+          ),
+          handled: true,
+          ui: { overlay: 'time' },
+        };
+      }
+
+      const watch = keeper.startStopwatch(parseLabel(text));
+      focus('the stopwatch', watch.id);
+      done(true);
+      return { text: observe('Running'), handled: true, ui: { overlay: 'time' } };
+    }
+
+    // ------------------------------------------------- acting on an existing
+
+    /**
+     * Which one is meant.
+     *
+     * Whatever is in focus from the last turn, otherwise the only one of its
+     * kind. With two of a kind and nothing in focus the answer is a question,
+     * not a guess - cancelling the wrong timer is not recoverable.
+     */
+    const focused = state.focus;
+    const chosen = focused !== null && focused.kind === kind
+      ? (keeper.list().find((entry) => entry.id === focused.id) ?? null)
+      : null;
+    const subject = chosen?.kind === kind ? chosen : keeper.theOnly(kind);
+
+    if (!subject) {
+      const count = keeper.ofKind(kind).length;
+      done(false);
+      return {
+        text: count === 0
+          ? observe(`No ${kind} is running`)
+          : observe(`${count} ${kind}s are running. Which one`),
+        handled: false,
+        failure: count === 0 ? 'NOTHING_TO_DO' : 'AMBIGUOUS',
+      };
+    }
+
+    const reading = (): string => {
+      if (subject.kind === 'timer') {
+        const record = subject as TimerRecord;
+        return record.ringing
+          ? 'Done'
+          : `${formatDuration(timerRemaining(record, now))} left`;
+      }
+      if (subject.kind === 'stopwatch') {
+        return formatDuration(stopwatchElapsed(subject as StopwatchRecord, now));
+      }
+      const record = subject as AlarmRecord;
+      return record.at <= now
+        ? 'Due now'
+        : `in ${formatDuration(record.at - now)}`;
+    };
+
+    switch (match.verb) {
+      case 'read': {
+        done(true);
+        return { text: observe(reading()), handled: true, ui: { overlay: 'time' } };
+      }
+
+      case 'list': {
+        const all = keeper.ofKind(kind);
+        done(true);
+        return {
+          text: observe(
+            all.length === 0
+              ? `Nothing set`
+              : all
+                  .map((entry) =>
+                    entry.kind === 'alarm'
+                      ? new Date(entry.at).toLocaleTimeString(undefined, {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })
+                      : (entry.label ?? kind),
+                  )
+                  .join(', '),
+          ),
+          handled: true,
+          ui: { overlay: 'time' },
+        };
+      }
+
+      case 'pause': {
+        // A ringing timer is dismissed rather than paused: there is nothing
+        // left to hold, and "stop" while it is going off means stop the noise.
+        if (subject.kind === 'timer' && subject.ringing) {
+          keeper.dismiss(subject.id);
+          state.clearFocus();
+          done(true);
+          return { text: observe('Stopped'), handled: true };
+        }
+        const paused = keeper.pause(subject.id);
+        done(paused !== null);
+        return paused === null
+          ? { text: observe('Already held'), handled: true }
+          : { text: observe(`Held at ${reading()}`), handled: true, ui: { overlay: 'time' } };
+      }
+
+      case 'resume': {
+        const resumed = keeper.resume(subject.id);
+        done(resumed !== null);
+        return resumed === null
+          ? { text: observe('Already running'), handled: true }
+          : { text: observe('Running'), handled: true, ui: { overlay: 'time' } };
+      }
+
+      case 'reset': {
+        keeper.reset(subject.id);
+        done(true);
+        return { text: observe('Back to zero'), handled: true, ui: { overlay: 'time' } };
+      }
+
+      case 'close': {
+        keeper.cancel(subject.id);
+        state.clearFocus();
+        done(true);
+        return { text: observe('Cancelled'), handled: true };
+      }
+
+      default: {
+        done(false);
+        return {
+          text: regret(`a ${kind} cannot be ${match.verb}d`),
+          handled: false,
+          failure: 'UNSUPPORTED',
+        };
+      }
+    }
+  }
 
   async #runNotepadStep(
     step: Understanding,
@@ -1371,6 +1640,22 @@ ${lines}${notice}`,
           text: regret(`the note could not be deleted: ${outcome.message}`),
           handled: false,
           failure: 'ACTION_FAILED',
+        };
+      }
+
+      /**
+       * pause, resume and reset. They exist for timers and stopwatches and
+       * mean nothing against a note, so this says so rather than falling
+       * through to whichever case happened to be last. The switch was
+       * exhaustive over every verb there was; the honest way to keep it that
+       * way is to name the ones this capability does not have.
+       */
+      default: {
+        done(match.verb, false);
+        return {
+          text: regret(`a note cannot be ${match.verb}d`),
+          handled: false,
+          failure: 'UNSUPPORTED',
         };
       }
     }

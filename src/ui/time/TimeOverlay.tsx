@@ -1,4 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useHelix } from '../HelixProvider.js';
+import {
+  stopwatchElapsed,
+  timerRemaining,
+  type KeeperRecord,
+} from '../../time/TimeKeeper.js';
+import { countdownReadout, elapsedReadout } from './readout.js';
 
 /**
  * The time, read from the machine and from nowhere else.
@@ -127,6 +134,35 @@ export function friendlyZoneName(
   return zone.replace(/\s+(Daylight|Standard|Summer)\s+/i, ' ');
 }
 
+/**
+ * Which readout the screen is about.
+ *
+ * Whatever the user just asked for, not a fixed priority of features. A
+ * ringing timer wins outright - it is demanding attention and nothing else on
+ * screen matters until it is dealt with. Failing that, the newest running
+ * timer or stopwatch, because that is what was just set. With neither, the
+ * screen is the clock it was before any of this existed.
+ *
+ * Alarms are never the subject unless they are going off: an alarm due at
+ * seven tomorrow is a fact about later, and a six-inch countdown to it would
+ * be a strange thing to stare at.
+ */
+export function chooseSubject(
+  records: readonly KeeperRecord[],
+): KeeperRecord | null {
+  const ringing = records.filter(
+    (record) => record.kind !== 'stopwatch' && (record.ringing || (record.kind === 'alarm' && record.missed)),
+  );
+  if (ringing.length > 0) {
+    // The one that went off last is the one being heard.
+    return ringing.reduce((latest, record) => (record.createdAt >= latest.createdAt ? record : latest));
+  }
+
+  const counting = records.filter((record) => record.kind !== 'alarm');
+  if (counting.length === 0) return null;
+  return counting.reduce((latest, record) => (record.createdAt >= latest.createdAt ? record : latest));
+}
+
 export interface TimeOverlayProps {
   onClose: () => void;
 }
@@ -136,6 +172,20 @@ export function TimeOverlay({ onClose }: TimeOverlayProps) {
   const [resolution, setResolution] = useState<number | null>(null);
   /** True once the exit has begun. The overlay stays mounted through it. */
   const [leaving, setLeaving] = useState(false);
+
+  const { timekeeper } = useHelix();
+  /**
+   * A counter bumped on every change, rather than a copy of the records.
+   *
+   * The keeper owns them and mutates in place; holding a second copy here
+   * would mean two answers to "how long is left" and no rule about which is
+   * right. This re-renders and reads through.
+   */
+  const [, setRevision] = useState(0);
+  useEffect(
+    () => timekeeper.subscribe(() => setRevision((value) => value + 1)),
+    [timekeeper],
+  );
 
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -167,10 +217,15 @@ export function TimeOverlay({ onClose }: TimeOverlayProps) {
   useEffect(() => {
     let frame = requestAnimationFrame(function tick() {
       setNow(new Date());
+      // Checked here rather than on a timer of its own: this loop already
+      // runs at the display's rate while the clock is up, and anything due
+      // is compared against an absolute moment, so a frame that arrives late
+      // rings late by that frame and not by the whole interval.
+      timekeeper.tick();
       frame = requestAnimationFrame(tick);
     });
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [timekeeper]);
 
   // Measured once, after the first paint, so the clock is on screen
   // immediately rather than waiting on a benchmark.
@@ -200,6 +255,39 @@ export function TimeOverlay({ onClose }: TimeOverlayProps) {
   const clock = `${pad2(hours)}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
   const zone = friendlyZoneName(now);
 
+  const records = timekeeper.list();
+  const subject = chooseSubject(records);
+  const alarms = records.filter((record) => record.kind === 'alarm');
+
+  /**
+   * The readout that owns the screen.
+   *
+   * When a timer or a stopwatch is the subject it takes the large type and the
+   * wall clock steps down to a line beneath - because the question being
+   * asked has changed. Someone watching a countdown wants the countdown big;
+   * the time of day is then context, exactly as the date was before.
+   */
+  const ringing = subject !== null && subject.kind !== 'stopwatch' && subject.ringing;
+  const readout = subject === null
+    ? null
+    : subject.kind === 'timer'
+      ? countdownReadout(timerRemaining(subject, now.getTime()))
+      : subject.kind === 'stopwatch'
+        ? elapsedReadout(stopwatchElapsed(subject, now.getTime()))
+        // An alarm only becomes the subject when it is going off, and then
+        // the number that matters is the time it was set for, not a count.
+        : { main: new Date(subject.at).toLocaleTimeString(undefined, {
+            hour: '2-digit', minute: '2-digit',
+          }), fraction: '' };
+
+  const kindWord = subject === null
+    ? ''
+    : subject.kind === 'timer'
+      ? (ringing ? 'timer finished' : subject.pausedWithMs !== null ? 'timer held' : 'timer')
+      : subject.kind === 'stopwatch'
+        ? (subject.runningSince === null ? 'stopwatch held' : 'stopwatch')
+        : subject.missed ? 'alarm missed' : 'alarm';
+
   return (
     <div
       className={`hx-time${leaving ? ' hx-time--leaving' : ''}`}
@@ -211,13 +299,28 @@ export function TimeOverlay({ onClose }: TimeOverlayProps) {
       <button type="button" className="hx-time__scrim" aria-label="Close the clock" onClick={leave} />
 
       <div className="hx-time__face">
+        {readout !== null && subject !== null && (
+          <div className={`hx-time__keeper${ringing ? ' hx-time__keeper--ringing' : ''}`}>
+            {subject.label !== null && (
+              <div className="hx-time__keeper-label">{subject.label}</div>
+            )}
+            <div className="hx-time__clock" role="timer" aria-label={`${kindWord}, ${readout.main}`}>
+              <span aria-hidden="true">{readout.main}</span>
+            </div>
+            {readout.fraction !== '' && (
+              <div className="hx-time__ms" aria-hidden="true">{readout.fraction}</div>
+            )}
+            <div className="hx-time__kind">{kindWord}</div>
+          </div>
+        )}
+
         {/*
           One accessible string for the whole reading. A screen reader
           announcing six separate digit groups as they tick is unusable, so
           the parts are hidden and the row speaks once.
         */}
         <div
-          className="hx-time__clock"
+          className={readout === null ? 'hx-time__clock' : 'hx-time__clock hx-time__clock--secondary'}
           aria-label={suffix === null ? clock : `${clock} ${suffix}`}
           role="timer"
         >
@@ -245,9 +348,11 @@ export function TimeOverlay({ onClose }: TimeOverlayProps) {
           is an endless stream of announcements in a screen reader, and the
           figure is already covered by the clock's own label.
         */}
-        <div className="hx-time__ms" aria-hidden="true">
-          {String(now.getMilliseconds()).padStart(3, '0')}
-        </div>
+        {readout === null && (
+          <div className="hx-time__ms" aria-hidden="true">
+            {String(now.getMilliseconds()).padStart(3, '0')}
+          </div>
+        )}
 
         <div className="hx-time__when">
           <div className="hx-time__day">
@@ -271,6 +376,37 @@ export function TimeOverlay({ onClose }: TimeOverlayProps) {
           the ordinary case needs no footnote and this screen is meant to be
           bare.
         */}
+        {/*
+          Alarms that are set but not due. Listed rather than counted down to,
+          and each says plainly that it only sounds while Helix is open -
+          there is no operating-system scheduling behind these, and the one
+          place that fact is any use is next to the alarm itself.
+        */}
+        {alarms.length > 0 && (
+          <ul className="hx-time__alarms">
+            {alarms.map((alarm) => (
+              <li key={alarm.id} className="hx-time__alarm">
+                <span className="hx-time__alarm-at">
+                  {new Date(alarm.at).toLocaleTimeString(undefined, {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </span>
+                {alarm.label !== null && (
+                  <span className="hx-time__alarm-label">{alarm.label}</span>
+                )}
+                <span className="hx-time__alarm-note">
+                  {alarm.missed
+                    ? 'missed - Helix was closed'
+                    : alarm.ringing
+                      ? 'now'
+                      : 'while Helix is open'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
         {resolution !== null && resolution > 1 && (
           <div className="hx-time__caveat">
             this system reports the clock in {resolution}ms steps

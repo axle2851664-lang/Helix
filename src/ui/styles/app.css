@@ -3931,6 +3931,113 @@ body {
   animation: hx-time-resolve 300ms ease-out 620ms both;
 }
 
+/* ---- timers, alarms and stopwatches, on the same screen ---- */
+
+/* The subject's readout. Takes the large type from the wall clock, which
+   steps down below it: someone watching a countdown wants the countdown
+   big, and the time of day becomes context exactly as the date was. */
+.hx-time__keeper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hx-time__keeper-label {
+  margin-bottom: 0.4em;
+  font-size: clamp(11px, 1.1vw, 20px);
+  font-weight: 400;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  text-transform: uppercase;
+  color: #cfc6ba;
+}
+
+/* What this number is. Without it a bare 04:31 could be a countdown, an
+   elapsed time or the time of day, and the three want different
+   reactions. */
+.hx-time__kind {
+  margin-top: 0.5em;
+  font-size: clamp(9px, 0.85vw, 16px);
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  text-transform: uppercase;
+  color: #6f6962;
+}
+
+/* Going off. The glow swells and the colour warms - the digits themselves
+   still do not move, because this is the moment they most need reading. */
+.hx-time__keeper--ringing .hx-time__clock {
+  color: #ffd9a8;
+  animation: hx-time-alert 900ms ease-in-out infinite;
+}
+
+.hx-time__keeper--ringing .hx-time__kind {
+  color: #ffac44;
+}
+
+/* The wall clock once something else is the subject. Small enough to be
+   context, large enough to read across a room. */
+.hx-time__clock--secondary {
+  margin-top: clamp(24px, 3.5vh, 60px);
+  font-size: clamp(22px, min(3.2vw, 6vh), 120px);
+  opacity: 0.72;
+  animation: hx-time-resolve 300ms ease-out 240ms both;
+}
+
+.hx-time__clock--secondary .hx-time__colon {
+  gap: 0.2em;
+}
+
+.hx-time__alarms {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55em;
+  margin: clamp(22px, 3vh, 48px) 0 0;
+  padding: 0;
+  list-style: none;
+  animation: hx-time-resolve 320ms ease-out 540ms both;
+}
+
+.hx-time__alarm {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9em;
+  font-size: clamp(10px, 0.95vw, 18px);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.hx-time__alarm-at {
+  color: #cfc6ba;
+}
+
+.hx-time__alarm-label {
+  color: #8a8276;
+}
+
+/* The honest part. There is no operating-system scheduling behind an
+   alarm, so it sounds only while Helix is running - said next to the
+   alarm, which is the one place the fact is any use. */
+.hx-time__alarm-note {
+  font-size: 0.82em;
+  letter-spacing: 0.16em;
+  color: #5d574f;
+}
+
+@keyframes hx-time-alert {
+  0%, 100% {
+    text-shadow:
+      0 0 44px rgba(255, 170, 70, 0.45),
+      0 0 120px rgba(255, 130, 40, 0.3);
+  }
+  50% {
+    text-shadow:
+      0 0 70px rgba(255, 190, 110, 0.75),
+      0 0 190px rgba(255, 140, 50, 0.45);
+  }
+}
+
 @keyframes hx-time-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -4001,7 +4108,10 @@ body {
   .hx-time__clock,
   .hx-time__ms,
   .hx-time__when,
-  .hx-time__caveat {
+  .hx-time__caveat,
+  .hx-time__alarms,
+  .hx-time__clock--secondary,
+  .hx-time__keeper--ringing .hx-time__clock {
     animation-duration: 1ms;
     animation-delay: 0ms;
     animation-iteration-count: 1;

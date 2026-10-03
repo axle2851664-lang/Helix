@@ -32,6 +32,7 @@ import { ConversationStore } from '../conversations/ConversationStore.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { MemoryManager } from '../memory/MemoryManager.js';
 import { NotepadManager } from '../notepad/NotepadManager.js';
+import { TimeKeeper } from '../time/TimeKeeper.js';
 import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import { StorageManager } from '../storage/StorageManager.js';
 import { BackupManager } from '../backup/BackupManager.js';
@@ -124,6 +125,7 @@ export interface KernelServices {
   readonly memory: MemoryManager;
   /** Helix's own notes (Notepad). */
   readonly notepad: NotepadManager;
+  readonly timekeeper: TimeKeeper;
   readonly knowledge: KnowledgeIndex;
   readonly storage: StorageManager;
   readonly backup: BackupManager;
@@ -285,6 +287,23 @@ export class HelixKernel {
     const projects = new ProjectManager({ store, logger, paths, bus });
     const memory = new MemoryManager({ store, settings, logger, bus });
     const notepad = new NotepadManager({ store, logger, bus });
+    /**
+     * Timers, alarms and stopwatches, kept against the system clock.
+     *
+     * Loaded below rather than here, because `load` brings back what was
+     * running before and can discover that a timer rang while Helix was
+     * closed - which is something to report, not something to do during
+     * construction.
+     */
+    const timekeeper = new TimeKeeper({ store });
+    /**
+     * Read back what was running before Helix was closed.
+     *
+     * Not fire-and-forget: a timer restored half a second after the first
+     * paint shows up as a clock that was empty and then was not. Awaited
+     * alongside the other state the interface is built from.
+     */
+    await timekeeper.load();
     const knowledge = new KnowledgeIndex({ store, projects, logger, bus });
 
 
@@ -581,6 +600,7 @@ export class HelixKernel {
       projects,
       memory,
       notepad,
+      timekeeper,
       permissions,
       knowledge,
       logger,
@@ -895,6 +915,7 @@ export class HelixKernel {
       projects,
       memory,
       notepad,
+      timekeeper,
       knowledge,
       storage,
       ai,

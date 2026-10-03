@@ -129,7 +129,21 @@ export function findCorrection(text: string): Correction | null {
   if (trimmed === '') return null;
 
   const cancel = firstMatch(trimmed, CANCEL);
-  if (cancel) {
+  /**
+   * A cancellation only cancels when it is the whole instruction.
+   *
+   * "Stop" and "cancel that" abort what was asked for. "Stop the timer" and
+   * "cancel the alarm" name a thing to act on, and are requests - but both
+   * begin with a marker, so matching the marker alone read them as aborts and
+   * discarded the rest of the sentence. The result was that every way of
+   * stopping a timer declined, while "pause the timer" worked, which is a
+   * difference no user could be expected to discover.
+   *
+   * So anything beyond the marker that is not filler means this is a
+   * sentence, not an abort. `isNoise` already knows what filler is, and is
+   * reused rather than a second list of small words being invented here.
+   */
+  if (cancel && isNoise(trimmed.slice(cancel[0].length))) {
     return { kind: 'cancel', remainder: '', marker: marked(cancel[0].trim()) };
   }
 

@@ -169,7 +169,43 @@ export function understandClause(text: string, state: ConversationState): Unders
   }
 
   if (correction?.kind === 'cancel') {
-    return { outcome: 'decline', correction, because, normalised };
+    /**
+     * "Stop it" means stop the thing, when there is a thing.
+     *
+     * A bare abort normally cancels the request Helix is working on, which is
+     * right for "never mind" and for "stop" said over an answer. But with a
+     * timer or a stopwatch in focus, "stop it" and "cancel that" are plainly
+     * about that - and it is the most natural thing anyone says to a timer
+     * that is going off. Declining it left the one phrase a person reaches
+     * for first doing nothing at all.
+     *
+     * Narrow on purpose: only these three, and only because each is a thing
+     * that is actively running and can be stopped. A note in focus does not
+     * make "never mind" mean "delete the note".
+     *
+     * Falling through is the whole of the change. What happens next is the
+     * focus carry further down, which prepends the focused thing's kind to
+     * the sentence - so "stop it" becomes "timer stop it" and resolves the
+     * ordinary way. Nothing here decides what to do about it.
+     */
+    const focus = state.focus;
+    const running = focus !== null
+      && (focus.kind === 'timer' || focus.kind === 'stopwatch' || focus.kind === 'alarm');
+    /**
+     * And only for the markers that name stopping something.
+     *
+     * "Stop it" and "cancel that" say what to do to the thing. "Never mind",
+     * "forget it", "leave it" and "don't bother" say the user has changed
+     * their mind, which is an abort whatever happens to be in focus - and
+     * gating on focus alone turned "forget it" into "cancel the timer",
+     * because "forget" is one of the words that cancels a timer when it is
+     * named outright.
+     */
+    const namesStopping = /^(?:stop|cancel)\b/i.test(correction.marker.trim());
+    if (!running || !namesStopping) {
+      return { outcome: 'decline', correction, because, normalised };
+    }
+    because.push(`"${correction.marker}" is about ${focus?.label}`);
   }
 
   const reference = findReference(effective) ?? undefined;

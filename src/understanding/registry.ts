@@ -42,7 +42,13 @@ export type Verb =
   | 'save'
   | 'export'
   | 'list'
-  | 'close';
+  | 'close'
+  /** Hold a timer or a stopwatch where it is, without losing it. */
+  | 'pause'
+  /** Let a paused one carry on from where it stopped. */
+  | 'resume'
+  /** Back to the beginning. */
+  | 'reset';
 
 /** How sure the layer has to be before the verb runs without asking. */
 export type Risk =
@@ -121,6 +127,25 @@ const MAKE_WORDS = [
  * mean very different things - which is why the capability decides, not the
  * verb list.
  */
+/**
+ * Deliberately without "stop".
+ *
+ * "Stop the stopwatch" means hold it so the reading can be looked at, not
+ * throw the reading away - so each capability decides for itself which verb
+ * "stop" belongs to, and for a stopwatch it belongs to pause.
+ */
+const PAUSE_WORDS = [
+  'pause', 'hold', 'freeze', 'suspend', 'wait',
+] as const;
+
+const RESUME_WORDS = [
+  'resume', 'continue', 'unpause', 'carry', 'keep', 'go', 'restart', 'again',
+] as const;
+
+const RESET_WORDS = [
+  'reset', 'zero', 'clear', 'restart', 'over',
+] as const;
+
 const CLOSE_WORDS = [
   'close', 'hide', 'dismiss', 'remove', 'get rid', 'put away', 'collapse',
   'minimise', 'minimize', 'stop', 'exit', 'back', 'return', 'done', 'enough',
@@ -338,7 +363,13 @@ export const CAPABILITIES: readonly Capability[] = [
      */
     id: 'clock',
     label: 'the clock',
-    aliases: ['clock', 'time', 'timer', 'watch'],
+    /**
+     * Not 'timer' and not 'watch' any more. Those are now capabilities of
+     * their own, and while the clock claimed them "set a timer for 5 minutes"
+     * resolved to the clock display - which would have shown the time and
+     * set nothing, the most confusing outcome available.
+     */
+    aliases: ['clock', 'time'],
     implied: [
       // Questions, which the question guard would otherwise decline. Asking
       // what the time is *is* a request to be shown it.
@@ -375,6 +406,172 @@ export const CAPABILITIES: readonly Capability[] = [
         risk: 'safe',
         needsTarget: false,
         summary: 'close the clock',
+      },
+    ],
+  },
+  {
+    /**
+     * A countdown. Separate from the clock because they answer different
+     * questions - the clock says what time it is, a timer says how long is
+     * left - and because sharing one capability meant "set a timer" and "show
+     * me the time" could not be told apart.
+     *
+     * How long it runs is not decided here. The registry matches the verb and
+     * the subject; the duration comes out of `parse.ts`, which is tested
+     * against the forms people actually say and refuses to guess at a bare
+     * number.
+     */
+    id: 'timer',
+    label: 'a timer',
+    aliases: ['timer', 'countdown', 'timers'],
+    implied: [
+      { phrase: 'remind me in', verb: 'create' },
+      { phrase: 'wake me in', verb: 'create' },
+      { phrase: 'let me know in', verb: 'create' },
+      { phrase: 'how long is left', verb: 'read' },
+      { phrase: 'how long do i have', verb: 'read' },
+      { phrase: 'how much time is left', verb: 'read' },
+    ],
+    bare: 'create',
+    verbs: [
+      {
+        verb: 'create',
+        words: [...OPEN_WORDS, 'set', 'make', 'put', 'give', 'run', 'count'],
+        risk: 'safe',
+        needsTarget: false,
+        summary: 'set a timer',
+      },
+      {
+        verb: 'read',
+        words: ['long', 'much', 'left', 'remaining', 'check'],
+        risk: 'safe',
+        needsTarget: false,
+        summary: 'say how long is left',
+      },
+      {
+        verb: 'pause',
+        words: [...PAUSE_WORDS, 'stop'],
+        risk: 'safe',
+        needsTarget: false,
+        summary: 'pause the timer',
+      },
+      { verb: 'resume', words: [...RESUME_WORDS], risk: 'safe', needsTarget: false, summary: 'resume the timer' },
+      { verb: 'reset', words: [...RESET_WORDS], risk: 'safe', needsTarget: false, summary: 'reset the timer' },
+      {
+        verb: 'close',
+        /**
+         * Without 'stop'. For a timer the two readings are close enough that
+         * either is defensible, and pause is the recoverable one - a
+         * cancelled timer cannot be got back, a paused one can be resumed.
+         */
+        words: ['cancel', 'delete', 'remove', 'dismiss', 'forget', 'scrap', 'kill', 'off'],
+        risk: 'safe',
+        needsTarget: false,
+        summary: 'cancel the timer',
+      },
+    ],
+  },
+  {
+    /**
+     * A moment on the clock, rather than a length of time.
+     *
+     * What this cannot do is as important as what it can: there is no
+     * operating-system scheduling behind it, so an alarm only sounds while
+     * Helix is running. The orchestrator says so when one is set far enough
+     * ahead to be slept through, because the warning is worthless afterwards.
+     */
+    id: 'alarm',
+    label: 'an alarm',
+    aliases: ['alarm', 'alarms'],
+    implied: [
+      { phrase: 'wake me at', verb: 'create' },
+      { phrase: 'wake me up at', verb: 'create' },
+      { phrase: 'remind me at', verb: 'create' },
+      { phrase: 'get me up at', verb: 'create' },
+      // Questions, which the question guard declines unless a phrasing says
+      // otherwise. Asking which alarms are set *is* a request to be told.
+      { phrase: 'what alarms', verb: 'list' },
+      { phrase: 'which alarms', verb: 'list' },
+      { phrase: 'any alarms', verb: 'list' },
+      { phrase: 'alarms are set', verb: 'list' },
+      { phrase: 'alarms do i have', verb: 'list' },
+    ],
+    bare: 'create',
+    verbs: [
+      {
+        verb: 'create',
+        words: [...OPEN_WORDS, 'set', 'make', 'put', 'wake'],
+        risk: 'safe',
+        needsTarget: false,
+        summary: 'set an alarm',
+      },
+      {
+        verb: 'list',
+        words: ['list', 'what', 'any', 'which'],
+        risk: 'safe',
+        needsTarget: false,
+        summary: 'say which alarms are set',
+      },
+      {
+        verb: 'close',
+        words: [...CLOSE_WORDS, 'cancel', 'delete', 'silence', 'off'],
+        risk: 'safe',
+        needsTarget: false,
+        summary: 'cancel the alarm',
+      },
+    ],
+  },
+  {
+    /**
+     * Counting up, with no end. "Watch" lives here rather than on the clock:
+     * "start the watch" is a stopwatch and "what does the watch say" is the
+     * time, and of the two the first is the one that needs an action.
+     */
+    id: 'stopwatch',
+    label: 'the stopwatch',
+    aliases: ['stopwatch', 'stop watch', 'watch', 'lap'],
+    implied: [
+      { phrase: 'time me', verb: 'create' },
+      { phrase: 'start counting', verb: 'create' },
+      { phrase: 'how long has it been', verb: 'read' },
+      { phrase: 'how long have i been', verb: 'read' },
+    ],
+    bare: 'create',
+    verbs: [
+      {
+        verb: 'create',
+        words: [...OPEN_WORDS, 'run', 'begin', 'time'],
+        risk: 'safe',
+        needsTarget: false,
+        summary: 'start a stopwatch',
+      },
+      {
+        verb: 'read',
+        words: ['long', 'much', 'elapsed', 'check', 'say'],
+        risk: 'safe',
+        needsTarget: false,
+        summary: 'say the elapsed time',
+      },
+      {
+        verb: 'pause',
+        /**
+         * 'stop' belongs here, not on close. "Stop the stopwatch" means hold
+         * it so the reading can be read - throwing the reading away is the one
+         * thing the person who timed something does not want.
+         */
+        words: [...PAUSE_WORDS, 'stop'],
+        risk: 'safe',
+        needsTarget: false,
+        summary: 'stop the stopwatch',
+      },
+      { verb: 'resume', words: [...RESUME_WORDS], risk: 'safe', needsTarget: false, summary: 'resume the stopwatch' },
+      { verb: 'reset', words: [...RESET_WORDS], risk: 'safe', needsTarget: false, summary: 'reset the stopwatch' },
+      {
+        verb: 'close',
+        words: ['cancel', 'delete', 'remove', 'dismiss', 'scrap', 'off'],
+        risk: 'safe',
+        needsTarget: false,
+        summary: 'clear the stopwatch',
       },
     ],
   },
