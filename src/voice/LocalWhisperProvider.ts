@@ -318,7 +318,10 @@ export class LocalWhisperProvider implements SpeechToTextProvider {
 
       handlers.onError({
         code: 'transcription-failed',
-        message: 'The recording could not be transcribed.',
+        // Named. This sentence was identical to the ElevenLabs one, so a
+        // failure on screen did not say which provider had produced it -
+        // and the two need completely different fixes.
+        message: `Whisper could not transcribe the recording. ${cause}`,
         cause,
       });
     } finally {

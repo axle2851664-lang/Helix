@@ -201,6 +201,28 @@ fn decode(input: &str) -> Result<Vec<u8>, String> {
 /// boundary is derived from the payload length rather than from randomness: it
 /// only has to not appear in the body, and binary audio containing this exact
 /// ASCII run is not a case worth a random number generator.
+/// The filename to send with the audio, derived from its media type.
+///
+/// ElevenLabs looks at the filename as well as the part's content type, and a
+/// part labelled `audio/ogg` while called `turn.webm` is a request that
+/// contradicts itself - which is a 422 rather than a transcript. The name was
+/// hardcoded to `turn.webm` for every recording, so this went wrong on any
+/// browser whose MediaRecorder does not produce WebM.
+fn filename_for(mime: &str) -> &'static str {
+    match mime {
+        "audio/ogg" | "audio/opus" => "turn.ogg",
+        "audio/mp4" | "audio/x-m4a" | "audio/aac" => "turn.mp4",
+        "audio/mpeg" | "audio/mp3" => "turn.mp3",
+        "audio/wav" | "audio/x-wav" | "audio/wave" => "turn.wav",
+        "audio/flac" => "turn.flac",
+        // WebM is what Chromium records, and is the right default for this
+        // shell. Anything unrecognised has already been replaced with
+        // audio/webm by the caller, so this is not a guess about unknown
+        // audio - it is the one case that reaches here.
+        _ => "turn.webm",
+    }
+}
+
 fn multipart(boundary: &str, model: &str, mime: &str, audio: &[u8]) -> Vec<u8> {
     let mut body = Vec::with_capacity(audio.len() + 512);
 
@@ -216,7 +238,11 @@ fn multipart(boundary: &str, model: &str, mime: &str, audio: &[u8]) -> Vec<u8> {
 
     body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
     body.extend_from_slice(
-        b"Content-Disposition: form-data; name=\"file\"; filename=\"turn.webm\"\r\n",
+        format!(
+            "Content-Disposition: form-data; name=\"file\"; filename=\"{}\"\r\n",
+            filename_for(mime)
+        )
+        .as_bytes(),
     );
     body.extend_from_slice(format!("Content-Type: {mime}\r\n\r\n").as_bytes());
     body.extend_from_slice(audio);
@@ -421,6 +447,25 @@ mod tests {
             .position(|window| window == audio.as_slice())
             .expect("the audio is in the body");
         assert_eq!(&body[start..start + 4], audio.as_slice());
+    }
+
+    /// A part labelled one type and named another is a request that
+    /// contradicts itself, which the provider answers with a 422 rather than
+    /// a transcript.
+    #[test]
+    fn the_filename_matches_the_media_type() {
+        let audio = vec![1u8, 2, 3];
+        for (mime, expected) in [
+            ("audio/webm", "turn.webm"),
+            ("audio/ogg", "turn.ogg"),
+            ("audio/mp4", "turn.mp4"),
+            ("audio/wav", "turn.wav"),
+        ] {
+            let body = multipart("B", STT_MODEL, mime, &audio);
+            let text = String::from_utf8_lossy(&body).to_string();
+            assert!(text.contains(&format!("filename=\"{expected}\"")), "{mime}");
+            assert!(text.contains(&format!("Content-Type: {mime}")), "{mime}");
+        }
     }
 
     /// The boundary must not appear in the payload, or the request is cut in

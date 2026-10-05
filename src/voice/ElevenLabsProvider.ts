@@ -7,6 +7,7 @@ import type {
   TextToSpeechProvider,
 } from './types.js';
 import { rmsFromBytes, SilenceDetector } from './silence.js';
+import { messageFrom } from '../ai/transport.js';
 
 /**
  * Speech through ElevenLabs.
@@ -262,10 +263,22 @@ export class ElevenLabsSpeechToText implements SpeechToTextProvider {
         });
       }
     } catch (error) {
-      const cause = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      /**
+       * `messageFrom`, not `String(error)`.
+       *
+       * Tauri rejects with a plain `{ message }` object rather than an Error,
+       * so `String(error)` is the literal text "[object Object]" - and the
+       * cause is the only thing that says whether this was a rejected key, a
+       * malformed request or an exhausted quota. The identical mistake was
+       * already found and fixed on the inference side; this is the same
+       * helper, not a second copy of it.
+       */
+      const cause = messageFrom(error);
       handlers.onError({
         code: 'transcription-failed',
-        message: 'The recording could not be transcribed.',
+        // Named, because two providers emitted the same sentence and there
+        // was no way to tell from the screen which one had failed.
+        message: `ElevenLabs could not transcribe the recording. ${cause}`,
         cause,
       });
     } finally {

@@ -271,8 +271,16 @@ export function canStream(value: unknown): value is StreamingTransport {
   return typeof (value as StreamingTransport | null)?.streamChat === 'function';
 }
 
-/** Whatever the shell rejected with, as a sentence. */
-function messageFrom(error: unknown): string {
+/**
+ * Whatever the shell rejected with, as a sentence.
+ *
+ * Exported because the same bug reappeared in the voice provider: Tauri
+ * rejects with a plain object, so `String(error)` gives "[object Object]" and
+ * the provider's real message - the one that says whether this was a bad key,
+ * a bad request or a rate limit - is lost. One copy of this, used by
+ * everything that crosses the shell boundary.
+ */
+export function messageFrom(error: unknown): string {
   if (typeof error === 'string') return error;
   if (error !== null && typeof error === 'object') {
     const message = (error as { message?: unknown }).message;

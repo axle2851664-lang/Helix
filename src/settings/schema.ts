@@ -125,7 +125,16 @@ export const SETTINGS_SCHEMA = {
     kind: 'enum',
     section: 'voice',
     label: 'Speech recognition',
-    description: 'Provider used to turn speech into text.',
+    /**
+     * The restart is said because it is true.
+     *
+     * The chain of providers is built once, when the kernel starts, from
+     * whatever this says at that moment - so changing it here has no effect
+     * until Helix is reopened. Nothing mentioned that, which meant choosing
+     * ElevenLabs and then watching Whisper fail looked like the new provider
+     * being broken.
+     */
+    description: 'Provider used to turn speech into text. Takes effect when Helix restarts.',
     options: ['none', 'local', 'browser', 'elevenlabs'],
     optionLabels: {
       none: 'None',
@@ -142,6 +151,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'enum',
     section: 'voice',
     label: 'Text to speech',
+    description: 'Voice used to speak replies. Takes effect when Helix restarts.',
     options: ['none', 'browser', 'local', 'cloud', 'elevenlabs'],
     optionLabels: {
       none: 'None',
