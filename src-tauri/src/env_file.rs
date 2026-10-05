@@ -28,22 +28,48 @@ use std::path::{Path, PathBuf};
 /// directory and its parent, which between them cover `npm run tauri:dev` -
 /// where the process runs in `src-tauri/` and most people put the file at the
 /// repository root.
+/// The names a file of keys may have.
+///
+/// `.env.txt` is here because Notepad puts it there. Its save dialog defaults
+/// to "Text Documents (*.txt)" and appends the extension without saying so, so
+/// a user who followed the instruction to the letter ends up with a file this
+/// would never have looked at - and the failure is a key that does nothing,
+/// with no way to tell that from a key that was rejected. Accepting the name
+/// costs one line; not accepting it cost an evening.
+const NAMES: &[&str] = &[".env", ".env.txt"];
+
 fn candidates() -> Vec<PathBuf> {
-    let mut paths = Vec::new();
+    let mut dirs: Vec<PathBuf> = Vec::new();
 
     if let Ok(exe) = std::env::current_exe() {
         if let Some(parent) = exe.parent() {
-            paths.push(parent.join(".env"));
+            dirs.push(parent.to_path_buf());
+            // Under `tauri dev` the executable sits in
+            // src-tauri/target/debug/, three levels below the repository
+            // root where the file usually is. Walking up covers that without
+            // depending on how the process was launched.
+            for extra in parent.ancestors().skip(1).take(3) {
+                dirs.push(extra.to_path_buf());
+            }
         }
     }
 
     if let Ok(cwd) = std::env::current_dir() {
-        paths.push(cwd.join(".env"));
+        dirs.push(cwd.clone());
         if let Some(parent) = cwd.parent() {
-            paths.push(parent.join(".env"));
+            dirs.push(parent.to_path_buf());
         }
     }
 
+    let mut paths = Vec::new();
+    for dir in dirs {
+        for name in NAMES {
+            let path = dir.join(name);
+            if !paths.contains(&path) {
+                paths.push(path);
+            }
+        }
+    }
     paths
 }
 
@@ -54,7 +80,14 @@ fn candidates() -> Vec<PathBuf> {
 /// have to know which this accepts. `export KEY=value` is accepted for the
 /// same reason: it is what shell documentation tells people to write.
 fn parse_line(line: &str) -> Option<(String, String)> {
-    let trimmed = line.trim();
+    // The byte-order mark, stripped before anything else.
+    //
+    // Notepad writes UTF-8 with a BOM, and `read_to_string` keeps it. It
+    // lands on the first character of the first line, so the name parses as
+    // "\u{feff}ELEVENLABS_API_KEY", fails the character check, and the line is
+    // skipped - which means a file whose first line is the key reads as a file
+    // with no keys in it, silently.
+    let trimmed = line.trim_start_matches('\u{feff}').trim();
     if trimmed.is_empty() || trimmed.starts_with('#') {
         return None;
     }
@@ -80,13 +113,13 @@ fn parse_line(line: &str) -> Option<(String, String)> {
     Some((name.to_string(), value.to_string()))
 }
 
-/// Apply one file. Returns how many variables it set.
-fn apply(path: &Path) -> usize {
+/// Apply one file. Returns the names of the variables it set.
+fn apply(path: &Path) -> Vec<String> {
     let Ok(contents) = std::fs::read_to_string(path) else {
-        return 0;
+        return Vec::new();
     };
 
-    let mut applied = 0;
+    let mut applied = Vec::new();
     for line in contents.lines() {
         let Some((name, value)) = parse_line(line) else {
             continue;
@@ -105,25 +138,68 @@ fn apply(path: &Path) -> usize {
         // happens here and nowhere else. (Rust 2024 marks the call `unsafe`
         // for that reason; this crate is on 2021, where it is not.)
         std::env::set_var(&name, &value);
-        applied += 1;
+        applied.push(name);
     }
 
     applied
 }
 
-/// Load the first `.env` found, if any.
+/// What loading did, so a key that does nothing can be diagnosed.
 ///
-/// Only the first: two files in scope at once is ambiguous, and a user
-/// debugging a key would have no way to tell which had won.
-pub fn load() -> Option<PathBuf> {
+/// Names only, never values. A variable name is not a secret and this is the
+/// one thing that answers "did my key arrive"; the value stays on this side of
+/// the boundary exactly as `configured_inference_providers` keeps it.
+#[derive(Clone, Default, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnvReport {
+    /// Every path tried, in order.
+    pub searched: Vec<String>,
+    /// The ones that existed and were read.
+    pub loaded: Vec<String>,
+    /// Names of the variables the files set, sorted.
+    pub names: Vec<String>,
+}
+
+static REPORT: std::sync::Mutex<Option<EnvReport>> = std::sync::Mutex::new(None);
+
+/// Load every file of keys that exists.
+///
+/// Every one, not just the first. Stopping at the first was meant to avoid the
+/// ambiguity of two files in scope, but it created a worse failure: a stale or
+/// empty `.env` beside the executable silently won over the real one at the
+/// repository root, and nothing said which had been read. Earlier files still
+/// take precedence per variable - the first value for a name wins, and so does
+/// a variable already in the environment - so the ordering still means
+/// something. What has gone is the chance of the right file never being
+/// opened.
+pub fn load() -> EnvReport {
+    let mut report = EnvReport::default();
+
     for path in candidates() {
+        report.searched.push(path.display().to_string());
         if !path.is_file() {
             continue;
         }
-        apply(&path);
-        return Some(path);
+        let names = apply(&path);
+        if !names.is_empty() {
+            report.names.extend(names);
+        }
+        report.loaded.push(path.display().to_string());
     }
-    None
+
+    report.names.sort();
+    report.names.dedup();
+
+    if let Ok(mut slot) = REPORT.lock() {
+        *slot = Some(report.clone());
+    }
+    report
+}
+
+/// What the last load did. Empty before `load` has run.
+#[tauri::command]
+pub fn env_file_report() -> EnvReport {
+    REPORT.lock().ok().and_then(|slot| slot.clone()).unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -169,6 +245,17 @@ mod tests {
         for line in ["just some words", "=novalue", "BAD NAME=value", "KEY-WITH-DASH=v"] {
             assert_eq!(parse_line(line), None, "{line}");
         }
+    }
+
+    /// Notepad writes UTF-8 with a BOM, and it lands on the first character
+    /// of the first line - so without this the key on line one is skipped and
+    /// the file reads as empty.
+    #[test]
+    fn a_byte_order_mark_does_not_hide_the_first_key() {
+        assert_eq!(
+            parse_line("\u{feff}ELEVENLABS_API_KEY=abc123"),
+            Some(("ELEVENLABS_API_KEY".into(), "abc123".into()))
+        );
     }
 
     /// A key may contain anything, including '=' and '#'. Splitting on the

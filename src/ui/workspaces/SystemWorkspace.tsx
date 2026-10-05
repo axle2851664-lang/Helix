@@ -6,6 +6,20 @@ import type { HardwareProfile, VolumeStats } from '../../platform/PlatformAdapte
 import type { LogRecord } from '../../core/Logger.js';
 import { HelixMark } from '../components/HelixMark.js';
 import { HELIX_STATES, type HelixStatus } from '../../types/status.js';
+import { tauriInvoke } from '../../platform/TauriPlatform.js';
+
+/**
+ * What the shell found when it looked for a file of keys.
+ *
+ * Names only - never values. A variable name is not a secret, and this is the
+ * one thing that answers "did my key arrive". The value never crosses the
+ * boundary, exactly as it never does for inference.
+ */
+interface EnvReport {
+  searched: string[];
+  loaded: string[];
+  names: string[];
+}
 
 /**
  * System status (spec 3, 16, 17).
@@ -37,6 +51,24 @@ export function SystemWorkspace() {
   const [helixUsage, setHelixUsage] = useState<number | null>(null);
   const [logs, setLogs] = useState<readonly LogRecord[]>([]);
   const [previewStatus, setPreviewStatus] = useState<HelixStatus>('IDLE');
+  /** Null until the shell answers, and in a browser for ever. */
+  const [env, setEnv] = useState<EnvReport | null>(null);
+
+  useEffect(() => {
+    const invoke = tauriInvoke();
+    if (!invoke) return;
+    let cancelled = false;
+    void invoke<EnvReport>('env_file_report')
+      .then((report) => {
+        if (!cancelled) setEnv(report);
+      })
+      // An older shell has no such command. Silence is right: the section
+      // then says what a browser says, which is true of it too.
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [shellVersion, setShellVersion] = useState<string | null>(null);
 
   useEffect(() => {
@@ -156,6 +188,58 @@ export function SystemWorkspace() {
         <p className="helix-settings__note">
           Storage accounting and the enforced ceiling arrive with StorageManager.
         </p>
+      </section>
+
+      {/*
+        Keys, and where they came from.
+        
+        This exists because a key that does nothing is indistinguishable from a
+        key that was rejected, and the difference is everything: one is a
+        wrongly-placed file and the other is a wrong value. An evening went on
+        guessing between them. The shell knows which paths it tried and which
+        it read, so it says.
+      */}
+      <section className="helix-panel">
+        <h2 className="helix-panel__title">Keys from the environment</h2>
+        {env === null ? (
+          <p className="helix-settings__note">
+            Only the desktop app reads a file of keys. In a browser there is nowhere safe to
+            hold one.
+          </p>
+        ) : (
+          <>
+            {env.loaded.length === 0 ? (
+              <p className="helix-settings__note">
+                No <code>.env</code> was found. Put one at the top of the Helix folder, then
+                reopen Helix. These are the places that were looked at:
+              </p>
+            ) : (
+              <>
+                <p className="helix-settings__note">
+                  Read {env.loaded.length === 1 ? 'this file' : 'these files'}:
+                </p>
+                <ul className="helix-settings__paths">
+                  {env.loaded.map((path) => (
+                    <li key={path}><code>{path}</code></li>
+                  ))}
+                </ul>
+                <p className="helix-settings__note">
+                  {env.names.length === 0
+                    ? 'It set nothing. Every line was blank, a comment, or had no value after the "=".'
+                    : `It set: ${env.names.join(', ')}.`}
+                </p>
+              </>
+            )}
+            <details className="helix-settings__detail">
+              <summary>Where it looked</summary>
+              <ul className="helix-settings__paths">
+                {env.searched.map((path) => (
+                  <li key={path}><code>{path}</code></li>
+                ))}
+              </ul>
+            </details>
+          </>
+        )}
       </section>
 
       <section className="helix-panel">

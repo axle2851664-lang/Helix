@@ -165,6 +165,7 @@ pub fn run() {
             listen::start_phone_listener,
             listen::phone_reply,
             vault::vault_documents,
+            env_file::env_file_report,
             voice::elevenlabs_configured,
             voice::elevenlabs_voices,
             voice::elevenlabs_transcribe,
