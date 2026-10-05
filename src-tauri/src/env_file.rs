@@ -125,10 +125,28 @@ fn apply(path: &Path) -> Vec<String> {
             continue;
         };
 
+        // A line with nothing after the '=' is not a value, and setting it
+        // would be worse than doing nothing.
+        //
+        // `.env.example` ships every key with an empty value, so a copied
+        // template sets each one to the empty string - and then the rule
+        // below, that an existing value wins, makes that empty string beat
+        // the real key added further down the file or in another file. The
+        // obvious fix for a missing key ("add the line at the bottom") would
+        // have silently done nothing, which is the failure this whole module
+        // exists to stop.
+        if value.trim().is_empty() {
+            continue;
+        }
+
         // Already set wins, always. A file must not override a value someone
         // exported deliberately - the key in use would then not be the one
         // they can see.
-        if std::env::var_os(&name).is_some() {
+        //
+        // An empty variable does not count as set, for the reason above and
+        // because a shell that exports KEY= has not supplied a credential.
+        let existing = std::env::var(&name).unwrap_or_default();
+        if !existing.trim().is_empty() {
             continue;
         }
 
@@ -245,6 +263,21 @@ mod tests {
         for line in ["just some words", "=novalue", "BAD NAME=value", "KEY-WITH-DASH=v"] {
             assert_eq!(parse_line(line), None, "{line}");
         }
+    }
+
+    /// The template ships every key with an empty value. If those counted,
+    /// the empty string would be "already set" and the real key - added
+    /// lower down, or in another file - would be skipped.
+    #[test]
+    fn an_empty_value_is_not_a_value() {
+        assert_eq!(
+            parse_line("ELEVENLABS_API_KEY="),
+            Some(("ELEVENLABS_API_KEY".into(), "".into()))
+        );
+        // The line parses; `apply` is what declines to set it. Asserted here
+        // as the contract between the two: parse_line reports what the line
+        // says, and an empty string is what "KEY=" says.
+        assert_eq!(parse_line("KEY=   ").map(|(_, value)| value), Some("".into()));
     }
 
     /// Notepad writes UTF-8 with a BOM, and it lands on the first character
