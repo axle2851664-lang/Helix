@@ -13,10 +13,18 @@
 
 /**
  * How long the level must stay below the floor before the turn ends.
- * Tune this first if turns are cut off mid-sentence (raise it) or drag on
- * after you stop (lower it).
+ *
+ * Raised from 900ms, which cut people off. 900ms is shorter than the pause in
+ * "set a timer for... ten minutes", shorter than the breath before a second
+ * sentence, and shorter than the gap while someone thinks of a word - so a
+ * turn ended mid-thought and the half-sentence that had been captured went
+ * off to be answered. The reported symptom was a call stopping by itself.
+ *
+ * 1.4s is long enough to speak through a pause and still short enough that
+ * finishing a sentence does not feel like waiting. Tune this first if turns
+ * are cut off mid-sentence (raise it) or drag on after you stop (lower it).
  */
-export const SILENCE_HOLD_MS = 900;
+export const SILENCE_HOLD_MS = 1400;
 
 /**
  * RMS level, 0..1, below which audio counts as silence.
@@ -35,8 +43,14 @@ export const MIN_SPEECH_MS = 250;
 /**
  * Give up on a turn that never contains speech at all, rather than listening
  * forever with an open microphone.
+ *
+ * Raised from 8s. The clock starts the instant the microphone opens, and 8
+ * seconds is not long to press a button, gather a thought and begin - so a
+ * turn could expire before the first word, which looked like the call ending
+ * on its own. An open microphone is a real cost, so this is not unbounded;
+ * 15s is the point where waiting is clearly deliberate rather than slow.
  */
-export const MAX_SILENT_WAIT_MS = 8000;
+export const MAX_SILENT_WAIT_MS = 15_000;
 
 /** Longest single turn, so a stuck level cannot hold the microphone open. */
 export const MAX_TURN_MS = 60_000;

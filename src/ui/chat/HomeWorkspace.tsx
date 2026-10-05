@@ -3,6 +3,7 @@ import { Composer } from './Composer.js';
 import { ToolCardView } from './ToolCardView.js';
 import { useHelix, useSettings } from '../HelixProvider.js';
 import { Core } from '../hero/Core.js';
+import { endsTheCall } from '../../voice/goodbye.js';
 import { coreStateFor, coreStateLabel } from '../hero/coreState.js';
 import { describeReasoning, reactorSegments } from '../hero/capabilities.js';
 import { toUserMessage } from '../../core/HelixError.js';
@@ -316,33 +317,108 @@ export function HomeWorkspace({
   };
 
   /**
-   * Clicking the core starts or ends a voice turn - it is the most obvious
-   * thing on the screen, so it should be the call button. While listening it
-   * stops, which doubles as barge-in.
+   * Clicking the core starts or ends a call.
+   *
+   * A call, not a single turn. It used to be one press for one turn: Helix
+   * answered and then sat there, and the next thing you said went nowhere
+   * because the microphone had closed. Pressing again between every sentence
+   * is not a conversation, and from the outside it looked exactly like the
+   * call had ended by itself.
+   *
+   * So the loop below keeps taking turns until something ends it, and the
+   * things that end it are all deliberate: the user presses the core again,
+   * the user says something that means goodbye, a turn fails, or two turns in
+   * a row contain nothing. Never a silent stop.
    */
+  const inCall = useRef(false);
+
+  /**
+   * Say why, on screen, for the length of time it takes to read.
+   *
+   * Every exit from a call goes through this. The bug this replaces was not
+   * that calls ended - it is that they ended with no reply, no error and
+   * nothing on screen, so there was no way to tell a finished call from a
+   * broken microphone.
+   */
+  const notice = (message: string) => {
+    setCoreNotice(message);
+    window.setTimeout(() => setCoreNotice(null), 7000);
+  };
+
   const toggleCall = async () => {
-    if (voiceState.state === 'listening') {
+    // Pressing the core during a call ends it, whichever half of the turn it
+    // is in. This is the barge-in gesture and the hang-up gesture at once.
+    if (inCall.current) {
+      inCall.current = false;
       voice.stopListening();
-      return;
-    }
-    if (voiceState.state === 'speaking') {
       voice.stopSpeaking();
       return;
     }
 
     const blocker = voice.inputBlocker();
     if (blocker !== null) {
-      setCoreNotice(blocker);
-      window.setTimeout(() => setCoreNotice(null), 7000);
+      notice(blocker);
       return;
     }
 
+    inCall.current = true;
+    /** Two empty turns in a row end the call; one is just a pause. */
+    let emptyTurns = 0;
+
     try {
-      const transcript = await voice.listen();
-      if (transcript.trim() !== '') await send(transcript, { speak: true });
+      while (inCall.current) {
+        const transcript = (await voice.listen()).trim();
+
+        // Ended while the microphone was open - the press above, or a stop
+        // from anywhere else. Checked after every await, because each one is
+        // a point where the user may have hung up.
+        if (!inCall.current) break;
+
+        if (transcript === '') {
+          /**
+           * Nothing came back. Why matters, and until now nothing said:
+           * `listen()` resolves with an empty string both when it heard
+           * silence and when transcription failed, and the error was stored
+           * on the voice manager and never read. A 401 from a speech
+           * provider looked identical to saying nothing at all.
+           */
+          const reason = voice.snapshot.error;
+          if (reason !== null) {
+            inCall.current = false;
+            notice(reason);
+            break;
+          }
+
+          emptyTurns += 1;
+          if (emptyTurns >= 2) {
+            inCall.current = false;
+            notice('I did not hear anything, so I have stopped listening.');
+            break;
+          }
+          continue;
+        }
+
+        emptyTurns = 0;
+        await send(transcript, { speak: true });
+
+        if (!inCall.current) break;
+
+        // Saying goodbye ends a call. Checked on the transcript rather than
+        // asked of a model: it is four words, and a model deciding whether
+        // the call is over would sometimes decide wrongly.
+        if (endsTheCall(transcript)) {
+          inCall.current = false;
+          break;
+        }
+      }
     } catch (error) {
-      setCoreNotice(toUserMessage(error));
-      window.setTimeout(() => setCoreNotice(null), 7000);
+      inCall.current = false;
+      notice(toUserMessage(error));
+    } finally {
+      // Whatever happened, the call is over and the flag must not be left
+      // set - a stale true would make the next press hang up a call that is
+      // not happening, and the core would stop responding entirely.
+      inCall.current = false;
     }
   };
 
