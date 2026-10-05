@@ -23,6 +23,7 @@
 //! this file refuses to offer the means.
 
 mod env_file;
+mod keys;
 mod google;
 mod web;
 mod inference;
@@ -166,6 +167,9 @@ pub fn run() {
             listen::phone_reply,
             vault::vault_documents,
             env_file::env_file_report,
+            keys::key_status,
+            keys::save_key,
+            keys::forget_key,
             voice::elevenlabs_configured,
             voice::elevenlabs_voices,
             voice::elevenlabs_transcribe,

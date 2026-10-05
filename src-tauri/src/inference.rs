@@ -101,7 +101,10 @@ fn key_for(provider: &ProviderSpec) -> Option<String> {
         // in one place rather than special-casing it at every call site.
         return Some(String::new());
     }
-    std::env::var(provider.env_var).ok().filter(|value| !value.trim().is_empty())
+    // Through `keys`, not `std::env::var` directly, so a key saved in
+    // Settings a moment ago is usable without a restart. The environment is
+    // still consulted - `keys::get` checks it second.
+    crate::keys::get(provider.env_var)
 }
 
 /// Which providers have a key.

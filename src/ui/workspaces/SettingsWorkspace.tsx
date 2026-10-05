@@ -3,6 +3,7 @@ import { useHelix, useSettings } from '../HelixProvider.js';
 import { AddDevicePanel } from '../relay/AddDevicePanel.js';
 import { PhoneListenerStatus } from '../relay/PhoneListenerStatus.js';
 import { RelayPanel } from '../relay/RelayPanel.js';
+import { KeysPanel } from '../settings/KeysPanel.js';
 import {
   SETTINGS_KEYS,
   SETTINGS_SCHEMA,
@@ -116,6 +117,13 @@ export function SettingsWorkspace() {
           lost when Helix closes.
         </div>
       )}
+
+      {/*
+        First, because it is what someone opens this screen to do - and
+        because every "nothing happened" in this project so far has traced
+        back to a key that never arrived.
+      */}
+      <KeysPanel />
 
       {grouped.map(({ section, keys }) => (
         <section className="helix-panel helix-settings__section" key={section}>

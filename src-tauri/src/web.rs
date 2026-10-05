@@ -156,7 +156,8 @@ pub fn configured_web_providers() -> Vec<String> {
         .iter()
         .map(|(host, _, _, var)| (*host, *var))
         .chain(KEYED_QUERY_HOSTS.iter().map(|(host, _, var)| (*host, *var)))
-        .filter(|(_, var)| std::env::var(var).map(|v| !v.trim().is_empty()).unwrap_or(false))
+        // Through `keys`, so a search key saved in Settings counts at once.
+        .filter(|(_, var)| crate::keys::get(var).is_some())
         .map(|(host, _)| host.to_string())
         .collect()
 }
@@ -187,10 +188,8 @@ pub async fn web_fetch(url: String) -> Result<WebResponse, String> {
         if let Some(host) = current.host_str() {
             for (keyed_host, header, prefix, var) in KEYED_HOSTS {
                 if host == *keyed_host {
-                    if let Ok(key) = std::env::var(var) {
-                        if !key.trim().is_empty() {
-                            request = request.header(*header, format!("{prefix}{key}"));
-                        }
+                    if let Some(key) = crate::keys::get(var) {
+                        request = request.header(*header, format!("{prefix}{key}"));
                     }
                 }
             }
@@ -200,10 +199,8 @@ pub async fn web_fetch(url: String) -> Result<WebResponse, String> {
             // handling nor the reported url ever carries the credential.
             for (keyed_host, param, var) in KEYED_QUERY_HOSTS {
                 if host == *keyed_host {
-                    if let Ok(key) = std::env::var(var) {
-                        if !key.trim().is_empty() {
-                            request = client.get(with_query_key(&current, param, key.trim()));
-                        }
+                    if let Some(key) = crate::keys::get(var) {
+                        request = client.get(with_query_key(&current, param, key.trim()));
                     }
                 }
             }

@@ -4166,3 +4166,104 @@ body {
   cursor: pointer;
   letter-spacing: 0.04em;
 }
+
+/* ---- keys, pasted rather than put in a file ---- */
+
+.helix-keys__row {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.helix-keys__row:last-child {
+  border-bottom: 0;
+}
+
+.helix-keys__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.helix-keys__label {
+  font-size: 13px;
+  color: #ddd6cc;
+}
+
+/* Whether the key is there, and where from. "set outside Helix" is a
+   different fact from "saved" - one can be changed here and one cannot,
+   and conflating them would promise something this screen cannot do. */
+.helix-keys__state {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.helix-keys__state--saved {
+  color: #7fc48a;
+}
+
+.helix-keys__state--environment {
+  color: #c9a24a;
+}
+
+.helix-keys__state--none {
+  color: #6b6b6b;
+}
+
+.helix-keys__controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Styled here rather than on `.hx-input`, which this reuses for the sake of
+   consistency but which has no rule of its own anywhere - so adding one
+   globally would restyle every other field in Helix as a side effect of
+   adding a keys panel. */
+.helix-keys__input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #e8e2d8;
+  font-size: 13px;
+  /* A key is long and has no words in it; a proportional face makes it
+     impossible to compare against what the provider showed you. */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.08em;
+}
+
+.helix-keys__input:focus {
+  outline: none;
+  border-color: rgba(255, 150, 50, 0.5);
+}
+
+.helix-keys__input::placeholder {
+  color: #6b6560;
+  letter-spacing: normal;
+  font-family: inherit;
+}
+
+/* The environment variable the key lands in. Shown because it is the name
+   in every provider's own documentation, and because anyone who has been
+   editing a file by hand needs to know which line this replaces. */
+.helix-keys__var {
+  margin-top: 6px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #5a564f;
+}
+
+.helix-keys__note {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-left: 2px solid #c9802a;
+  background: rgba(200, 120, 40, 0.07);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #d8cfc2;
+}

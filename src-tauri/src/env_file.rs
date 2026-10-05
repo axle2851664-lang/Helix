@@ -38,6 +38,15 @@ use std::path::{Path, PathBuf};
 /// costs one line; not accepting it cost an evening.
 const NAMES: &[&str] = &[".env", ".env.txt"];
 
+/// The candidate paths, for `keys.rs` to write to the one already in use.
+///
+/// Public so that saving a key edits the file the loader will actually read.
+/// Writing to a path this does not search is how a saved key goes missing
+/// between one launch and the next.
+pub fn candidate_paths() -> Vec<PathBuf> {
+    candidates()
+}
+
 fn candidates() -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = Vec::new();
 

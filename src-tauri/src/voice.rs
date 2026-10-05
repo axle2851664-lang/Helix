@@ -62,9 +62,9 @@ impl From<String> for VoiceError {
 }
 
 fn key() -> Option<String> {
-    std::env::var(KEY_VAR)
-        .ok()
-        .filter(|value| !value.trim().is_empty())
+    // Through `keys`, so a key pasted into Settings works at once rather than
+    // at the next launch. See keys.rs for why nothing calls `set_var`.
+    crate::keys::get(KEY_VAR)
 }
 
 fn require_key() -> Result<String, VoiceError> {
