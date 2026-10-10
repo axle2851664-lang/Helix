@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { useHavoc } from '../HavocProvider.js';
+import { toUserMessage } from '../../core/HavocError.js';
 import { ACCEPT_ATTRIBUTE, formatBytes } from '../../projects/validation.js';
 import type { ProjectAsset, ProjectSummary } from '../../projects/types.js';
 
@@ -20,7 +20,7 @@ export function ProjectsWorkspace({
   selectedProjectId: string | null;
   onSelectProject: (projectId: string | null) => void;
 }) {
-  const { projects } = useHelix();
+  const { projects } = useHavoc();
   const [list, setList] = useState<ProjectSummary[]>([]);
 
   const refresh = useCallback(() => {
@@ -72,7 +72,7 @@ export function ProjectsWorkspace({
             ))}
           </ul>
           <p className="hx-settings__note">
-            Ask Helix to &ldquo;open my {list[0]?.name} project&rdquo; from the home screen.
+            Ask Havoc to &ldquo;open my {list[0]?.name} project&rdquo; from the home screen.
           </p>
         </div>
       )}
@@ -85,7 +85,7 @@ export function ProjectsWorkspace({
  * one is given, so a file can never land in an unnamed bucket.
  */
 function ImportPanel({ onImported }: { onImported: (projectId: string) => void }) {
-  const { projects, activity, logger, knowledge } = useHelix();
+  const { projects, activity, logger, knowledge } = useHavoc();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -222,7 +222,7 @@ function ImportPanel({ onImported }: { onImported: (projectId: string) => void }
 }
 
 function ProjectDetail({ project, onBack }: { project: ProjectSummary; onBack: () => void }) {
-  const { projects } = useHelix();
+  const { projects } = useHavoc();
   const [assets, setAssets] = useState<ProjectAsset[]>([]);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -317,7 +317,7 @@ function AssetList({
   assets: ProjectAsset[];
   emptyText: string;
 }) {
-  const { projects } = useHelix();
+  const { projects } = useHavoc();
 
   return (
     <section className="hx-panel">
@@ -354,7 +354,7 @@ function AssetList({
 
 /** Renders a stored image from its bytes; other kinds get an icon. */
 function AssetThumb({ asset }: { asset: ProjectAsset }) {
-  const { projects } = useHelix();
+  const { projects } = useHavoc();
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {

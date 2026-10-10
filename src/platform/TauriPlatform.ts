@@ -13,7 +13,7 @@ import type {
  *
  * Written against the interface that has been waiting for it since the first
  * commit, which is the payoff for having had one: nothing in the feature code
- * changes when Helix moves into the shell, and every screen that reported "the
+ * changes when Havoc moves into the shell, and every screen that reported "the
  * Tauri shell would tell you this" starts telling you instead.
  *
  * It extends the browser implementation rather than replacing it. A Tauri
@@ -29,7 +29,7 @@ import type {
  *   entirely. Moving into the shell is not the moment to relax that.
  *
  * - **It does not offer a filesystem.** Real paths become possible here, but
- *   possible is not the same as exposed. The standing rule that Helix never
+ *   possible is not the same as exposed. The standing rule that Havoc never
  *   writes outside its own folders survives the move only if the shell
  *   declines to offer the means, so filesystem access will arrive as narrow
  *   named commands or not at all.
@@ -50,7 +50,7 @@ interface TauriGlobal {
  *
  * `__TAURI__` - the global the rest of this file used to look for - only
  * appears when `withGlobalTauri` is turned on, and it is off by default. Left
- * relying on that alone, Helix runs inside its own desktop window and reports
+ * relying on that alone, Havoc runs inside its own desktop window and reports
  * `host: 'browser'`, so every command the shell offers is unreachable while
  * looking, from the outside, exactly like a shell that is working.
  *
@@ -97,7 +97,7 @@ function invoker(): TauriInvoke | null {
 }
 
 /**
- * Where the shell says Helix is installed, or null when there is no shell.
+ * Where the shell says Havoc is installed, or null when there is no shell.
  *
  * Standalone because the kernel needs this answer *before* it can build a
  * platform: the paths depend on the root, and TauriPlatform depends on the
@@ -126,7 +126,7 @@ export interface TailscaleLookup {
  * This machine's tailnet address, asked of the shell.
  *
  * A browser gets `null` with the reason, rather than an error: running in a
- * browser is a normal state for Helix, not a fault, and the pairing screen
+ * browser is a normal state for Havoc, not a fault, and the pairing screen
  * needs something to say either way.
  */
 export async function shellTailscaleAddress(invoke?: TauriInvoke): Promise<TailscaleLookup> {
@@ -144,13 +144,13 @@ export async function shellTailscaleAddress(invoke?: TauriInvoke): Promise<Tails
   } catch (error) {
     return {
       address: null,
-      reason: error instanceof Error ? error.message : 'Helix could not ask Tailscale.',
+      reason: error instanceof Error ? error.message : 'Havoc could not ask Tailscale.',
     };
   }
 }
 
 export interface TauriPlatformOptions {
-  /** Where Helix keeps its data, used to pick the right volume. */
+  /** Where Havoc keeps its data, used to pick the right volume. */
   dataRoot: string;
   /** Injected in tests. Falls back to the real global. */
   invoke?: TauriInvoke;
@@ -176,14 +176,14 @@ export class TauriPlatform implements PlatformAdapter {
       // because the host could would be the same overstatement the browser
       // build spent ten phases avoiding.
       // Reading the folders you nominated, and nothing else. There is no
-      // command that writes outside Helix's own folders, so the standing rule
+      // command that writes outside Havoc's own folders, so the standing rule
       // holds: what arrived is one narrow named command, as promised, not a
       // filesystem.
       filesystem: this.#invoke
         ? {
             available: true,
             reason:
-              'Read-only, and only inside the folders configured as vault roots. No command writes outside Helix\'s own folders.',
+              'Read-only, and only inside the folders configured as vault roots. No command writes outside Havoc\'s own folders.',
           }
         : {
             available: false,
@@ -223,12 +223,12 @@ export class TauriPlatform implements PlatformAdapter {
   /**
    * Real volume figures.
    *
-   * This is the one that matters. Every storage figure in Helix has carried a
+   * This is the one that matters. Every storage figure in Havoc has carried a
    * qualifier saying it described a browser quota rather than a disk; from
    * here `source` is `volume` and those qualifiers become true statements
    * about a real disk instead of warnings about an absent one.
    *
-   * Helix's own footprint still comes from the storage layer, which knows what
+   * Havoc's own footprint still comes from the storage layer, which knows what
    * belongs to it. The shell reports the disk; it does not guess at the share.
    */
   /**
@@ -259,7 +259,7 @@ export class TauriPlatform implements PlatformAdapter {
       const stats = await this.#invoke<{
         freeBytes: number;
         totalBytes: number;
-        usedByHelixBytes: number;
+        usedByHavocBytes: number;
         source: string;
       } | null>('volume_stats', { path: this.#dataRoot });
 
@@ -268,7 +268,7 @@ export class TauriPlatform implements PlatformAdapter {
       return {
         freeBytes: stats.freeBytes,
         totalBytes: stats.totalBytes,
-        usedByHelixBytes: stats.usedByHelixBytes,
+        usedByHavocBytes: stats.usedByHavocBytes,
         // Pinned rather than trusted from the wire. A shell that answered
         // anything else would silently turn a disk figure into a quota figure
         // in every screen that reads this.

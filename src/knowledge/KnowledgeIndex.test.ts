@@ -11,7 +11,7 @@ const encode = (text: string) => new TextEncoder().encode(text).buffer as ArrayB
 async function makeIndex(bus?: EventBus) {
   const store = new MemoryKeyValueStore();
   const logger = new Logger('test', { level: 'ERROR', sinks: [] });
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store, logger, paths });
   const knowledge = new KnowledgeIndex({ store, projects, logger, ...(bus ? { bus } : {}) });
   const project = await projects.createProject('Notes');
@@ -67,7 +67,7 @@ describe('KnowledgeIndex: indexing', () => {
   /**
    * A PDF that is not really a PDF. It is still recorded as stored and not
    * searchable, but the reason is now about this file rather than about a
-   * parser Helix does not have - the parser exists.
+   * parser Havoc does not have - the parser exists.
    */
   it('records a broken PDF as stored but not searchable', async () => {
     const asset = await context.projects.addFileToProject({

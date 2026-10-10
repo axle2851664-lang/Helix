@@ -97,7 +97,7 @@ export interface TextToSpeechProvider {
     options?: { voiceId?: string; rate?: number },
   ): Promise<void>;
 
-  /** Stop immediately. Required so the user can interrupt Helix (spec 9). */
+  /** Stop immediately. Required so the user can interrupt Havoc (spec 9). */
   cancel(): void;
   readonly speaking: boolean;
 
@@ -108,7 +108,7 @@ export interface TextToSpeechProvider {
    * recognition side, because not every synthesiser emits boundaries and a
    * required method would force the ones that do not to lie about it.
    *
-   * This exists so the core on screen can swell on the words Helix is
+   * This exists so the core on screen can swell on the words Havoc is
    * actually saying. The alternative - a sine wave while `speaking` is true -
    * would look identical and mean nothing, which is the one thing the
    * interface is not allowed to do.
@@ -118,5 +118,5 @@ export interface TextToSpeechProvider {
   onWord?(listener: () => void): () => void;
 }
 
-/** Voice pipeline state, mirrored by the Helix status indicator. */
+/** Voice pipeline state, mirrored by the Havoc status indicator. */
 export type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error';

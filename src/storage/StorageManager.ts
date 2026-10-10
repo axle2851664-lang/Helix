@@ -6,7 +6,7 @@ import type { ProjectManager } from '../projects/ProjectManager.js';
 import type { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import type { ConversationStore } from '../conversations/ConversationStore.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import {
   admit,
   fillRatio,
@@ -21,7 +21,7 @@ import {
  * Storage accounting and the enforced ceiling (spec 11).
  *
  * Two jobs, and the second is the one that matters. Accounting tells the user
- * what Helix is holding. Admission decides whether the next write happens at
+ * what Havoc is holding. Admission decides whether the next write happens at
  * all, and it runs at the choke point - inside the import path - rather than in
  * the screen that calls it, so no caller can forget to ask.
  *
@@ -175,7 +175,7 @@ export class StorageManager {
   }
 
   /**
-   * Bytes Helix holds.
+   * Bytes Havoc holds.
    *
    * Prefers the backend's own figure when it has one, because that includes
    * index and record overhead the category sums cannot see. Falls back to the
@@ -209,7 +209,7 @@ export class StorageManager {
     const verdict = await this.admit(bytes);
     if (verdict.allowed) return;
 
-    throw new HelixError('STORAGE_LIMIT', verdict.reason, {
+    throw new HavocError('STORAGE_LIMIT', verdict.reason, {
       technical: `refused ${bytes} bytes, bound by ${verdict.bound}`,
     });
   }
@@ -279,7 +279,7 @@ export class StorageManager {
         bytes: memories.reduce((total, record) => total + estimateBytes(record), 0),
         items: memories.length,
         basis: 'estimated',
-        description: 'Only what you asked Helix to keep.',
+        description: 'Only what you asked Havoc to keep.',
       },
       {
         category: 'snapshots',
@@ -289,7 +289,7 @@ export class StorageManager {
         // Exact: each snapshot recorded its own serialised length when written.
         basis: 'measured',
         description:
-          'Copies of everything Helix holds, kept on this machine. They guard against a mistake in Helix, not against losing the machine.',
+          'Copies of everything Havoc holds, kept on this machine. They guard against a mistake in Havoc, not against losing the machine.',
       },
       {
         category: 'settings',
@@ -339,7 +339,7 @@ export class StorageManager {
         id: 'generated-assets',
         label: 'Generated files',
         detail:
-          'Anything Helix produced from your originals. Your originals are untouched, but whatever was generated would have to be made again.',
+          'Anything Havoc produced from your originals. Your originals are untouched, but whatever was generated would have to be made again.',
         bytes,
         items: generatedBytes,
       });
@@ -354,7 +354,7 @@ export class StorageManager {
           id: 'old-snapshots',
           label: 'Snapshots beyond the number you keep',
           detail:
-            'You have asked Helix to keep fewer than it holds. These are the oldest, and the ones within your limit are untouched.',
+            'You have asked Havoc to keep fewer than it holds. These are the oldest, and the ones within your limit are untouched.',
           bytes: excess.reduce((total, snapshot) => total + snapshot.bytes, 0),
           items: excess.length,
         });

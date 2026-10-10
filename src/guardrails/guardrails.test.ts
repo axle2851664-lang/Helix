@@ -163,7 +163,7 @@ describe('the guardrails themselves', () => {
   });
 
   /**
-   * The permission changed on the user's instruction: Helix may send and may
+   * The permission changed on the user's instruction: Havoc may send and may
    * call. "Never send" is gone, and something stricter has to stand in its
    * place - the rule that nothing leaves unconfirmed.
    */

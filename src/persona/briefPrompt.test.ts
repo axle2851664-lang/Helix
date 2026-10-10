@@ -28,7 +28,7 @@ describe('the brief prompt', () => {
     expect(tokens(BRIEF_SYSTEM_PROMPT)).toBeLessThan(500);
   });
 
-  /** The rule that stopped Helix inventing an inbox. */
+  /** The rule that stopped Havoc inventing an inbox. */
   it('forbids claiming to have looked at mail', () => {
     expect(BRIEF_SYSTEM_PROMPT).toMatch(/cannot see/i);
     expect(BRIEF_SYSTEM_PROMPT).toMatch(/never say you are checking or have checked/i);
@@ -113,7 +113,7 @@ describe('what neither prompt may contain any more', () => {
 describe('the demonstrations', () => {
   it('survived the move out of the prompt', () => {
     expect(PERSONA_EXAMPLES.length).toBeGreaterThanOrEqual(5);
-    expect(PERSONA_EXAMPLES.map((example) => example.user)).toContain('Helix, are you there?');
+    expect(PERSONA_EXAMPLES.map((example) => example.user)).toContain('Havoc, are you there?');
   });
 
   it('becomes alternating conversation turns', () => {
@@ -129,8 +129,8 @@ describe('the demonstrations', () => {
   /** A demonstration that breaks the register would teach the wrong thing. */
   it('never demonstrates an honorific or a speaker label', () => {
     for (const example of PERSONA_EXAMPLES) {
-      expect(example.helix.toLowerCase(), example.helix).not.toMatch(/\b(sir|boss|madam)\b/);
-      expect(example.helix, example.helix).not.toMatch(/^\s*(?:you|helix)\s*:/i);
+      expect(example.havoc.toLowerCase(), example.havoc).not.toMatch(/\b(sir|boss|madam)\b/);
+      expect(example.havoc, example.havoc).not.toMatch(/^\s*(?:you|havoc)\s*:/i);
     }
   });
 });
@@ -145,11 +145,11 @@ describe('the menu of refusals, which is gone', () => {
    * the menu:
    *
    *   User: hello
-   *   Helix: You've sent a greeting.
+   *   Havoc: You've sent a greeting.
    *   User: I supposed so brp
-   *   Helix: I'm still waiting for permission to proceed.
+   *   Havoc: I'm still waiting for permission to proceed.
    *   User: proceed doing what?
-   *   Helix: I can't run a tool now.
+   *   Havoc: I can't run a tool now.
    *
    * Nothing was waiting for permission and no tool existed. Neither prompt is
    * used anywhere a tool can run: if a tool matches a request the orchestrator

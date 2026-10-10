@@ -27,7 +27,7 @@ async function makeContext() {
   const settings = new SettingsManager({ store, logger });
   await settings.load();
 
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store, logger, paths });
   const memory = new MemoryManager({ store, settings, logger });
   const backup = new BackupManager({ store, settings, logger });
@@ -78,8 +78,8 @@ describe('parseArchive', () => {
   // The commonest cause is picking the wrong file, and the user has to be
   // able to tell that from a corrupt one.
   it('says a file is not a backup rather than calling it invalid', () => {
-    expect(() => parseArchive('not json at all')).toThrow(/not a Helix backup/);
-    expect(() => parseArchive('{"hello":true}')).toThrow(/no Helix backup marker/);
+    expect(() => parseArchive('not json at all')).toThrow(/not a Havoc backup/);
+    expect(() => parseArchive('{"hello":true}')).toThrow(/no Havoc backup marker/);
   });
 
   /**
@@ -88,9 +88,9 @@ describe('parseArchive', () => {
    * is refused outright - dropping it silently would restore a partial state
    * the user believed was complete.
    */
-  it('refuses an archive naming a namespace Helix does not own', () => {
+  it('refuses an archive naming a namespace Havoc does not own', () => {
     const hostile = JSON.stringify({
-      format: 'helix.backup',
+      format: 'havoc.backup',
       version: 1,
       createdAt: 0,
       scope: 'full',
@@ -98,7 +98,7 @@ describe('parseArchive', () => {
       omitted: [],
     });
 
-    expect(() => parseArchive(hostile)).toThrow(/not part of Helix/);
+    expect(() => parseArchive(hostile)).toThrow(/not part of Havoc/);
     expect(() => parseArchive(hostile)).toThrow(ArchiveError);
   });
 
@@ -108,21 +108,21 @@ describe('parseArchive', () => {
     expect(isArchivable('__proto__')).toBe(false);
   });
 
-  // A future archive read by an older Helix would restore a shape this code
+  // A future archive read by an older Havoc would restore a shape this code
   // does not understand, and the damage would surface much later.
   it('refuses a newer version rather than guessing at it', () => {
     const future = JSON.stringify({
-      format: 'helix.backup',
+      format: 'havoc.backup',
       version: ARCHIVE_VERSION + 1,
       sections: [],
     });
 
-    expect(() => parseArchive(future)).toThrow(/newer Helix/);
+    expect(() => parseArchive(future)).toThrow(/newer Havoc/);
   });
 
   it('refuses a malformed section', () => {
     const broken = JSON.stringify({
-      format: 'helix.backup',
+      format: 'havoc.backup',
       version: 1,
       sections: [{ namespace: 'memory', entries: 'not an array' }],
     });
@@ -132,7 +132,7 @@ describe('parseArchive', () => {
 
   it('refuses an entry that is not a key and a value', () => {
     const broken = JSON.stringify({
-      format: 'helix.backup',
+      format: 'havoc.backup',
       version: 1,
       sections: [{ namespace: 'memory', entries: [['only-a-key']] }],
     });
@@ -330,7 +330,7 @@ describe('BackupManager', () => {
 
   it('refuses a file that is not a backup, in words', async () => {
     const file = new Blob(['just some text'], { type: 'text/plain' });
-    await expect(context.backup.readFile(file)).rejects.toThrow(/not a Helix backup/);
+    await expect(context.backup.readFile(file)).rejects.toThrow(/not a Havoc backup/);
   });
 
   it('reads back a file it wrote', async () => {
@@ -349,7 +349,7 @@ describe('carrying only what was chosen', () => {
    *
    * The Flash Drive asks, one item at a time, what should leave the machine -
    * and then called `export('full')`, which wrote every namespace regardless.
-   * Tick "Helix itself" and nothing else and the stick still carried the whole
+   * Tick "Havoc itself" and nothing else and the stick still carried the whole
    * conversation history, under a manifest that said it did not. The
    * checkboxes described a choice that was never passed on.
    */

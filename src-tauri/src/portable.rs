@@ -1,4 +1,4 @@
-//! Taking Helix with you on a removable disk.
+//! Taking Havoc with you on a removable disk.
 //!
 //! The one thing this module refuses to do is decide what goes. It lists the
 //! disks that are actually removable, copies exactly what it is handed, and
@@ -9,11 +9,11 @@
 //! Three refusals are enforced here rather than trusted from the caller:
 //!
 //!   - **Only a removable disk.** A copy aimed at `C:\` is a mistake with no
-//!     good outcome: it would write a second Helix over the user's real one.
+//!     good outcome: it would write a second Havoc over the user's real one.
 //!     The destination is checked against the list of removable mounts rather
 //!     than against a pattern in the path.
-//!   - **Only inside a folder Helix owns.** Everything is written under a
-//!     single `Helix` directory on the disk, so nothing outside it is touched
+//!   - **Only inside a folder Havoc owns.** Everything is written under a
+//!     single `Havoc` directory on the disk, so nothing outside it is touched
 //!     and removing the copy is deleting one folder.
 //!   - **No credential, ever.** This module has no access to the token file
 //!     and no parameter that could name it. That is not a rule it checks; it
@@ -33,12 +33,19 @@ pub struct RemovableDrive {
     pub mount_point: String,
     pub free_bytes: u64,
     pub total_bytes: u64,
-    /// True when Helix appears to already be on this disk.
-    pub has_helix: bool,
+    /// True when Havoc appears to already be on this disk.
+    pub has_havoc: bool,
 }
 
-/// The folder Helix writes into. One name, in one place, used by every path
+/// The folder Havoc writes into. One name, in one place, used by every path
 /// this module builds - so "where did it put things" has a single answer.
+/// RENAMED TO HAVOC, EXCEPT HERE. Still "Helix" on purpose.
+///
+/// This is the folder name on a drive the user has already written to. Change
+/// it and Havoc stops finding the copies it made - the data is still on the
+/// stick, and Havoc reports an empty drive. The name is visible only to
+/// someone browsing the drive, which is a far smaller cost than silently
+/// failing to read it.
 pub const FOLDER: &str = "Helix";
 
 /// Where each piece goes on the disk.
@@ -80,7 +87,7 @@ pub fn portable_drives() -> Vec<RemovableDrive> {
                 mount_point: mount.to_string_lossy().to_string(),
                 free_bytes: disk.available_space(),
                 total_bytes: disk.total_space(),
-                has_helix: root.exists(),
+                has_havoc: root.exists(),
             }
         })
         .collect()
@@ -90,7 +97,7 @@ pub fn portable_drives() -> Vec<RemovableDrive> {
 ///
 /// Compared against the live list rather than sniffed from the path. A path
 /// test would be a guess about drive letters, and a wrong guess here writes
-/// Helix somewhere it was never meant to go.
+/// Havoc somewhere it was never meant to go.
 fn is_removable(mount: &str) -> bool {
     portable_drives()
         .iter()
@@ -159,7 +166,7 @@ pub fn portable_write(
 ) -> Result<PortableResult, String> {
     if !is_removable(&mount_point) {
         return Err(format!(
-            "{mount_point} is not a removable disk. Helix only writes a portable copy to a disk \
+            "{mount_point} is not a removable disk. Havoc only writes a portable copy to a disk \
              you can take with you, so a copy can never be written over your real installation."
         ));
     }

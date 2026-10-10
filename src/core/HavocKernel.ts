@@ -1,5 +1,5 @@
 import { EventBus } from './EventBus.js';
-import { HelixError } from './HelixError.js';
+import { HavocError } from './HavocError.js';
 import { ConsoleSink, Logger, MemorySink, type LogLevel } from './Logger.js';
 import { IndexedDbStore } from '../storage/IndexedDbStore.js';
 import { MemoryKeyValueStore, type KeyValueStore } from '../storage/KeyValueStore.js';
@@ -27,7 +27,7 @@ import {
 } from '../platform/TauriPlatform.js';
 import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { HavocOrchestrator } from './HavocOrchestrator.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { MemoryManager } from '../memory/MemoryManager.js';
@@ -78,15 +78,15 @@ import { BrowserSpeechSynthesis } from '../voice/BrowserSpeechSynthesis.js';
 import { CameraManager } from '../camera/CameraManager.js';
 
 /**
- * The Helix service container (spec 19).
+ * The Havoc service container (spec 19).
  *
  * The kernel owns construction order and lifetime for the long-lived managers
  * and hands them to consumers by interface. It is deliberately *not* an
- * orchestrator: it does not interpret user input or decide what Helix should
- * do. That is HelixCore's job, and keeping the two apart is what stops the
+ * orchestrator: it does not interpret user input or decide what Havoc should
+ * do. That is HavocCore's job, and keeping the two apart is what stops the
  * kernel becoming the god object the specification warns against.
  *
- * Startup degrades rather than fails. If durable storage is unavailable, Helix
+ * Startup degrades rather than fails. If durable storage is unavailable, Havoc
  * still starts on an in-memory store and reports that nothing will be saved -
  * an assistant that refuses to open because IndexedDB is blocked is worse than
  * one that opens and says so.
@@ -115,7 +115,7 @@ export interface KernelServices {
   readonly images: ImageSearch;
   /** The most recent image search, shared between the panel and the stage. */
   readonly imageResults: ImageResultsStore;
-  /** Everything Helix can do to its own application (spec 5). */
+  /** Everything Havoc can do to its own application (spec 5). */
   readonly actions: ActionRegistry;
   /** The one path from an intended action to a performed one (spec 5). */
   readonly runner: ActionRunner;
@@ -123,7 +123,7 @@ export interface KernelServices {
   readonly conversations: ConversationStore;
   readonly projects: ProjectManager;
   readonly memory: MemoryManager;
-  /** Helix's own notes (Notepad). */
+  /** Havoc's own notes (Notepad). */
   readonly notepad: NotepadManager;
   readonly timekeeper: TimeKeeper;
   readonly knowledge: KnowledgeIndex;
@@ -133,7 +133,7 @@ export interface KernelServices {
   readonly outbound: OutboundManager;
   readonly voice: VoiceManager;
   readonly camera: CameraManager;
-  readonly orchestrator: HelixOrchestrator;
+  readonly orchestrator: HavocOrchestrator;
   /** The Google bridge, or null in a browser where no token can be held. */
   readonly google: TauriGoogleTransport | null;
   /** The mailbox. Present always; it reports for itself whether it can act. */
@@ -163,7 +163,7 @@ export interface KernelOptions {
 
 export type KernelStatus = 'idle' | 'starting' | 'ready' | 'failed';
 
-export class HelixKernel {
+export class HavocKernel {
   #services: KernelServices | null = null;
   #status: KernelStatus = 'idle';
   #starting: Promise<KernelServices> | null = null;
@@ -186,7 +186,7 @@ export class HelixKernel {
   /** Services, once started. Throws if accessed before `start()` resolves. */
   get services(): KernelServices {
     if (!this.#services) {
-      throw new HelixError('INTERNAL', 'Helix is still starting up.', {
+      throw new HavocError('INTERNAL', 'Havoc is still starting up.', {
         technical: 'KernelServices accessed before start() completed.',
       });
     }
@@ -218,7 +218,7 @@ export class HelixKernel {
     const bus = new EventBus();
     const logBuffer = new MemorySink(500);
     const sinks = this.#options.consoleLogging ? [logBuffer, new ConsoleSink()] : [logBuffer];
-    const logger = new Logger('helix', {
+    const logger = new Logger('havoc', {
       level: this.#options.logLevel ?? 'INFO',
       sinks,
     });
@@ -238,9 +238,9 @@ export class HelixKernel {
     // arithmetic honest and testable without implying a real filesystem. In
     // the shell there is a real one, and only the shell knows it - this branch
     // used to be left empty, which PathManager rejects, so reaching it at all
-    // stopped Helix before it started.
+    // stopped Havoc before it started.
     const root =
-      this.#options.root ?? (inShell ? ((await shellInstallRoot()) ?? '') : '/helix');
+      this.#options.root ?? (inShell ? ((await shellInstallRoot()) ?? '') : '/havoc');
     const paths = new PathManager({ root, portable: true });
 
     const platform =
@@ -259,7 +259,7 @@ export class HelixKernel {
     });
 
     if (!settings.persistent) {
-      this.#warnings.push('Settings could not be saved. Changes will be lost when Helix closes.');
+      this.#warnings.push('Settings could not be saved. Changes will be lost when Havoc closes.');
       bus.emit('SETTINGS_PERSISTENCE_LOST', { reason: 'Settings store unavailable at startup.' });
     }
 
@@ -271,12 +271,12 @@ export class HelixKernel {
     await permissions.load();
     if (!permissions.persistent) {
       this.#warnings.push(
-        'Permission choices could not be saved. Helix will ask again when it next starts.',
+        'Permission choices could not be saved. Havoc will ask again when it next starts.',
       );
     }
 
     busLogger.debug('Event bus ready.');
-    logger.info('Helix kernel started.', {
+    logger.info('Havoc kernel started.', {
       host: platform.kind,
       portable: paths.isPortable,
       durableStorage: (store as { durable?: boolean }).durable ?? false,
@@ -291,13 +291,13 @@ export class HelixKernel {
      * Timers, alarms and stopwatches, kept against the system clock.
      *
      * Loaded below rather than here, because `load` brings back what was
-     * running before and can discover that a timer rang while Helix was
+     * running before and can discover that a timer rang while Havoc was
      * closed - which is something to report, not something to do during
      * construction.
      */
     const timekeeper = new TimeKeeper({ store });
     /**
-     * Read back what was running before Helix was closed.
+     * Read back what was running before Havoc was closed.
      *
      * Not fire-and-forget: a timer restored half a second after the first
      * paint shows up as a clock that was empty and then was not. Awaited
@@ -323,7 +323,7 @@ export class HelixKernel {
     projects.setBudget(storage);
 
     // A snapshot costs real storage, so it goes through the same ceiling as
-    // an imported file rather than being exempt for being Helix's own.
+    // an imported file rather than being exempt for being Havoc's own.
     const backup = new BackupManager({ store, settings, logger, budget: storage });
     storage.setBackups(backup);
 
@@ -482,7 +482,7 @@ export class HelixKernel {
      * answer than a research tool that is silently absent.
      *
      * Wikipedia and DuckDuckGo need no key and work the moment the shell runs.
-     * Brave needs a free one and says so; without it Helix can look things up
+     * Brave needs a free one and says so; without it Havoc can look things up
      * but cannot see this morning's news, and that difference is stated rather
      * than left for the user to infer from thin results.
      */
@@ -568,7 +568,7 @@ export class HelixKernel {
     });
     const imageResults = new ImageResultsStore();
 
-    // Registered here rather than at each screen, so that what Helix can do is
+    // Registered here rather than at each screen, so that what Havoc can do is
     // one list rather than whatever happens to be reachable from the UI. The
     // runner reads quick actions on every run, so turning it off takes effect
     // at once.
@@ -592,7 +592,7 @@ export class HelixKernel {
       quickActions: () => settings.get('quickActions'),
     });
 
-    const orchestrator = new HelixOrchestrator({
+    const orchestrator = new HavocOrchestrator({
       research,
       settings,
       conversations,
@@ -629,9 +629,9 @@ export class HelixKernel {
      * the router simply has no local model and says so.
      *
      * It repeats, which the one-shot version did not, and that was a real
-     * hole rather than a refinement. Helix now refuses cloud inference by
-     * default, so a machine where Ollama starts a moment after Helix - or is
-     * started *because* Helix just said it was missing - stayed dead until
+     * hole rather than a refinement. Havoc now refuses cloud inference by
+     * default, so a machine where Ollama starts a moment after Havoc - or is
+     * started *because* Havoc just said it was missing - stayed dead until
      * the app was restarted. The obvious next action, "start Ollama and try
      * again", did not work, and nothing on screen said why.
      *
@@ -711,14 +711,14 @@ export class HelixKernel {
       (timer as unknown as { unref?: () => void }).unref?.();
       // A timer that outlives the kernel would go on probing after shutdown
       // and keep a reference to a bus nobody is listening to.
-      bus.on('helix:shutdown', () => clearInterval(timer));
+      bus.on('havoc:shutdown', () => clearInterval(timer));
     })();
 
     /**
      * The phone relay.
      *
      * Only in the shell, and only when switched on. Both halves matter: a
-     * browser cannot hold the token, and a mailbox that makes Helix act is not
+     * browser cannot hold the token, and a mailbox that makes Havoc act is not
      * something to have running because a default said so.
      *
      * The watcher reads its configuration through a function rather than a
@@ -820,7 +820,7 @@ export class HelixKernel {
             // that failed to start, and the fix is different too.
             if (status.addresses.length === 0) {
               this.#warnings.push(
-                'Helix is listening for your phone, but Tailscale does not appear to be running, so nothing can reach it yet.',
+                'Havoc is listening for your phone, but Tailscale does not appear to be running, so nothing can reach it yet.',
               );
             }
           } catch (error) {
@@ -839,7 +839,7 @@ export class HelixKernel {
     });
 
     /**
-     * Watch free disk space, and clear Helix's own rebuildable caches when it
+     * Watch free disk space, and clear Havoc's own rebuildable caches when it
      * runs low.
      *
      * Polled rather than event-driven because no host offers an event for it.
@@ -895,7 +895,7 @@ export class HelixKernel {
       });
     });
 
-    bus.emit('helix:ready', { startedAt: Date.now() });
+    bus.emit('havoc:ready', { startedAt: Date.now() });
 
     return {
       bus,
@@ -941,7 +941,7 @@ export class HelixKernel {
 
     if (!IndexedDbStore.isSupported()) {
       this.#warnings.push(
-        'This browser has storage disabled, so Helix cannot save settings or projects.',
+        'This browser has storage disabled, so Havoc cannot save settings or projects.',
       );
       logger.warn('IndexedDB unavailable; using a non-durable in-memory store.');
       return new MemoryKeyValueStore();
@@ -955,7 +955,7 @@ export class HelixKernel {
       return candidate;
     } catch (error) {
       this.#warnings.push(
-        'Helix could not open its local database, so settings and projects will not be saved.',
+        'Havoc could not open its local database, so settings and projects will not be saved.',
       );
       logger.error('IndexedDB probe failed; falling back to in-memory storage.', error);
       await candidate.close().catch(() => {});
@@ -969,7 +969,7 @@ export class HelixKernel {
     const { bus, settings, permissions, store, logger, activity, voice, camera } =
       this.#services;
 
-    bus.emit('helix:shutdown', { reason });
+    bus.emit('havoc:shutdown', { reason });
     try {
       voice.shutdown();
       camera.shutdown();

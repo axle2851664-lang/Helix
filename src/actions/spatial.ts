@@ -1,4 +1,4 @@
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { SpatialObject, SpatialScene } from '../spatial/SpatialScene.js';
 import type { ActionDefinition } from './action.js';
 import { readString } from './action.js';
@@ -13,7 +13,7 @@ import { readString } from './action.js';
  * actions are shown, made true rather than asserted.
  *
  * The specification's menu also names Open, Close, Minimize, Pin, Share, Save,
- * Rename, Send to Helix and Export. None of those is here, because none of
+ * Rename, Send to Havoc and Export. None of those is here, because none of
  * them does anything to a stage object today. An action registered here would
  * appear in the menu and be clickable, and a menu item that does nothing is
  * worse than a missing one.
@@ -22,7 +22,7 @@ import { readString } from './action.js';
 function objectOr404(scene: SpatialScene, id: string): SpatialObject {
   const object = scene.get(id);
   if (!object) {
-    throw new HelixError('NOT_FOUND', 'That object is no longer on the stage.', {
+    throw new HavocError('NOT_FOUND', 'That object is no longer on the stage.', {
       technical: `No spatial object with id ${id}`,
     });
   }
@@ -57,7 +57,7 @@ export function spatialActions(scene: SpatialScene): ActionDefinition[] {
         const id = readString(params, 'objectId');
         objectOr404(scene, id);
         const copy = scene.duplicate(id);
-        if (!copy) throw new HelixError('INTERNAL', 'That could not be duplicated.');
+        if (!copy) throw new HavocError('INTERNAL', 'That could not be duplicated.');
         return { message: `Duplicated "${copy.label}".`, data: { objectId: copy.id } };
       },
     },
@@ -100,7 +100,7 @@ export function spatialActions(scene: SpatialScene): ActionDefinition[] {
       confirmation: 'none',
       reversible: true,
       // Only offered for objects that carry a page. An image on the stage with
-      // no source is one Helix cannot credit, and a menu item that does
+      // no source is one Havoc cannot credit, and a menu item that does
       // nothing is worse than a missing one.
       appliesTo: ['spatial-object'],
       describe: (params) => {
@@ -112,9 +112,9 @@ export function spatialActions(scene: SpatialScene): ActionDefinition[] {
       run: async (params) => {
         const object = objectOr404(scene, readString(params, 'objectId'));
         if (object.sourceUrl === undefined) {
-          throw new HelixError('NOT_FOUND', 'That image did not come with a source page.');
+          throw new HavocError('NOT_FOUND', 'That image did not come with a source page.');
         }
-        // Opened in the browser rather than inside Helix: a page fetched into
+        // Opened in the browser rather than inside Havoc: a page fetched into
         // the app is a page whose scripts run next to your notes.
         window.open(object.sourceUrl, '_blank', 'noopener,noreferrer');
         return { message: `Opened ${object.sourceUrl}` };

@@ -173,7 +173,7 @@ describe('assessFit', () => {
    * one way to fail. That conflated a machine that cannot run a model with a
    * machine that cannot run it this minute, and the consequence was not
    * cosmetic: marking every installed model unavailable during a momentary
-   * memory spike left Helix unable to speak for the rest of the session. The
+   * memory spike left Havoc unable to speak for the rest of the session. The
    * free-memory basis belongs on the temporary verdict, which is the one it
    * actually governs; the permanent one is a fact about the hardware and
    * quoting a passing reading in it would be misleading.

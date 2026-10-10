@@ -1,5 +1,5 @@
 /**
- * The reactor: what Helix can actually do, drawn as a ring.
+ * The reactor: what Havoc can actually do, drawn as a ring.
  *
  * A HUD is where invented telemetry creeps into a project. Spinning numbers,
  * power levels, a CPU gauge that is really a sine wave - they look like the

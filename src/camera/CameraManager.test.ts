@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CameraManager } from './CameraManager.js';
 import { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import { Logger } from '../core/Logger.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
@@ -194,7 +194,7 @@ describe('CameraManager: lifecycle', () => {
 
   // The indicator would otherwise keep claiming the camera is live after an
   // unplugged webcam, a privacy shutter, or another app taking the device.
-  it('follows the device when the track ends outside Helix', async () => {
+  it('follows the device when the track ends outside Havoc', async () => {
     const stopped = vi.fn();
     bus.on('CAMERA_STOPPED', stopped);
 
@@ -222,7 +222,7 @@ describe('CameraManager: refusals', () => {
   it('reports when the host has no camera support', async () => {
     const { camera } = await makeCamera({ cameraAvailable: false });
     expect(camera.blocker()).toContain('No camera support');
-    await expect(camera.start()).rejects.toThrow(HelixError);
+    await expect(camera.start()).rejects.toThrow(HavocError);
   });
 
   it('explains a denied permission and how to fix it', async () => {

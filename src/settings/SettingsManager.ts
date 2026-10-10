@@ -1,5 +1,5 @@
 import type { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { Logger } from '../core/Logger.js';
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
 import {
@@ -7,7 +7,7 @@ import {
   getDefaultSettings,
   SETTINGS_SCHEMA,
   validateSettings,
-  type HelixSettings,
+  type HavocSettings,
   type SettingsKey,
 } from './schema.js';
 
@@ -27,7 +27,7 @@ export interface SettingsManagerOptions {
   bus?: EventBus;
 }
 
-export type SettingsListener = (settings: HelixSettings, changed: SettingsKey[]) => void;
+export type SettingsListener = (settings: HavocSettings, changed: SettingsKey[]) => void;
 
 /**
  * Owns the single source of truth for user settings (spec 15).
@@ -50,7 +50,7 @@ export class SettingsManager {
   readonly #bus: EventBus | undefined;
   readonly #listeners = new Set<SettingsListener>();
 
-  #settings: HelixSettings = getDefaultSettings();
+  #settings: HavocSettings = getDefaultSettings();
   #loaded = false;
   #persistent = true;
   /** Serialises writes so rapid changes cannot interleave and lose data. */
@@ -73,15 +73,15 @@ export class SettingsManager {
   }
 
   /** A snapshot of all settings. Mutating it does not affect stored state. */
-  getAll(): HelixSettings {
+  getAll(): HavocSettings {
     return { ...this.#settings };
   }
 
-  get<K extends SettingsKey>(key: K): HelixSettings[K] {
+  get<K extends SettingsKey>(key: K): HavocSettings[K] {
     return this.#settings[key];
   }
 
-  async load(): Promise<HelixSettings> {
+  async load(): Promise<HavocSettings> {
     try {
       const stored = await this.#store.get<StoredSettings>(NAMESPACE, RECORD_KEY);
 
@@ -123,9 +123,9 @@ export class SettingsManager {
    * Update one setting. Returns the coerced value actually applied, which may
    * differ from the requested one when it was out of range.
    */
-  async set<K extends SettingsKey>(key: K, value: HelixSettings[K]): Promise<HelixSettings[K]> {
+  async set<K extends SettingsKey>(key: K, value: HavocSettings[K]): Promise<HavocSettings[K]> {
     if (!(key in SETTINGS_SCHEMA)) {
-      throw new HelixError('VALIDATION_FAILED', 'That setting does not exist.', {
+      throw new HavocError('VALIDATION_FAILED', 'That setting does not exist.', {
         technical: 'Unknown settings key: ' + String(key),
       });
     }
@@ -148,7 +148,7 @@ export class SettingsManager {
   }
 
   /** Apply several settings as one atomic change and a single write. */
-  async setMany(values: Partial<HelixSettings>): Promise<void> {
+  async setMany(values: Partial<HavocSettings>): Promise<void> {
     const changed: SettingsKey[] = [];
     const next = { ...this.#settings };
 
@@ -181,7 +181,7 @@ export class SettingsManager {
       return;
     }
 
-    const patch: Partial<HelixSettings> = {};
+    const patch: Partial<HavocSettings> = {};
     for (const key of Object.keys(defaults) as SettingsKey[]) {
       if (SETTINGS_SCHEMA[key].section === section) {
         (patch as Record<string, unknown>)[key] = defaults[key];
@@ -244,8 +244,8 @@ export class SettingsManager {
    */
   #migrate(stored: StoredSettings): StoredSettings {
     if (typeof stored.version !== 'number' || stored.version > SCHEMA_VERSION) {
-      // Written by a newer Helix. Validate what we understand and keep going.
-      this.#logger.warn('Settings were written by a newer version of Helix.', {
+      // Written by a newer Havoc. Validate what we understand and keep going.
+      this.#logger.warn('Settings were written by a newer version of Havoc.', {
         storedVersion: stored.version,
         supported: SCHEMA_VERSION,
       });

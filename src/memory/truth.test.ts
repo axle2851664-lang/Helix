@@ -6,8 +6,8 @@ const provenance = (said: string) => truthStatement(said)?.provenance ?? null;
 
 describe('marking something as true', () => {
   it('takes the statement out of every marker', () => {
-    expect(claim('The truth is that my project is called Helix.')).toBe(
-      'my project is called Helix.',
+    expect(claim('The truth is that my project is called Havoc.')).toBe(
+      'my project is called Havoc.',
     );
     expect(claim('This is the truth: the supplier only ships on Tuesdays')).toBe(
       'the supplier only ships on Tuesdays.',
@@ -15,7 +15,7 @@ describe('marking something as true', () => {
     expect(claim('Remember this as a fact: the rent is due on the 3rd')).toBe(
       'the rent is due on the 3rd.',
     );
-    expect(claim('This is a fact: Helix runs offline')).toBe('Helix runs offline.');
+    expect(claim('This is a fact: Havoc runs offline')).toBe('Havoc runs offline.');
     expect(claim('I want you to know that I work nights')).toBe('I work nights.');
     expect(claim('Fact: the office closes at six')).toBe('the office closes at six.');
   });
@@ -43,7 +43,7 @@ describe('the distinction that matters', () => {
   });
 
   /**
-   * Saying what you think is not asking Helix to hold it. Only an explicit
+   * Saying what you think is not asking Havoc to hold it. Only an explicit
    * marker does that.
    */
   it('never stores a bare opinion', () => {
@@ -52,7 +52,7 @@ describe('the distinction that matters', () => {
       'I believe the supplier is lying.',
       'In my opinion that was a mistake.',
       'the moon is made of cheese',
-      'my project is called Helix',
+      'my project is called Havoc',
     ]) {
       expect(truthStatement(said), said).toBeNull();
     }
@@ -79,15 +79,15 @@ describe('the distinction that matters', () => {
 describe('saying a stored truth back', () => {
   /**
    * The single place that stops an assertion being laundered into a verified
-   * fact. Helix was told this; it does not know it, and being told does not
+   * fact. Havoc was told this; it does not know it, and being told does not
    * make it so.
    */
   it('attributes it to the user rather than asserting it', () => {
     expect(phrase('the moon is made of cheese.', 'user-stated')).toBe(
       'You told me the moon is made of cheese.',
     );
-    expect(phrase('my project is called Helix.', 'user-stated')).toBe(
-      'You told me my project is called Helix.',
+    expect(phrase('my project is called Havoc.', 'user-stated')).toBe(
+      'You told me my project is called Havoc.',
     );
   });
 
@@ -97,7 +97,7 @@ describe('saying a stored truth back', () => {
     );
   });
 
-  it('never presents a stored claim as something Helix knows', () => {
+  it('never presents a stored claim as something Havoc knows', () => {
     for (const stored of ['the moon is made of cheese.', 'water boils at 50 degrees.']) {
       const said = phrase(stored, 'user-stated');
       expect(said.startsWith('You told me')).toBe(true);

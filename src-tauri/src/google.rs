@@ -4,7 +4,7 @@
 //! to leak; a Google refresh token is worse. It does not expire on its own, it
 //! survives a password change, and it opens a mailbox. So it is minted here,
 //! stored here, refreshed here and attached here, and no command in this file
-//! ever returns one to the web view. The page can ask Helix to read mail. It
+//! ever returns one to the web view. The page can ask Havoc to read mail. It
 //! cannot ever learn what authorised that.
 //!
 //! The flow is the installed-application one, which is the right shape for a
@@ -22,7 +22,7 @@
 //!     process. S256, not `plain` - `plain` sends the verifier in the clear
 //!     and defeats the point.
 //!   - **A forged callback.** A `state` value is generated per attempt and
-//!     compared on return, so a request Helix did not start is refused.
+//!     compared on return, so a request Havoc did not start is refused.
 //!
 //! On storage, plainly: the refresh token is written to a file in the user's
 //! own AppData, readable by that user's account. That is what gcloud, gh and
@@ -42,7 +42,7 @@ const API_BASE: &str = "https://gmail.googleapis.com";
 const CALENDAR_BASE: &str = "https://www.googleapis.com";
 const DOCS_BASE: &str = "https://docs.googleapis.com";
 
-/// Exactly what Helix asks for. Mirrors `src/integrations/google/scopes.ts`,
+/// Exactly what Havoc asks for. Mirrors `src/integrations/google/scopes.ts`,
 /// and a test on that side asserts the full-mailbox scope is never among them.
 const SCOPES: &str = concat!(
     "https://www.googleapis.com/auth/gmail.readonly ",
@@ -127,7 +127,10 @@ fn token_path() -> Result<PathBuf, String> {
         .or_else(|_| std::env::var("HOME"))
         .map_err(|_| "Cannot locate an application data directory.".to_string())?;
 
-    let dir = PathBuf::from(base).join("Helix");
+    // RENAMED TO HAVOC, EXCEPT HERE. Still "Helix" on purpose: this is where
+        // the Google refresh token already sits. A new folder means a signed-in
+        // user is silently signed out and has to authorise again.
+        let dir = PathBuf::from(base).join("Helix");
     std::fs::create_dir_all(&dir).map_err(|error| format!("Cannot create {dir:?}: {error}"))?;
     Ok(dir.join("google-tokens.json"))
 }
@@ -198,15 +201,15 @@ fn await_callback(listener: TcpListener, expected_state: &str) -> Result<Callbac
         }
 
         let outcome = if !error.is_empty() {
-            "Helix was refused access. You can close this tab."
+            "Havoc was refused access. You can close this tab."
         } else if code.is_empty() {
             "Something came back without an authorisation code. You can close this tab."
         } else {
-            "Helix is connected. You can close this tab."
+            "Havoc is connected. You can close this tab."
         };
 
         let body = format!(
-            "<!doctype html><meta charset=utf-8><title>Helix</title>\
+            "<!doctype html><meta charset=utf-8><title>Havoc</title>\
              <body style=\"font:16px system-ui;padding:3rem;color:#1b1719\">{outcome}</body>"
         );
         let _ = stream.write_all(
@@ -227,7 +230,7 @@ fn await_callback(listener: TcpListener, expected_state: &str) -> Result<Callbac
         }
         // The check that makes a forged callback useless.
         if state != expected_state {
-            return Err("The redirect did not match the request Helix started.".into());
+            return Err("The redirect did not match the request Havoc started.".into());
         }
 
         return Ok(Callback { code, state });
@@ -354,7 +357,7 @@ pub async fn google_connect(client_id: String, client_secret: String) -> Result<
         .map_err(|error| format!("Google's token response could not be read: {error}"))?;
 
     let refresh_token = tokens.refresh_token.ok_or(
-        "Google did not return a refresh token. Remove Helix from your account's third-party \
+        "Google did not return a refresh token. Remove Havoc from your account's third-party \
          access list and connect again, which forces a fresh consent.",
     )?;
 
@@ -456,11 +459,11 @@ fn grant_is_dead(body: &str) -> bool {
 /// What to tell the user, in the one place this is decided.
 ///
 /// The seven-day sentence is here because it is the single most-repeated
-/// error this product will ever show. Helix is an unverified app on Google's
+/// error this product will ever show. Havoc is an unverified app on Google's
 /// Testing publishing status - a deliberate choice, since verification for
 /// restricted scopes means an annual paid security assessment - and Google
 /// expires a test user's refresh token after seven days. Saying "you may need
-/// to connect again" every week, without saying why, would read as Helix
+/// to connect again" every week, without saying why, would read as Havoc
 /// being broken. It is not broken; this is the price of the choice, and
 /// naming it is the difference between a bug and a known cost.
 fn refresh_failure_message(status: u16, body: &str) -> String {
@@ -505,7 +508,7 @@ fn allowed(path: &str) -> bool {
         "/gmail/v1/users/me/profile",
         "/calendar/v3/calendars/",
         "/calendar/v3/users/me/calendarList",
-        // Creating a document, and editing one Helix created. The drive.file
+        // Creating a document, and editing one Havoc created. The drive.file
         // scope is the second wall: it covers nothing else in the account.
         "/v1/documents",
     ];
@@ -533,7 +536,7 @@ pub async fn google_request(
     body: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     if !allowed(&path) {
-        return Err(format!("Helix does not make requests to {path}."));
+        return Err(format!("Havoc does not make requests to {path}."));
     }
 
     let client = reqwest::Client::new();

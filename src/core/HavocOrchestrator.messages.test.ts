@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { HavocOrchestrator } from './HavocOrchestrator.js';
 import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
@@ -16,7 +16,7 @@ import { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
  * This file exists because the message list was wrong twice and both times it
  * was invisible. The first time, the demonstrations were inside the system
  * prompt and a local model recited them. The second, memories were promised by
- * the prompt and never actually sent, so a name Helix had correctly stored
+ * the prompt and never actually sent, so a name Havoc had correctly stored
  * could not reach a reply. Neither showed up in any test, because every test
  * asserted what came *out* of the model and nothing asserted what went in.
  */
@@ -34,7 +34,7 @@ async function makeContext(location: 'local' | 'cloud') {
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
   const activity = new ActivityManager();
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
@@ -48,7 +48,7 @@ async function makeContext(location: 'local' | 'cloud') {
     },
   };
 
-  const orchestrator = new HelixOrchestrator({
+  const orchestrator = new HavocOrchestrator({
     settings,
     conversations,
     activity,
@@ -113,7 +113,7 @@ describe('the demonstrations', () => {
    * it replied "You have not written this." - disputing the authorship of its
    * own history rather than answering.
    *
-   * A local model is now sent nothing Helix did not actually say.
+   * A local model is now sent nothing Havoc did not actually say.
    */
   it('are kept away from a local model entirely', async () => {
     const context = await makeContext('local');
@@ -132,13 +132,13 @@ describe('the demonstrations', () => {
   });
 });
 
-describe('what Helix remembers', () => {
+describe('what Havoc remembers', () => {
   /**
    * These used to assert that memories reached a local model, and that was
    * right until it produced this:
    *
-   *   User:  hello helix
-   *   Helix: 1937 Riddell RD
+   *   User:  hello havoc
+   *   Havoc: 1937 Riddell RD
    *
    * Every remembered fact was being pasted in on every turn, a greeting
    * included, and a weak model with nothing to say emitted the most salient

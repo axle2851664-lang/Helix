@@ -50,14 +50,14 @@ describe('EventBus', () => {
   it('once() fires a single time', () => {
     const bus = new EventBus();
     const handler = vi.fn();
-    bus.once('helix:ready', handler);
+    bus.once('havoc:ready', handler);
 
-    bus.emit('helix:ready', { startedAt: 1 });
-    bus.emit('helix:ready', { startedAt: 2 });
+    bus.emit('havoc:ready', { startedAt: 1 });
+    bus.emit('havoc:ready', { startedAt: 2 });
 
     expect(handler).toHaveBeenCalledOnce();
     expect(handler).toHaveBeenCalledWith({ startedAt: 1 });
-    expect(bus.listenerCount('helix:ready')).toBe(0);
+    expect(bus.listenerCount('havoc:ready')).toBe(0);
   });
 
   // The important one: a broken subscriber must not be able to prevent
@@ -80,14 +80,14 @@ describe('EventBus', () => {
   it('does not silently swallow handler errors when a logger is present', () => {
     const logger = { error: vi.fn() };
     const bus = new EventBus({ logger });
-    bus.on('helix:ready', () => {
+    bus.on('havoc:ready', () => {
       throw new Error('boom');
     });
 
-    bus.emit('helix:ready', { startedAt: 0 });
+    bus.emit('havoc:ready', { startedAt: 0 });
 
     expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('helix:ready'),
+      expect.stringContaining('havoc:ready'),
       expect.any(Error),
     );
   });
@@ -95,14 +95,14 @@ describe('EventBus', () => {
   it('lets a handler unsubscribe during dispatch without skipping peers', () => {
     const bus = new EventBus();
     const calls: string[] = [];
-    const offSelf = bus.on('helix:ready', () => {
+    const offSelf = bus.on('havoc:ready', () => {
       calls.push('first');
       offSelf();
     });
-    bus.on('helix:ready', () => calls.push('second'));
+    bus.on('havoc:ready', () => calls.push('second'));
 
-    bus.emit('helix:ready', { startedAt: 0 });
-    bus.emit('helix:ready', { startedAt: 1 });
+    bus.emit('havoc:ready', { startedAt: 0 });
+    bus.emit('havoc:ready', { startedAt: 1 });
 
     expect(calls).toEqual(['first', 'second', 'second']);
   });
@@ -110,39 +110,39 @@ describe('EventBus', () => {
   it('does not dispatch to a handler added during the same emit', () => {
     const bus = new EventBus();
     const late = vi.fn();
-    bus.on('helix:ready', () => {
-      bus.on('helix:ready', late);
+    bus.on('havoc:ready', () => {
+      bus.on('havoc:ready', late);
     });
 
-    bus.emit('helix:ready', { startedAt: 0 });
+    bus.emit('havoc:ready', { startedAt: 0 });
 
     expect(late).not.toHaveBeenCalled();
   });
 
   it('emitting an event with no subscribers is harmless', () => {
     const bus = new EventBus();
-    expect(() => bus.emit('helix:shutdown', { reason: 'test' })).not.toThrow();
+    expect(() => bus.emit('havoc:shutdown', { reason: 'test' })).not.toThrow();
   });
 
   it('warns once the listener ceiling is crossed', () => {
     const logger = { error: vi.fn() };
     const bus = new EventBus({ logger, maxListenersPerEvent: 2 });
 
-    bus.on('helix:ready', vi.fn());
-    bus.on('helix:ready', vi.fn());
+    bus.on('havoc:ready', vi.fn());
+    bus.on('havoc:ready', vi.fn());
     expect(logger.error).not.toHaveBeenCalled();
 
-    bus.on('helix:ready', vi.fn());
+    bus.on('havoc:ready', vi.fn());
     expect(logger.error).toHaveBeenCalledOnce();
   });
 
   it('removeAll() clears one event or every event', () => {
     const bus = new EventBus();
-    bus.on('helix:ready', vi.fn());
+    bus.on('havoc:ready', vi.fn());
     bus.on('CAMERA_STARTED', vi.fn());
 
-    bus.removeAll('helix:ready');
-    expect(bus.listenerCount('helix:ready')).toBe(0);
+    bus.removeAll('havoc:ready');
+    expect(bus.listenerCount('havoc:ready')).toBe(0);
     expect(bus.listenerCount('CAMERA_STARTED')).toBe(1);
 
     bus.removeAll();

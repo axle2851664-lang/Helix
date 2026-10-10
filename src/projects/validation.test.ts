@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import {
   ACCEPT_ATTRIBUTE,
   fileExtension,
@@ -104,13 +104,13 @@ describe('validateUpload', () => {
       } catch (error) {
         thrown = error;
       }
-      expect(thrown, name).toBeInstanceOf(HelixError);
-      expect((thrown as HelixError).userMessage, name).toContain('does not accept');
+      expect(thrown, name).toBeInstanceOf(HavocError);
+      expect((thrown as HavocError).userMessage, name).toContain('does not accept');
     }
   });
 
   it('refuses a disguised executable regardless of mime type', () => {
-    expect(() => validateUpload(file('evil.exe', 1024, 'image/png'))).toThrow(HelixError);
+    expect(() => validateUpload(file('evil.exe', 1024, 'image/png'))).toThrow(HavocError);
   });
 
   it('refuses an unsupported type', () => {
@@ -143,9 +143,9 @@ describe('validateUpload', () => {
     try {
       validateUpload(file('setup.exe'));
     } catch (error) {
-      const helix = error as HelixError;
-      expect(helix.userMessage).not.toContain('Rejected');
-      expect(helix.technical).toContain('Rejected');
+      const havoc = error as HavocError;
+      expect(havoc.userMessage).not.toContain('Rejected');
+      expect(havoc.technical).toContain('Rejected');
     }
   });
 });

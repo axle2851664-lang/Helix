@@ -74,7 +74,7 @@ export interface WorkspaceDescriptor {
 export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   home: {
     id: 'home',
-    title: 'Helix',
+    title: 'Havoc',
     subtitle: 'Ask anything by voice or text.',
     aliases: ['chat', 'assistant', 'main', 'console', 'talk', 'new conversation'],
     phase: 3,
@@ -95,7 +95,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     id: 'memory',
     group: 'talk',
     title: 'Memory',
-    subtitle: 'What Helix remembers, and what it forgets.',
+    subtitle: 'What Havoc remembers, and what it forgets.',
     aliases: ['memories', 'remember', 'recall'],
     phase: 4,
     implemented: true,
@@ -105,7 +105,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     id: 'notepad',
     group: 'talk',
     title: 'Notepad',
-    subtitle: "Notes you asked Helix to keep. Nothing is written here unless you ask.",
+    subtitle: "Notes you asked Havoc to keep. Nothing is written here unless you ask.",
     aliases: ['notes', 'note', 'notebook', 'note pad', 'scratchpad'],
     phase: 4,
     implemented: true,
@@ -115,7 +115,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     id: 'files',
     group: 'know',
     title: 'Files',
-    subtitle: 'Files you imported, and what Helix can search inside them.',
+    subtitle: 'Files you imported, and what Havoc can search inside them.',
     aliases: ['documents', 'knowledge', 'library'],
     phase: 4,
     implemented: true,
@@ -145,7 +145,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     id: 'inbox',
     group: 'mail',
     title: 'Inbox',
-    subtitle: 'Your unread mail, and the few things Helix may do with it.',
+    subtitle: 'Your unread mail, and the few things Havoc may do with it.',
     aliases: ['mail', 'email', 'inbox', 'my mail', 'my email', 'gmail'],
     phase: 6,
     implemented: true,
@@ -165,7 +165,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     id: 'portable',
     group: 'machine',
     title: 'Take It With You',
-    subtitle: 'Put Helix on a flash drive, choosing exactly what goes.',
+    subtitle: 'Put Havoc on a flash drive, choosing exactly what goes.',
     aliases: ['portable', 'flash drive', 'usb', 'usb stick', 'take it with me', 'memory stick'],
     phase: 6,
     implemented: true,
@@ -194,7 +194,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
   earth: {
     id: 'earth',
     group: 'know',
-    title: 'Helix Earth',
+    title: 'Havoc Earth',
     subtitle: 'Maps, globe and geographic data.',
     aliases: ['map', 'maps', 'globe', 'geography', 'earth', 'location'],
     phase: 10,
@@ -205,7 +205,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     id: 'storage',
     group: 'machine',
     title: 'Storage',
-    subtitle: 'Space used by Helix and its data.',
+    subtitle: 'Space used by Havoc and its data.',
     aliases: ['disk', 'space', 'usage', 'capacity'],
     phase: 11,
     implemented: true,
@@ -246,7 +246,7 @@ export const WORKSPACES: Readonly<Record<WorkspaceId, WorkspaceDescriptor>> = {
     group: 'know',
     title: 'Graph',
     // Not "your notes". These are markdown files in a vault folder on your
-    // disk, which Helix reads and never wrote. A note in Helix is a Notepad
+    // disk, which Havoc reads and never wrote. A note in Havoc is a Notepad
     // note, and the two must not share a word - the user cannot see which
     // one they have got.
     subtitle: 'Files in your vault, and the links between them.',

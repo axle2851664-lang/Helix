@@ -1,11 +1,11 @@
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 
 /**
  * Portable path resolution (spec 13).
  *
- * Every Helix path derives from one runtime-resolved root. Nothing in the
+ * Every Havoc path derives from one runtime-resolved root. Nothing in the
  * codebase may construct an absolute path by hand, and nothing persisted to
- * disk may contain one: relocating a Helix folder from one drive letter to
+ * disk may contain one: relocating a Havoc folder from one drive letter to
  * another must be invisible to projects, models and memory records.
  *
  * This module is deliberately host-agnostic. It performs pure string algebra on
@@ -14,7 +14,7 @@ import { HelixError } from '../core/HelixError.js';
  * Tauri shell supplies a real root later; the arithmetic does not change.
  */
 
-export const HELIX_DIRECTORIES = [
+export const HAVOC_DIRECTORIES = [
   'app',
   'config',
   'data',
@@ -31,7 +31,7 @@ export const HELIX_DIRECTORIES = [
   'memory',
 ] as const;
 
-export type HelixDirectory = (typeof HELIX_DIRECTORIES)[number];
+export type HavocDirectory = (typeof HAVOC_DIRECTORIES)[number];
 
 /** Normalise separators and collapse `.` / `..` without touching the disk. */
 export function normalizePath(input: string): string {
@@ -84,7 +84,7 @@ function isAbsolutePath(path: string): boolean {
 }
 
 export interface PathManagerOptions {
-  /** Absolute root of the Helix installation, resolved by the host at runtime. */
+  /** Absolute root of the Havoc installation, resolved by the host at runtime. */
   root: string;
   /** When true, data lives beside the application (spec 13). */
   portable?: boolean;
@@ -102,9 +102,9 @@ export class PathManager {
 
   constructor(options: PathManagerOptions) {
     if (!options.root || options.root.trim() === '') {
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
-        'Helix could not determine where it is installed, so it cannot resolve its data folders.',
+        'Havoc could not determine where it is installed, so it cannot resolve its data folders.',
         { technical: 'PathManager constructed with an empty root.' },
       );
     }
@@ -116,9 +116,9 @@ export class PathManager {
       this.#dataRoot = this.#root;
     } else {
       if (!options.dataRoot || options.dataRoot.trim() === '') {
-        throw new HelixError(
+        throw new HavocError(
           'VALIDATION_FAILED',
-          'Helix is set to non-portable mode but no data location was provided.',
+          'Havoc is set to non-portable mode but no data location was provided.',
           { technical: 'PathManager: portable=false requires an explicit dataRoot.' },
         );
       }
@@ -130,7 +130,7 @@ export class PathManager {
     return this.#portable;
   }
 
-  /** Root of the Helix installation. */
+  /** Root of the Havoc installation. */
   get root(): string {
     return this.#root;
   }
@@ -168,9 +168,9 @@ export class PathManager {
     const prefix = base.endsWith('/') ? base : base + '/';
     // Windows paths are case-insensitive, so compare case-folded.
     if (!normalized.toLowerCase().startsWith(prefix.toLowerCase())) {
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
-        'That location is outside the Helix workspace, so it cannot be stored in a project.',
+        'That location is outside the Havoc workspace, so it cannot be stored in a project.',
         { technical: 'toPortable: "' + normalized + '" is not under data root "' + base + '".' },
       );
     }
@@ -181,9 +181,9 @@ export class PathManager {
   fromPortable(relativePath: string): string {
     const normalized = normalizePath(relativePath);
     if (isAbsolutePath(normalized)) {
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
-        'Helix found an absolute path where a portable one was expected.',
+        'Havoc found an absolute path where a portable one was expected.',
         { technical: 'fromPortable received absolute path "' + normalized + '".' },
       );
     }
@@ -192,7 +192,7 @@ export class PathManager {
 
   /**
    * Guard against path traversal (spec 18). True only when the resolved path
-   * stays inside the Helix data root.
+   * stays inside the Havoc data root.
    */
   isWithinWorkspace(candidate: string): boolean {
     const normalized = normalizePath(candidate);
@@ -207,9 +207,9 @@ export class PathManager {
   /** Throw unless the candidate resolves inside the workspace; returns the resolved path. */
   assertWithinWorkspace(candidate: string): string {
     if (!this.isWithinWorkspace(candidate)) {
-      throw new HelixError(
+      throw new HavocError(
         'PERMISSION_DENIED',
-        'Helix can only work with files inside its own workspace.',
+        'Havoc can only work with files inside its own workspace.',
         { technical: 'Path escapes workspace: "' + candidate + '"' },
       );
     }

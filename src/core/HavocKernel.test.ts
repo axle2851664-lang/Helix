@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { HelixKernel } from './HelixKernel.js';
-import { HelixError } from './HelixError.js';
+import { HavocKernel } from './HavocKernel.js';
+import { HavocError } from './HavocError.js';
 import { MemoryKeyValueStore, type KeyValueStore } from '../storage/KeyValueStore.js';
 import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
 
@@ -34,10 +34,10 @@ function stubPlatform(overrides: Partial<PlatformAdapter> = {}): PlatformAdapter
 }
 
 function makeKernel(store: KeyValueStore = new MemoryKeyValueStore()) {
-  return new HelixKernel({ platform: stubPlatform(), store, root: '/helix' });
+  return new HavocKernel({ platform: stubPlatform(), store, root: '/havoc' });
 }
 
-describe('HelixKernel', () => {
+describe('HavocKernel', () => {
   it('starts and exposes its services', async () => {
     const kernel = makeKernel();
     const services = await kernel.start();
@@ -45,16 +45,16 @@ describe('HelixKernel', () => {
     expect(kernel.status).toBe('ready');
     expect(services.bus).toBeDefined();
     expect(services.settings.loaded).toBe(true);
-    expect(services.paths.getProjectPath()).toBe('/helix/projects');
+    expect(services.paths.getProjectPath()).toBe('/havoc/projects');
   });
 
   it('throws a readable error when services are used before start', () => {
     const kernel = makeKernel();
-    expect(() => kernel.services).toThrow(HelixError);
+    expect(() => kernel.services).toThrow(HavocError);
     try {
       void kernel.services;
     } catch (error) {
-      expect((error as HelixError).userMessage).toBe('Helix is still starting up.');
+      expect((error as HavocError).userMessage).toBe('Havoc is still starting up.');
     }
   });
 
@@ -65,12 +65,12 @@ describe('HelixKernel', () => {
     expect(b).toBe(c);
   });
 
-  it('emits helix:ready once started', async () => {
+  it('emits havoc:ready once started', async () => {
     const kernel = makeKernel();
     const services = await kernel.start();
     const handler = vi.fn();
     // Already emitted during start, so verify a fresh subscriber on a restart.
-    services.bus.on('helix:ready', handler);
+    services.bus.on('havoc:ready', handler);
     await kernel.shutdown();
 
     const restarted = await makeKernel().start();
@@ -97,18 +97,18 @@ describe('HelixKernel', () => {
     const broken = new MemoryKeyValueStore();
     vi.spyOn(broken, 'get').mockRejectedValue(new Error('storage gone'));
 
-    const kernel = new HelixKernel({ platform: stubPlatform(), store: broken, root: '/helix' });
+    const kernel = new HavocKernel({ platform: stubPlatform(), store: broken, root: '/havoc' });
     await kernel.start();
 
     expect(kernel.warnings.join(' ')).toContain('will be lost');
   });
 
-  // Helix must open even when persistence is broken; refusing to start is worse.
+  // Havoc must open even when persistence is broken; refusing to start is worse.
   it('still reaches ready when storage fails', async () => {
     const broken = new MemoryKeyValueStore();
     vi.spyOn(broken, 'get').mockRejectedValue(new Error('storage gone'));
 
-    const kernel = new HelixKernel({ platform: stubPlatform(), store: broken, root: '/helix' });
+    const kernel = new HavocKernel({ platform: stubPlatform(), store: broken, root: '/havoc' });
     await kernel.start();
     expect(kernel.status).toBe('ready');
   });
@@ -149,11 +149,11 @@ describe('HelixKernel', () => {
     await expect(makeKernel().shutdown()).resolves.toBeUndefined();
   });
 
-  it('emits helix:shutdown to subscribers', async () => {
+  it('emits havoc:shutdown to subscribers', async () => {
     const kernel = makeKernel();
     const services = await kernel.start();
     const handler = vi.fn();
-    services.bus.on('helix:shutdown', handler);
+    services.bus.on('havoc:shutdown', handler);
 
     await kernel.shutdown('closing');
 

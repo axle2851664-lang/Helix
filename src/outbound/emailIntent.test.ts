@@ -37,7 +37,7 @@ describe('recognising a request to email somebody', () => {
   });
 
   /**
-   * The refusal that matters most. Helix holds no contacts, and guessing
+   * The refusal that matters most. Havoc holds no contacts, and guessing
    * which Marlow is meant sends a message that cannot be recalled to somebody
    * who was never named.
    */

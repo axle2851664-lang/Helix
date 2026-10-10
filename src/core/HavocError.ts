@@ -1,5 +1,5 @@
 /**
- * Helix error type (spec 17).
+ * Havoc error type (spec 17).
  *
  * Errors carry two separate messages on purpose:
  *
@@ -10,11 +10,11 @@
  *
  * The specification's own example is the contract:
  *   not  "ECONNREFUSED 127.0.0.1:11434"
- *   but  "Helix couldn't connect to the configured vision provider.
+ *   but  "Havoc couldn't connect to the configured vision provider.
  *         Check Vision Settings."
  */
 
-export type HelixErrorCode =
+export type HavocErrorCode =
   | 'PROVIDER_NOT_CONFIGURED'
   | 'PROVIDER_UNREACHABLE'
   | 'CAPABILITY_UNAVAILABLE'
@@ -25,23 +25,23 @@ export type HelixErrorCode =
   | 'NOT_FOUND'
   | 'INTERNAL';
 
-export interface HelixErrorOptions {
+export interface HavocErrorOptions {
   /** Where the user should go to fix it, e.g. 'settings:vision'. */
   remedy?: string;
   technical?: string;
   cause?: unknown;
 }
 
-export class HelixError extends Error {
-  readonly code: HelixErrorCode;
+export class HavocError extends Error {
+  readonly code: HavocErrorCode;
   readonly userMessage: string;
   readonly technical: string | undefined;
   readonly remedy: string | undefined;
 
-  constructor(code: HelixErrorCode, userMessage: string, options: HelixErrorOptions = {}) {
+  constructor(code: HavocErrorCode, userMessage: string, options: HavocErrorOptions = {}) {
     // `message` mirrors userMessage so an accidental `${err}` is still safe to show.
     super(userMessage);
-    this.name = 'HelixError';
+    this.name = 'HavocError';
     this.code = code;
     this.userMessage = userMessage;
     this.technical = options.technical;
@@ -53,15 +53,15 @@ export class HelixError extends Error {
    * Wrap an unknown thrown value without leaking its raw text to the user.
    * The original message is preserved for the log only.
    */
-  static from(error: unknown, userMessage: string, code: HelixErrorCode = 'INTERNAL'): HelixError {
-    if (error instanceof HelixError) return error;
+  static from(error: unknown, userMessage: string, code: HavocErrorCode = 'INTERNAL'): HavocError {
+    if (error instanceof HavocError) return error;
     const technical = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-    return new HelixError(code, userMessage, { technical, cause: error });
+    return new HavocError(code, userMessage, { technical, cause: error });
   }
 }
 
 /** Narrow an unknown catch binding to something safe to display. */
 export function toUserMessage(error: unknown): string {
-  if (error instanceof HelixError) return error.userMessage;
-  return 'Helix hit an unexpected problem. Details are in the log.';
+  if (error instanceof HavocError) return error.userMessage;
+  return 'Havoc hit an unexpected problem. Details are in the log.';
 }

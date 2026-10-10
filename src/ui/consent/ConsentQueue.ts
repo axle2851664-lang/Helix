@@ -2,7 +2,7 @@ import type { ConfirmationRequest } from '../../actions/ActionRunner.js';
 import type { PermissionPrompt } from '../../security/PermissionManager.js';
 
 /**
- * The questions Helix has to ask before it may act, held in one queue.
+ * The questions Havoc has to ask before it may act, held in one queue.
  *
  * Both gates - "may I use your microphone" and "shall I delete this" - end up
  * here, because from the user's side they are the same interruption and two
@@ -32,13 +32,13 @@ export interface ConsentRequest {
   title: string;
   /** What will happen, or what is being asked for. */
   detail: string;
-  /** Why Helix is asking, right now. Null when the detail says it already. */
+  /** Why Havoc is asking, right now. Null when the detail says it already. */
   reason: string | null;
   /** The thing the user most needs to know before answering. */
   note: string | null;
   allowLabel: string;
   denyLabel: string;
-  /** Irreversible, or reaching outside Helix. Styles the button accordingly. */
+  /** Irreversible, or reaching outside Havoc. Styles the button accordingly. */
   danger: boolean;
 }
 

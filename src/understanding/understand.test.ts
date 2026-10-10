@@ -58,7 +58,7 @@ describe('the phrasings the brief asks for', () => {
 describe('imperfect speech', () => {
   /**
    * Dictation splits compounds and near-misses uncommon words. Neither is the
-   * user making a mistake, so failing on them is Helix's fault.
+   * user making a mistake, so failing on them is Havoc's fault.
    */
   it('understands what a speech recogniser did to the word', () => {
     for (const said of ['open not pad', 'open my note pad', 'show me my noats', 'open notebok']) {
@@ -177,7 +177,7 @@ describe('corrections', () => {
     });
     state.advance();
 
-    const understanding = read('No, I meant the Helix notes.');
+    const understanding = read('No, I meant the Havoc notes.');
     expect(understanding.correction?.kind).toBe('replace');
     expect(understanding.match?.capability.id).toBe('notepad');
   });
@@ -210,7 +210,7 @@ describe('several requests in one message', () => {
   });
 
   it('splits finding from exporting', () => {
-    const understood = understand('Find my Helix notes and export them to the flash drive', state);
+    const understood = understand('Find my Havoc notes and export them to the flash drive', state);
     expect(understood.steps.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -252,10 +252,10 @@ describe('what it leaves alone', () => {
 describe('the transcript this was tightened for', () => {
   /**
    * Every one of these was claimed by the layer and acted on. The user was
-   * asking Helix to explain itself, or correcting its English, and Helix went
+   * asking Havoc to explain itself, or correcting its English, and Havoc went
    * looking through their files.
    */
-  it('never reads a question about Helix as an instruction', () => {
+  it('never reads a question about Havoc as an instruction', () => {
     for (const said of [
       'Which file',
       'why did you open the files',
@@ -270,7 +270,7 @@ describe('the transcript this was tightened for', () => {
   });
 
   /**
-   * "No, it's yes" is the user correcting Helix's English. The "no" matched a
+   * "No, it's yes" is the user correcting Havoc's English. The "no" matched a
    * redirection, what was left named nothing, and the layer carried the
    * previous action forward and opened Files again.
    */
@@ -298,7 +298,7 @@ describe('the transcript this was tightened for', () => {
     });
     state.advance();
 
-    expect(read('No, I meant the Helix notes.').match?.capability.id).toBe('notepad');
+    expect(read('No, I meant the Havoc notes.').match?.capability.id).toBe('notepad');
   });
 
   /**

@@ -38,7 +38,7 @@ describe('reactorSegments', () => {
    * This used to read "never lights reasoning, because nothing connects to a
    * model", and it was correct for as long as that held. It stopped holding
    * when a local model started answering, and the segment went on reporting
-   * REASONING as unavailable on a screen where Helix was replying - the exact
+   * REASONING as unavailable on a screen where Havoc was replying - the exact
    * fabricated status this module exists to prevent, in the one direction
    * nobody thinks to check.
    *

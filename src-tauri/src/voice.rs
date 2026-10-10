@@ -12,7 +12,7 @@
 //! - **Transcription.** Recorded audio in, text out. This is the one command
 //!   that moves the user's voice off the machine, which is why the provider on
 //!   the other side reports `processing: 'remote'` and the setting that
-//!   selects it says so in its label. Helix does not quietly route a
+//!   selects it says so in its label. Havoc does not quietly route a
 //!   microphone to a third party.
 //! - **Synthesis.** Text in, audio out. The text is already on screen.
 //! - **Voices.** The list of voices on the account, so the user can choose one
@@ -43,7 +43,7 @@ const STT_MODEL: &str = "scribe_v1";
 /// conversation rather than rendering a file.
 const TTS_MODEL: &str = "eleven_turbo_v2_5";
 
-/// Audio Helix will accept for one turn, before encoding.
+/// Audio Havoc will accept for one turn, before encoding.
 ///
 /// A cap rather than a trust in the caller: the web view decides when a turn
 /// ends, and a bug there should cost a refused request rather than the memory
@@ -254,7 +254,7 @@ fn multipart(boundary: &str, model: &str, mime: &str, audio: &[u8]) -> Vec<u8> {
 
 /// A boundary that cannot occur in the audio by accident.
 fn boundary_for(audio: &[u8]) -> String {
-    format!("----HelixTurn{}z{}", audio.len(), audio.first().unwrap_or(&0))
+    format!("----HavocTurn{}z{}", audio.len(), audio.first().unwrap_or(&0))
 }
 
 // ------------------------------------------------------------------ commands

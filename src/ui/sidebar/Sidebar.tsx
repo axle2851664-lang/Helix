@@ -1,13 +1,13 @@
 import { Icon, type IconName } from '../components/Icon.js';
 import { GROUP_LABELS, GROUP_ORDER, SIDEBAR_WORKSPACES } from '../workspaces/registry.js';
 import type { WorkspaceId } from '../workspaces/registry.js';
-import { useSettings } from '../HelixProvider.js';
+import { useSettings } from '../HavocProvider.js';
 
 /**
  * Persistent left navigation.
  *
  * Every entry navigates to a real workspace. Entries whose subsystem is not
- * built yet are still reachable - the user can see where Helix is going - but
+ * built yet are still reachable - the user can see where Havoc is going - but
  * carry a phase marker so "working" and "planned" are distinguishable before
  * clicking rather than after.
  */
@@ -56,14 +56,14 @@ export function Sidebar({ active, onNavigate, onNewConversation, collapsed }: Si
           type="button"
           className="hx-logo"
           onClick={() => onNavigate('home')}
-          aria-label="Helix home"
+          aria-label="Havoc home"
         >
           <span className="hx-logo__glyph">H</span>
         </button>
-        <span className="hx-wordmark">HELIX</span>
+        <span className="hx-wordmark">HAVOC</span>
       </div>
 
-      <nav className="hx-nav" aria-label="Helix navigation">
+      <nav className="hx-nav" aria-label="Havoc navigation">
         <button type="button" className="hx-nav__item hx-nav__item--action" onClick={onNewConversation}>
           <Icon name="plus" />
           <span className="hx-nav__label">New Conversation</span>

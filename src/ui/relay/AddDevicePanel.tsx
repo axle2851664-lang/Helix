@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
 import { endpointUrl, hostProblem, keyProblem, pairingText } from '../../relay/pairing.js';
 import { readinessChecks, readinessSummary, type ReadinessCheck } from '../../relay/readiness.js';
 import type { PhoneActivity } from '../../relay/PhoneListener.js';
@@ -14,11 +14,11 @@ import { shellTailscaleAddress } from '../../platform/TauriPlatform.js';
  * and port yourself. The key was the part left to a person, and it is the only
  * thing protecting a network listener.
  *
- * Now Helix makes the key and shows the whole connection as one code to scan.
+ * Now Havoc makes the key and shows the whole connection as one code to scan.
  * Three things this screen is careful about:
  *
  * - **The code is a credential.** It is hidden until asked for, and says
- *   plainly that anyone who photographs it can talk to Helix. A secret shown
+ *   plainly that anyone who photographs it can talk to Havoc. A secret shown
  *   by default is a secret shown to whoever walks past.
  *
  * - **It never claims to know where this machine is.** A web view cannot see
@@ -30,7 +30,7 @@ import { shellTailscaleAddress } from '../../platform/TauriPlatform.js';
  *   writes the key from here.
  */
 export function AddDevicePanel() {
-  const { runner, platform, listener } = useHelix();
+  const { runner, platform, listener } = useHavoc();
   const config = useSettings([
     'phoneHost',
     'phoneListenerPort',
@@ -246,7 +246,7 @@ export function AddDevicePanel() {
       {paired && revealed && (
         <div className="hx-pairing__code">
           <p className="hx-pairing__warning" role="alert">
-            Anyone who photographs this can send instructions to Helix. Show it to your phone and
+            Anyone who photographs this can send instructions to Havoc. Show it to your phone and
             nothing else.
           </p>
 
@@ -302,17 +302,17 @@ export function AddDevicePanel() {
         <p className="hx-pairing__waiting">
           {activity === null ? (
             <>
-              <span className="hx-dot hx-dot--off" /> No phone has reached Helix yet. Send
+              <span className="hx-dot hx-dot--off" /> No phone has reached Havoc yet. Send
               something from the Shortcut and this will say so.
             </>
           ) : (
             <>
               <span className={`hx-dot hx-dot--${activity.outcome === 'answered' ? 'ok' : 'bad'}`} />{' '}
-              A phone reached Helix at {new Date(activity.at).toLocaleTimeString()} and asked
+              A phone reached Havoc at {new Date(activity.at).toLocaleTimeString()} and asked
               &ldquo;{activity.text}&rdquo;
               {activity.outcome === 'answered'
                 ? '. It was answered.'
-                : '. Helix could not answer it, but the connection itself works.'}
+                : '. Havoc could not answer it, but the connection itself works.'}
             </>
           )}
         </p>

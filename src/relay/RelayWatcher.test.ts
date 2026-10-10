@@ -95,7 +95,7 @@ describe('a valid command', () => {
 });
 
 describe('the answer coming back', () => {
-  it('replies to the owner with what Helix said', async () => {
+  it('replies to the owner with what Havoc said', async () => {
     const gmail = new FakeGmail();
 
     await watcher(gmail, sink()).poll();

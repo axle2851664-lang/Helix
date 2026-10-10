@@ -62,7 +62,7 @@ describe('claims about now', () => {
 describe('what it must never catch', () => {
   /**
    * Capability, not state. These say what would be required and claim nothing
-   * about now, and every one of them is a reply Helix should be free to give.
+   * about now, and every one of them is a reply Havoc should be free to give.
    */
   it('lets through a statement about what would be needed', () => {
     for (const said of [
@@ -95,7 +95,7 @@ describe('what it must never catch', () => {
    * The word "running" is ordinary English about the user's own machine, and
    * a guard that could not tell the difference would edit real answers.
    */
-  it('lets through the same words about something other than Helix', () => {
+  it('lets through the same words about something other than Havoc', () => {
     for (const said of [
       'The render is still running, by the look of it.',
       'Your local model service is not running.',

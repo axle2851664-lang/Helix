@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { useHavoc } from '../HavocProvider.js';
+import { toUserMessage } from '../../core/HavocError.js';
 import type { Note } from '../../notepad/types.js';
 
 /**
@@ -16,7 +16,7 @@ import type { Note } from '../../notepad/types.js';
  * So there is one note on screen and nothing else: a title, a body, and the
  * room around them. Opening the Notepad puts the cursor in the page, because
  * the reason to come here is to write. Files is a search box over things you
- * brought to Helix; this is a page you are writing on. They now read as
+ * brought to Havoc; this is a page you are writing on. They now read as
  * different activities at a glance, which is the point.
  *
  * WHERE THE OTHER NOTES WENT. Into a switcher that is summoned and dismissed,
@@ -28,7 +28,7 @@ import type { Note } from '../../notepad/types.js';
  * Three rules from the first version survive unchanged, because they were
  * never about layout:
  *
- * 1. **Saving is explicit.** Autosave would mean Helix writing to your own
+ * 1. **Saving is explicit.** Autosave would mean Havoc writing to your own
  *    notes on a timer, which is the one thing the Notepad promises not to do.
  *    The control appears only when there is a change to write.
  * 2. **Deleting asks, and names the note.** Nothing brings it back.
@@ -45,7 +45,7 @@ export function NotepadWorkspace({
   /** Back to the core. The Notepad is somewhere you go and then leave. */
   onClose: () => void;
 }) {
-  const { notepad } = useHelix();
+  const { notepad } = useHavoc();
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -93,7 +93,7 @@ export function NotepadWorkspace({
   }, []);
 
   /**
-   * A note Helix was asked to open.
+   * A note Havoc was asked to open.
    *
    * "Find my note about suppliers" resolves it in the orchestrator and hands
    * the id here, so the page opens on that note rather than on a list with the
@@ -300,7 +300,7 @@ export function NotepadWorkspace({
       </div>
 
       <p className="hx-pad__foot">
-        Notes live in Helix, not on your disk, and nothing is written here unless you ask.
+        Notes live in Havoc, not on your disk, and nothing is written here unless you ask.
         Files you imported are in Files; a vault of markdown on your disk is in Graph.
         Credentials are refused rather than stored.
       </p>

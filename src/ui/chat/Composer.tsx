@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { useHavoc } from '../HavocProvider.js';
+import { toUserMessage } from '../../core/HavocError.js';
 import type { VoiceSnapshot } from '../../voice/VoiceManager.js';
 
 /**
- * The main Helix input.
+ * The main Havoc input.
  *
  * The microphone is wired to the real voice pipeline: pressing it opens the
  * device, and the indicator follows actual device state rather than an
@@ -22,7 +22,7 @@ interface ComposerProps {
 }
 
 export function Composer({ value, onChange, onSubmit, busy, autoFocus }: ComposerProps) {
-  const { voice } = useHelix();
+  const { voice } = useHavoc();
   const [notice, setNotice] = useState<string | null>(null);
   const [voiceState, setVoiceState] = useState<VoiceSnapshot>(() => voice.snapshot);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -71,7 +71,7 @@ export function Composer({ value, onChange, onSubmit, busy, autoFocus }: Compose
         return;
       }
       // Fills the composer rather than sending, so the user can correct a
-      // misheard word before Helix acts on it.
+      // misheard word before Havoc acts on it.
       onChange(transcript);
       textareaRef.current?.focus();
     } catch (error) {
@@ -119,9 +119,9 @@ export function Composer({ value, onChange, onSubmit, busy, autoFocus }: Compose
         <button
           type="button"
           className={`hx-iconbtn${listening ? ' hx-iconbtn--live' : ''}`}
-          aria-label={listening ? 'Stop listening' : 'Speak to Helix'}
+          aria-label={listening ? 'Stop listening' : 'Speak to Havoc'}
           aria-pressed={listening}
-          title={voiceBlocker ?? 'Speak to Helix'}
+          title={voiceBlocker ?? 'Speak to Havoc'}
           onClick={() => void toggleListening()}
         >
           <Icon name="microphone" size={19} />
@@ -152,13 +152,13 @@ export function Composer({ value, onChange, onSubmit, busy, autoFocus }: Compose
         <textarea
           ref={textareaRef}
           className="hx-composer__input"
-          placeholder="Ask Helix anything..."
+          placeholder="Ask Havoc anything..."
           value={value}
           rows={1}
           autoFocus={autoFocus ?? false}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
-          aria-label="Ask Helix anything"
+          aria-label="Ask Havoc anything"
         />
 
         <button

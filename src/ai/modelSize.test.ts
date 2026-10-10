@@ -11,7 +11,7 @@ describe('reading a size out of a model name', () => {
 
   /**
    * The number has to be attached to a "b". Without that, "llama3.2" reads as
-   * a 3.2-billion-parameter model, and Helix would tell the user something
+   * a 3.2-billion-parameter model, and Havoc would tell the user something
    * false about their own setup.
    */
   it('says nothing when the name does not say', () => {

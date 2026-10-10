@@ -23,7 +23,7 @@ describe('how big the core gets', () => {
    * The bug this file exists to prevent, measured rather than imagined.
    *
    * The sphere used to rest at 0.37 of the canvas. The swell had nowhere to
-   * go: it clipped flat against the edge, so Helix speaking produced no
+   * go: it clipped flat against the edge, so Havoc speaking produced no
    * visible change at all. It has to fit at full swell, with the aura around
    * it, or the growth is not growth.
    */
@@ -43,7 +43,7 @@ describe('how big the core gets', () => {
   /**
    * Visible across the room rather than on inspection. A swell small enough
    * to need looking for is the same as no swell: the user asked for the
-   * sphere to get bigger and smaller as Helix talks, and a 3% change does
+   * sphere to get bigger and smaller as Havoc talks, and a 3% change does
    * not.
    */
   it('grows by enough to see', () => {

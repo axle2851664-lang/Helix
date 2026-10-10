@@ -2,7 +2,7 @@
  * Recognising a request about the mailbox.
  *
  * This exists because of a specific, serious failure. Asked "what's unread on
- * my gmail right now", Helix answered "I'm checking your Gmail inbox. As of
+ * my gmail right now", Havoc answered "I'm checking your Gmail inbox. As of
  * now, you have several unread messages" - and had done nothing of the kind.
  * The phrase did not match the inbox tool, so it fell through to the language
  * model, which produced a plausible sentence about a mailbox it cannot see.

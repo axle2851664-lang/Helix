@@ -13,7 +13,7 @@ import { buildHand, recognize } from './recognize.js';
  * Hand tracking via MediaPipe Hand Landmarker (spec 11).
  *
  * Runs entirely on the machine: the WASM runtime and the model are served from
- * Helix's own origin, not a CDN. That is required by the application's content
+ * Havoc's own origin, not a CDN. That is required by the application's content
  * security policy, which permits no external origins, and it means camera
  * frames never leave the device - unlike speech recognition, this genuinely is
  * on-device.

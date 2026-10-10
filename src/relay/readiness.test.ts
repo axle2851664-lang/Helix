@@ -64,7 +64,7 @@ describe('when something is wrong', () => {
 
 describe('what it cannot establish', () => {
   it('keeps "not running" and "nothing to ask" apart', () => {
-    // Blurring these reports a working listener as broken every time Helix
+    // Blurring these reports a working listener as broken every time Havoc
     // runs somewhere that has no listener to ask.
     expect(stateOf({ ...ready, listenerRunning: null }, 'The listener')).toBe('unknown');
     expect(stateOf({ ...ready, listenerRunning: false }, 'The listener')).toBe('problem');

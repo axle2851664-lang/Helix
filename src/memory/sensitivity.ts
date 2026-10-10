@@ -5,17 +5,17 @@ import type { MemoryRecord } from './types.js';
  *
  * THE FAILURE THIS COMES FROM.
  *
- *   User: hello helix
- *   Helix: 1937 Riddell RD
+ *   User: hello havoc
+ *   Havoc: 1937 Riddell RD
  *   User: is that my address?
- *   Helix: no
+ *   Havoc: no
  *   User: What is that
- *   Helix: your computer's location.
+ *   Havoc: your computer's location.
  *
  * A greeting, answered with a street address and then a confabulation about
- * where it came from. Nothing in Helix reads a real location - there is no
+ * where it came from. Nothing in Havoc reads a real location - there is no
  * geolocation call anywhere in it - so that was either a fact the user had
- * told Helix, read back unprompted, or one the model invented outright.
+ * told Havoc, read back unprompted, or one the model invented outright.
  *
  * Both are the same design fault, and it was mine: every remembered fact was
  * being pasted into the system prompt on every single turn, a greeting
@@ -25,8 +25,8 @@ import type { MemoryRecord } from './types.js';
  * now the user's personal data. The first three were embarrassing. This one is
  * a privacy leak.
  *
- * THE DISTINCTION THIS MODULE DRAWS. The user asked Helix to know private
- * things about them, and Helix should. But "know" has to mean "can tell you
+ * THE DISTINCTION THIS MODULE DRAWS. The user asked Havoc to know private
+ * things about them, and Havoc should. But "know" has to mean "can tell you
  * when you ask" - not "has it loaded into a text generator's working memory
  * where it can fall out at any moment".
  *
@@ -39,7 +39,7 @@ import type { MemoryRecord } from './types.js';
 /**
  * Fact kinds that never enter a model's context.
  *
- * A name does: Helix using it in conversation is the point of knowing it, and
+ * A name does: Havoc using it in conversation is the point of knowing it, and
  * a name read out unprompted is awkward rather than harmful. An address, a
  * phone number or an email is a different category - it is the thing you would
  * mind being said aloud in a room, or being carried in a log.
@@ -138,7 +138,7 @@ export function volunteersPrivateFact(
 /**
  * The parts of a fact that identify it.
  *
- * Whole-sentence matching would never fire, because Helix stores "Their
+ * Whole-sentence matching would never fire, because Havoc stores "Their
  * contact detail: ..." and a model repeats the detail alone. Runs of three or
  * more words, and anything containing a digit or an @, are what carry the
  * identifying content; short common words are not, and matching on those would
@@ -151,7 +151,7 @@ function distinctiveParts(content: string): string[] {
   /**
    * Single tokens that identify on their own.
    *
-   * A run of three words cannot catch an email or a phone number: Helix stores
+   * A run of three words cannot catch an email or a phone number: Havoc stores
    * "Their contact detail: michael@example.com" and a model writes "you can be
    * reached at michael@example.com", which shares exactly one token with it.
    * A test caught that. These carry enough entropy that matching one is never

@@ -23,7 +23,7 @@ use std::collections::HashMap;
 /// itself to the user.
 const INFERENCE_TIMEOUT_SECS: u64 = 240;
 
-/// A provider Helix knows how to reach.
+/// A provider Havoc knows how to reach.
 struct ProviderSpec {
     id: &'static str,
     base_url: &'static str,
@@ -164,7 +164,7 @@ pub async fn inference_request(
     // "connection refused" is not a sentence anyone can act on.
     let local = matches!(provider.auth, AuthStyle::None);
 
-    // Only paths Helix constructs are allowed through. Joining an arbitrary
+    // Only paths Havoc constructs are allowed through. Joining an arbitrary
     // caller-supplied path onto a base URL is how a request ends up somewhere
     // nobody intended.
     let allowed_prefix = provider.path_prefix;

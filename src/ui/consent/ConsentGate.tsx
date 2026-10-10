@@ -1,21 +1,21 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { ConsentQueue, actionConsent, permissionConsent, type ConsentRequest } from './ConsentQueue.js';
-import { useHelix } from '../HelixProvider.js';
+import { useHavoc } from '../HavocProvider.js';
 
 /**
- * The one place Helix asks before it acts.
+ * The one place Havoc asks before it acts.
  *
  * Both gates register here: `PermissionManager` gets its prompter and
  * `ActionRunner` gets its confirmer. Until something does this, both refuse
- * rather than assume - so mounting this component is what turns "Helix may not
- * do that" into "Helix will ask you".
+ * rather than assume - so mounting this component is what turns "Havoc may not
+ * do that" into "Havoc will ask you".
  *
  * The unmount path matters as much as the render path. When this goes away,
  * both seams are unregistered and every outstanding question is refused, so a
  * promise cannot be left hanging on a dialog that is no longer on screen.
  */
 export function ConsentGate() {
-  const { permissions, runner, bus } = useHelix();
+  const { permissions, runner, bus } = useHavoc();
   const queueRef = useRef<ConsentQueue | null>(null);
   if (queueRef.current === null) queueRef.current = new ConsentQueue();
   const queue = queueRef.current;
@@ -41,7 +41,7 @@ export function ConsentGate() {
   }, [permissions, runner, queue]);
 
   /**
-   * Announce that Helix has stopped and is waiting on an answer.
+   * Announce that Havoc has stopped and is waiting on an answer.
    *
    * The core on the home screen has to show "awaiting confirmation" as a state
    * distinct from thinking - one of them will carry on by itself and one will

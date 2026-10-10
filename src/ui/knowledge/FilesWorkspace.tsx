@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix } from '../HelixProvider.js';
+import { useHavoc } from '../HavocProvider.js';
 import { formatBytes } from '../../projects/validation.js';
 import type { IndexedDocument, KnowledgeHit } from '../../knowledge/KnowledgeIndex.js';
 import type { ProjectAsset } from '../../projects/types.js';
@@ -11,11 +11,11 @@ import { scanForInjection, type InjectionFinding } from '../../guardrails/untrus
  *
  * Lists every imported file and whether it is searchable, with the specific
  * reason when it is not. A PDF or photograph is stored perfectly well but
- * cannot be read without a dependency Helix does not have; saying so here is
+ * cannot be read without a dependency Havoc does not have; saying so here is
  * what stops search silently never finding those files.
  */
 export function FilesWorkspace() {
-  const { knowledge, projects, activity } = useHelix();
+  const { knowledge, projects, activity } = useHavoc();
 
   const [documents, setDocuments] = useState<IndexedDocument[]>([]);
   const [assets, setAssets] = useState<ProjectAsset[]>([]);
@@ -105,7 +105,7 @@ export function FilesWorkspace() {
             wrote would land, find nothing, and conclude it was lost.
           */}
           <p className="hx-muted">
-            These are files you brought to Helix. Notes you asked Helix to write are in
+            These are files you brought to Havoc. Notes you asked Havoc to write are in
             the Notepad, not here.
           </p>
         </div>
@@ -114,7 +114,7 @@ export function FilesWorkspace() {
           <section className="hx-panel">
             <h2 className="hx-panel__title">Search file contents</h2>
             <p className="hx-settings__note">
-              Files you imported. This does not search your Notepad - ask Helix to find
+              Files you imported. This does not search your Notepad - ask Havoc to find
               a note, or open the Notepad.
             </p>
             <div className="hx-field__actions">
@@ -250,8 +250,8 @@ export function FilesWorkspace() {
               <p className="hx-settings__note">
                 Found in {flagged.size} {flagged.size === 1 ? 'file' : 'files'}. This is very
                 often innocent - notes about this subject trip it, as they should. It is
-                shown because anything Helix reads could have been written by someone else for
-                Helix to read, and you should be the one who decides what it means. Helix treats
+                shown because anything Havoc reads could have been written by someone else for
+                Havoc to read, and you should be the one who decides what it means. Havoc treats
                 every passage below as content, never as an instruction.
               </p>
               <ul className="hx-findings">

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { HavocOrchestrator } from './HavocOrchestrator.js';
 import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
@@ -27,7 +27,7 @@ async function makeContext(confirms: boolean | null = true) {
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
   const activity = new ActivityManager();
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
@@ -43,7 +43,7 @@ async function makeContext(confirms: boolean | null = true) {
           confirmer: async () => confirms,
         });
 
-  const orchestrator = new HelixOrchestrator({
+  const orchestrator = new HavocOrchestrator({
     settings,
     conversations,
     activity,
@@ -74,7 +74,7 @@ describe('orchestrator: memory tool', () => {
 
       expect(response.handled).toBe(true);
       expect(response.text).toContain("made a note");
-      // Quoted, not echoed in first person, so it does not read as Helix's own view.
+      // Quoted, not echoed in first person, so it does not read as Havoc's own view.
       expect(response.text).toContain('"I prefer dark interfaces"');
 
       const stored = await context.memory.list();
@@ -106,7 +106,7 @@ describe('orchestrator: memory tool', () => {
      *
      * Ordinary conversation is still never remembered: there is no path from
      * a question, an answer, or a passing remark to a memory. What changed is
-     * narrow and deliberate - telling Helix a fact about yourself counts as
+     * narrow and deliberate - telling Havoc a fact about yourself counts as
      * asking it to know that fact, because in ordinary speech it is one. This
      * test used to assert that "my sister is called Mira" was discarded; it
      * now asserts that the things around it still are.
@@ -132,8 +132,8 @@ describe('orchestrator: memory tool', () => {
 
     /**
      * The conversation this came from. The user said their name three times
-     * and Helix discarded it three times, then answered "what is my name"
-     * with "I am Helix."
+     * and Havoc discarded it three times, then answered "what is my name"
+     * with "I am Havoc."
      */
     it('learns a name and gives it back', async () => {
       await ask('Ok my name is Michael');
@@ -151,7 +151,7 @@ describe('orchestrator: memory tool', () => {
       expect(await context.memory.count()).toBe(0);
     });
 
-    /** Correcting yourself should not leave Helix holding both answers. */
+    /** Correcting yourself should not leave Havoc holding both answers. */
     it('replaces a fact rather than accumulating it', async () => {
       await ask('my name is Michael');
       await ask('my name is Mike');

@@ -10,7 +10,7 @@ import { composeReply, matchPhoneAction } from './directives.js';
  * constant and the automation on the phone are one setting stored in two
  * places that cannot see each other.
  */
-export const REPLY_SUBJECT = 'Helix';
+export const REPLY_SUBJECT = 'Havoc';
 
 /**
  * The loop that makes the phone gesture do something.
@@ -181,7 +181,7 @@ export class RelayWatcher {
     if (verdict.findings.length > 0) {
       // Reported, not obeyed, and not a reason to refuse: the user may
       // genuinely have forwarded something that reads like an instruction.
-      this.#options.log('Relay command contains text aimed at Helix.', {
+      this.#options.log('Relay command contains text aimed at Havoc.', {
         kinds: verdict.findings.map((finding) => finding.kind),
       });
     }

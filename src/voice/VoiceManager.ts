@@ -1,6 +1,6 @@
 import type { ActivityManager, ActivityToken } from '../core/ActivityManager.js';
 import type { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { Logger } from '../core/Logger.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import type {
@@ -22,9 +22,9 @@ import { describeSelection, selectVoice } from './selectVoice.js';
  *   only after the provider confirms the device is live, and `MICROPHONE_STOPPED`
  *   is emitted from the provider's own end callback. The indicator follows real
  *   device state, never an optimistic UI flag.
- * - **Nothing is recorded.** Helix keeps the transcript text only; no audio is
+ * - **Nothing is recorded.** Havoc keeps the transcript text only; no audio is
  *   captured, buffered or stored (spec 9).
- * - **Helix can always be interrupted.** `stopSpeaking()` cancels synthesis
+ * - **Havoc can always be interrupted.** `stopSpeaking()` cancels synthesis
  *   immediately, and starting to listen cancels any speech in progress.
  * - **Refuses rather than fails obscurely.** A provider that cannot run, a
  *   network-dependent provider while offline, or a missing microphone each
@@ -150,7 +150,7 @@ export class VoiceManager {
     // must not be started only to fail mid-utterance.
     if (this.#stt.requiresNetwork) {
       if (this.#settings.get('offlineMode') === 'offline') {
-        return `${this.#stt.name} sends audio to an online service, and Helix is in offline mode.`;
+        return `${this.#stt.name} sends audio to an online service, and Havoc is in offline mode.`;
       }
       if (!this.#isOnline()) {
         return `${this.#stt.name} needs a network connection, and you appear to be offline.`;
@@ -181,18 +181,18 @@ export class VoiceManager {
 
   /**
    * Start listening. Resolves with the final transcript, or an empty string if
-   * nothing was heard. Rejects with a readable HelixError when it cannot start.
+   * nothing was heard. Rejects with a readable HavocError when it cannot start.
    */
   async listen(): Promise<string> {
     const blocker = this.inputBlocker();
     if (blocker !== null) {
-      throw new HelixError('CAPABILITY_UNAVAILABLE', blocker, {
+      throw new HavocError('CAPABILITY_UNAVAILABLE', blocker, {
         technical: 'listen() called while input is blocked.',
       });
     }
     if (this.#state === 'listening') return '';
 
-    // Interrupting Helix by starting to speak is the natural gesture (spec 9).
+    // Interrupting Havoc by starting to speak is the natural gesture (spec 9).
     this.stopSpeaking();
 
     // Providers that measure microphone level drive the on-screen meter, so
@@ -247,18 +247,18 @@ export class VoiceManager {
       // was denied. Allow it in your browser settings" beats "could not start".
       const specific =
         error instanceof Error && error.message.trim() !== '' ? error.message : null;
-      const helix =
-        error instanceof HelixError
+      const havoc =
+        error instanceof HavocError
           ? error
-          : new HelixError(
+          : new HavocError(
               'CAPABILITY_UNAVAILABLE',
-              specific ?? 'Helix could not start listening.',
+              specific ?? 'Havoc could not start listening.',
               { technical: `listen() failed: ${String(error)}` },
             );
 
-      this.#error = helix.userMessage;
+      this.#error = havoc.userMessage;
       this.#setState('error');
-      throw helix;
+      throw havoc;
     }
 
     // Only now is the device genuinely live.
@@ -310,7 +310,7 @@ export class VoiceManager {
    *
    * Never implies a British voice is in use when the machine has none - which
    * is not hypothetical: the machine this was written on has exactly three
-   * voices installed, all American, so the honest answer there is that Helix
+   * voices installed, all American, so the honest answer there is that Havoc
    * will sound American until a British voice is added.
    */
   async describeVoice(): Promise<string> {
@@ -340,7 +340,7 @@ export class VoiceManager {
       });
     } catch (error) {
       this.#logger.warn('Speech synthesis failed.', error);
-      this.#error = 'Helix could not speak the response, but it is shown above.';
+      this.#error = 'Havoc could not speak the response, but it is shown above.';
     } finally {
       token.end('completed');
       if (this.#state === 'speaking') this.#setState('idle');
@@ -348,7 +348,7 @@ export class VoiceManager {
   }
 
   /**
-   * Subscribe to word onsets while Helix is speaking.
+   * Subscribe to word onsets while Havoc is speaking.
    *
    * Duck-typed, exactly as `onLevel` is on the recognition side: a synthesiser
    * that does not report boundaries returns a no-op unsubscribe, and the
@@ -362,7 +362,7 @@ export class VoiceManager {
     return tts.onWord(listener);
   }
 
-  /** Interrupt Helix mid-sentence (spec 9). */
+  /** Interrupt Havoc mid-sentence (spec 9). */
   stopSpeaking(): void {
     this.#tts?.cancel();
     if (this.#state === 'speaking') this.#setState('idle');

@@ -17,14 +17,14 @@ const GB = BYTES_PER_GB;
 const quota = (free: number, total: number): VolumeStats => ({
   freeBytes: free,
   totalBytes: total,
-  usedByHelixBytes: total - free,
+  usedByHavocBytes: total - free,
   source: 'origin-quota',
 });
 
 const disk = (free: number, total: number): VolumeStats => ({
   freeBytes: free,
   totalBytes: total,
-  usedByHelixBytes: 0,
+  usedByHavocBytes: 0,
   source: 'volume',
 });
 

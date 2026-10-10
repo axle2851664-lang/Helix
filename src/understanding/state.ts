@@ -1,13 +1,13 @@
 /**
  * What the conversation is currently about.
  *
- * WHY THIS IS NEEDED. Every matcher in Helix read one sentence in isolation,
+ * WHY THIS IS NEEDED. Every matcher in Havoc read one sentence in isolation,
  * so "open it" was meaningless and "the second one" was meaningless, and the
  * user had to repeat the full name of a thing every time they wanted to touch
  * it again. That is not how anyone talks:
  *
  *   User:  Create a note called Project Ideas.
- *   Helix: Created.
+ *   Havoc: Created.
  *   User:  Put the supplier idea in it.
  *
  * "It" is doing the work of a proper noun, and without somewhere to hold what
@@ -15,7 +15,7 @@
  *
  * WHAT IS HELD, AND WHAT IS NOT. This is short-term working state: the thing
  * currently in focus, the list the user is choosing from, the last action and
- * whether it worked, and any question Helix is waiting on an answer to. It is
+ * whether it worked, and any question Havoc is waiting on an answer to. It is
  * per-conversation and it is not persisted - it is the equivalent of what a
  * person holds in their head during a conversation, not what they write down.
  * Anything worth keeping goes to MemoryManager or the Notepad, which have
@@ -51,7 +51,7 @@ export interface LastAction {
   utterance: string;
 }
 
-/** A question Helix asked and is waiting on an answer to. */
+/** A question Havoc asked and is waiting on an answer to. */
 export interface PendingQuestion {
   /** What was being attempted when the question became necessary. */
   capability: string;
@@ -67,8 +67,8 @@ export interface PendingQuestion {
  * How many turns a focused object stays referable.
  *
  * Six is about the span of a short exchange about one thing. Beyond it, "it"
- * is more likely to mean whatever has been discussed since, and Helix asking
- * is better than Helix guessing.
+ * is more likely to mean whatever has been discussed since, and Havoc asking
+ * is better than Havoc guessing.
  */
 export const FOCUS_LIFETIME = 6;
 
@@ -177,7 +177,7 @@ export class ConversationState {
  *
  * Held in a map rather than on the conversation record because it is working
  * state and must not be persisted: the store writes conversations to disk, and
- * this is the part that is deliberately forgotten when Helix closes.
+ * this is the part that is deliberately forgotten when Havoc closes.
  */
 export class ConversationStates {
   readonly #states = new Map<string, ConversationState>();

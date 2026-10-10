@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { HavocOrchestrator } from './HavocOrchestrator.js';
 import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
@@ -33,11 +33,11 @@ async function makeContext(ai?: unknown) {
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
   const activity = new ActivityManager();
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
-  const orchestrator = new HelixOrchestrator({
+  const orchestrator = new HavocOrchestrator({
     settings,
     conversations,
     activity,
@@ -111,7 +111,7 @@ describe('orchestrator: model switching', () => {
    * settings.languageModel, whose default is claude-opus-5, while a local
    * model wrote every other sentence. Someone running local-only asks this
    * exact question to check that nothing is leaving the machine, so a
-   * confident wrong answer here is the most damaging one Helix can give.
+   * confident wrong answer here is the most damaging one Havoc can give.
    */
   it('names what is actually answering, not the stored preference', async () => {
     const local = await makeContext(routerReporting({ id: 'qwen2.5:7b', name: 'Qwen2.5 7B' }));

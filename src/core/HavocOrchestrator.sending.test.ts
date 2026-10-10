@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { HavocOrchestrator } from './HavocOrchestrator.js';
 import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
@@ -16,7 +16,7 @@ import type { InferenceTransport } from '../ai/types.js';
 import type { AIRouter } from '../ai/AIRouter.js';
 
 /**
- * Asking Helix to send something, all the way to the wire.
+ * Asking Havoc to send something, all the way to the wire.
  *
  * The pieces each have their own tests. What this file checks is the join:
  * that asking produces a draft rather than a send, that the draft carries
@@ -33,7 +33,7 @@ async function makeContext() {
   await settings.load();
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
@@ -60,7 +60,7 @@ async function makeContext() {
     generate: async () => ({ text: 'Are we still on for Thursday?' }),
   } as unknown as AIRouter;
 
-  const orchestrator = new HelixOrchestrator({
+  const orchestrator = new HavocOrchestrator({
     settings,
     conversations,
     activity: new ActivityManager(),
@@ -80,7 +80,7 @@ async function makeContext() {
   };
 }
 
-describe('asking Helix to email somebody', () => {
+describe('asking Havoc to email somebody', () => {
   it('drafts rather than sends, and says where to read it', async () => {
     const { ask, outbound, wire } = await makeContext();
 

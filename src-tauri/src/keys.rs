@@ -4,7 +4,7 @@
 //! that is right, but it left the user editing a dotfile by hand - and a
 //! dotfile is a bad place to ask anyone to put a secret. It needs a terminal,
 //! or an editor that silently appends `.txt` and writes a byte-order mark, and
-//! every one of those failures looks identical from inside Helix: a key that
+//! every one of those failures looks identical from inside Havoc: a key that
 //! does nothing. An evening went on telling one from another.
 //!
 //! WHAT THIS DOES NOT CHANGE. The web view still never holds a credential. It
@@ -16,7 +16,7 @@
 //!
 //! WHY NOT `set_var`. Setting a process variable after startup races with
 //! anything already reading the environment, which is precisely why
-//! `env_file::load` runs first and once. So a key saved while Helix is running
+//! `env_file::load` runs first and once. So a key saved while Havoc is running
 //! goes into the overlay below instead, and `get` checks the overlay before
 //! the environment. Nothing mutates the process environment after startup.
 //!
@@ -89,7 +89,7 @@ pub struct KeyStatus {
     pub set: bool,
     /// "saved" for one stored here, "environment" for one that was already
     /// set - the distinction matters, because the second cannot be changed
-    /// from inside Helix and saying otherwise would be a lie.
+    /// from inside Havoc and saying otherwise would be a lie.
     pub source: &'static str,
 }
 
@@ -190,7 +190,7 @@ fn target() -> Option<std::path::PathBuf> {
 #[tauri::command]
 pub fn save_key(name: String, value: String) -> Result<String, KeyError> {
     if !allowed(&name) {
-        return Err(KeyError::from(format!("Helix does not store a key called {name}.")));
+        return Err(KeyError::from(format!("Havoc does not store a key called {name}.")));
     }
 
     let value = value.trim().to_string();
@@ -204,7 +204,7 @@ pub fn save_key(name: String, value: String) -> Result<String, KeyError> {
     }
 
     let path = target().ok_or_else(|| {
-        KeyError::from("Helix could not work out where to save this.".to_string())
+        KeyError::from("Havoc could not work out where to save this.".to_string())
     })?;
 
     let existing = std::fs::read_to_string(&path).unwrap_or_default();
@@ -226,7 +226,7 @@ pub fn save_key(name: String, value: String) -> Result<String, KeyError> {
 #[tauri::command]
 pub fn forget_key(name: String) -> Result<(), KeyError> {
     if !allowed(&name) {
-        return Err(KeyError::from(format!("Helix does not store a key called {name}.")));
+        return Err(KeyError::from(format!("Havoc does not store a key called {name}.")));
     }
 
     if let Ok(mut slot) = OVERLAY.lock() {

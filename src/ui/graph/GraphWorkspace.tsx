@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { VaultGraph, type VaultDocumentType, type VaultNode } from '../../vault/VaultGraph.js';
 import { generateDemoVault } from '../../vault/demoVault.js';
 import { REAL_VAULT, isDemo, realVaultBlocker } from '../../vault/config.js';
-import { useHelix } from '../HelixProvider.js';
+import { useHavoc } from '../HavocProvider.js';
 import type { VaultDocument } from '../../vault/VaultGraph.js';
 
 /**
@@ -20,8 +20,8 @@ const TYPE_LABELS: Record<VaultDocumentType, string> = {
   project: 'Projects',
   meeting: 'Meetings',
   invoice: 'Invoices',
-  // Not 'Notes'. A note in Helix is a Notepad note; these are files the
-  // user wrote elsewhere and Helix is only reading.
+  // Not 'Notes'. A note in Havoc is a Notepad note; these are files the
+  // user wrote elsewhere and Havoc is only reading.
   document: 'Documents',
   missing: 'Not written',
 };
@@ -45,7 +45,7 @@ const ALL_TYPES: VaultDocumentType[] = [
 ];
 
 export function GraphWorkspace() {
-  const { platform } = useHelix();
+  const { platform } = useHavoc();
 
   // In real mode the documents are read from disk, so they arrive after the
   // first render; in demo mode they are synchronous fixtures. Null means "not

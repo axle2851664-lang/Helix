@@ -27,19 +27,19 @@ const reply = (text: string) => ({
   usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 5 },
 });
 
-describe('turning Helix messages into Gemini ones', () => {
+describe('turning Havoc messages into Gemini ones', () => {
   it('puts a system prompt in systemInstruction, not in the conversation', () => {
     // In contents it becomes something the user said, which the model answers
     // rather than adopts.
     const body = toGeminiBody({
       model: 'gemini-2.5-flash',
       messages: [
-        { role: 'system', content: 'You are Helix.' },
+        { role: 'system', content: 'You are Havoc.' },
         { role: 'user', content: 'hello' },
       ],
     });
 
-    expect(body.systemInstruction?.parts[0]?.text).toBe('You are Helix.');
+    expect(body.systemInstruction?.parts[0]?.text).toBe('You are Havoc.');
     expect(body.contents).toEqual([{ role: 'user', parts: [{ text: 'hello' }] }]);
   });
 
@@ -57,7 +57,7 @@ describe('turning Helix messages into Gemini ones', () => {
   });
 
   it('merges consecutive turns from the same side rather than being refused', () => {
-    // Helix really does send these: the research tool passes evidence and then
+    // Havoc really does send these: the research tool passes evidence and then
     // the question, both as user turns.
     const body = toGeminiBody({
       model: 'x',

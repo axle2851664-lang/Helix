@@ -4,15 +4,15 @@
  * Injected by Vite's `define` at build time. In a dev server it is the moment
  * the server started; in an installed application it is frozen at the moment
  * that installer was produced - which is exactly the distinction that matters,
- * because an installed Helix cannot be changed by pulling source.
+ * because an installed Havoc cannot be changed by pulling source.
  */
-declare const __HELIX_BUILT_AT__: string | undefined;
+declare const __HAVOC_BUILT_AT__: string | undefined;
 
 export function builtAt(): Date | null {
   // Guarded: the constant is absent under vitest, which does not run the
   // application's Vite config, and an exception here would take the System
   // screen down over a diagnostic.
-  const raw = typeof __HELIX_BUILT_AT__ === 'string' ? __HELIX_BUILT_AT__ : null;
+  const raw = typeof __HAVOC_BUILT_AT__ === 'string' ? __HAVOC_BUILT_AT__ : null;
   if (raw === null) return null;
 
   const when = new Date(raw);

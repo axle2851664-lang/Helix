@@ -1,9 +1,9 @@
 import type { ActionDefinition, ActionGroup, ActionTarget } from './action.js';
 
 /**
- * Every action Helix can perform, in one place (spec 5).
+ * Every action Havoc can perform, in one place (spec 5).
  *
- * The registry exists so that "what can Helix do?" has an answer that is
+ * The registry exists so that "what can Havoc do?" has an answer that is
  * computed rather than remembered. The palm-out context menu asks it what
  * applies to the selected object; the planner asks it what exists at all; the
  * Settings screen can list it. None of those needs its own list, and none of

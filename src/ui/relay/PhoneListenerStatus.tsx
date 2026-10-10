@@ -1,4 +1,4 @@
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
 
 /**
  * Whether the phone listener is actually running, and why not.
@@ -14,7 +14,7 @@ import { useHelix, useSettings } from '../HelixProvider.js';
  * was working. The reason belongs on screen, not in a log nobody opens.
  */
 export function PhoneListenerStatus() {
-  const { listener } = useHelix();
+  const { listener } = useHavoc();
   const config = useSettings(['phoneListenerEnabled', 'phoneListenerPort', 'relaySecret']);
 
   if (!config.phoneListenerEnabled) return null;

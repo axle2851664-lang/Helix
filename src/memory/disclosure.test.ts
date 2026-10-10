@@ -6,11 +6,11 @@ const content = (said: string) => personalFact(said)?.content ?? null;
 
 describe('the conversation this exists because of', () => {
   /**
-   * Verbatim. The user said their name three times and Helix discarded it
+   * Verbatim. The user said their name three times and Havoc discarded it
    * three times, because "my name is Michael" starts with neither "remember"
    * nor "note that".
    */
-  it('recognises someone telling Helix their name', () => {
+  it('recognises someone telling Havoc their name', () => {
     expect(kind('Ok my name is Michael')).toBe('name');
     expect(content('Ok my name is Michael')).toBe('Their name is Michael.');
     expect(kind('MY name is Michael')).toBe('name');
@@ -23,7 +23,7 @@ describe('the conversation this exists because of', () => {
   });
 });
 
-describe('what counts as telling Helix about yourself', () => {
+describe('what counts as telling Havoc about yourself', () => {
   it('takes a name in the ways people give one', () => {
     for (const said of [
       'my name is Michael',
@@ -56,7 +56,7 @@ describe('what counts as telling Helix about yourself', () => {
   });
 
   it('strips the wake word and the filler first', () => {
-    for (const said of ['Helix, my name is Michael', 'ok my name is Michael', 'so my name is Michael']) {
+    for (const said of ['Havoc, my name is Michael', 'ok my name is Michael', 'so my name is Michael']) {
       expect(kind(said), said).toBe('name');
     }
   });
@@ -123,7 +123,7 @@ describe('what it must leave alone', () => {
   });
 });
 
-describe('asking Helix what it knows about you', () => {
+describe('asking Havoc what it knows about you', () => {
   it('recognises the questions people actually ask', () => {
     expect(personalQuestion('what is my name')?.kind).toBe('name');
     expect(personalQuestion('who am I')?.kind).toBe('name');
@@ -154,7 +154,7 @@ describe('saying a stored fact back to the person it is about', () => {
    * Facts are stored in the third person, because that is how they read in a
    * model's context alongside other notes. Said back to that same user they
    * have to turn round, or "what is my name" is answered with "Their name is
-   * Michael" - which sounds like Helix is talking about somebody else.
+   * Michael" - which sounds like Havoc is talking about somebody else.
    */
   it('turns the third person round', () => {
     expect(toSecondPerson('Their name is Michael.')).toBe('Your name is Michael.');

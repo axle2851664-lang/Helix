@@ -11,21 +11,21 @@ import type { ModelInfo } from '../ai/types.js';
  *
  * Every other test in this directory checks the machinery on fixed strings.
  * This one is the only thing that can answer the question the brief actually
- * asks - does Helix sound right - because that depends on what a real model
+ * asks - does Havoc sound right - because that depends on what a real model
  * does with the prompt, and a small local model is exactly where a persona
  * instruction stops being reliable.
  *
  * Opt-in, because it needs Ollama running, takes tens of seconds on a modest
  * machine, and is not deterministic. Run it with:
  *
- *     HELIX_LIVE_MODEL=1 npx vitest run src/persona/register.live.test.ts
+ *     HAVOC_LIVE_MODEL=1 npx vitest run src/persona/register.live.test.ts
  *
  * Skipped rather than failed when the runtime is absent: a missing local
  * service is not a broken persona, and conflating the two would make the suite
  * lie about which one is wrong.
  */
 
-const LIVE = process.env['HELIX_LIVE_MODEL'] === '1';
+const LIVE = process.env['HAVOC_LIVE_MODEL'] === '1';
 const HOST = 'http://127.0.0.1:11434';
 
 interface ChatReply {
@@ -142,7 +142,7 @@ describe.skipIf(!LIVE)('the persona, against a model that is running', () => {
         console.log(
           `  USER:  ${prompt}\n` +
             `  RAW:   ${reply.text}\n` +
-            (repaired.text === reply.text ? '' : `  HELIX: ${repaired.text}\n`) +
+            (repaired.text === reply.text ? '' : `  HAVOC: ${repaired.text}\n`) +
             `         [${reply.seconds.toFixed(1)}s, ${reply.tokens} tokens, ` +
             `${repaired.findings.map((finding) => finding.fault).join(', ') || 'clean'}]\n`,
         );
@@ -174,7 +174,7 @@ describe.skipIf(!LIVE)('the persona, against a model that is running', () => {
        * count would make the suite fail on a model doing nothing wrong. What
        * it can catch is the failure that was actually measured: the model used
        * the address in five replies of six, and before `allowAddressInReply`
-       * governed model output as well as Helix's own, all five reached the
+       * governed model output as well as Havoc's own, all five reached the
        * user. Half is the line between characteristic and relentless.
        */
       expect(addressed).toBeLessThanOrEqual(Math.ceil(PROMPTS.length / 2));

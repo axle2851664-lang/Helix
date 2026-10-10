@@ -162,7 +162,7 @@ describe('TimeKeeper', () => {
       await first.load();
       first.startTimer(10 * MINUTE);
 
-      // Helix is closed for four minutes and opened again.
+      // Havoc is closed for four minutes and opened again.
       clock += 4 * MINUTE;
       const second = keeper();
       await second.load();
@@ -184,7 +184,7 @@ describe('TimeKeeper', () => {
 
     /**
      * The honest case. There is no operating-system scheduling behind these,
-     * so an alarm due while Helix was closed did not sound. Ringing it hours
+     * so an alarm due while Havoc was closed did not sound. Ringing it hours
      * late as though it had would be a lie about what happened; it comes back
      * marked missed instead, and the interface says so.
      */

@@ -86,7 +86,7 @@ export class PdfExtractionError extends Error {
 /**
  * Stop before a pathological document eats the session.
  *
- * A thousand-page PDF is a legitimate thing to own and not something Helix
+ * A thousand-page PDF is a legitimate thing to own and not something Havoc
  * should spend a minute of the user's time on silently. The cap is reported
  * rather than applied quietly.
  */

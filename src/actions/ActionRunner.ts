@@ -1,5 +1,5 @@
 import type { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { Logger } from '../core/Logger.js';
 import type { PermissionManager } from '../security/PermissionManager.js';
 import { describePermission } from '../security/permissions.js';
@@ -64,7 +64,7 @@ function stricter(a: ConfirmationRule, b: ConfirmationRule): ConfirmationRule {
  *   error and reports "done" is the exact outcome this shape prevents.
  *
  * - **It checks permission before asking for confirmation.** Making someone
- *   read and approve a deletion Helix is not allowed to perform spends their
+ *   read and approve a deletion Havoc is not allowed to perform spends their
  *   attention on a question that could not matter.
  *
  * - **It fails closed when it cannot ask.** No confirmer registered means the
@@ -131,7 +131,7 @@ export class ActionRunner {
   async run(id: string, rawParams: unknown = {}): Promise<ActionResult> {
     const action = this.#registry.get(id);
     if (!action) {
-      return this.#refuse(id, 'unknown-action', `Helix has no action called "${id}".`);
+      return this.#refuse(id, 'unknown-action', `Havoc has no action called "${id}".`);
     }
 
     const validation = validateParams(action, rawParams);
@@ -148,7 +148,7 @@ export class ActionRunner {
       return this.#refuse(
         id,
         'bad-parameters',
-        'Helix could not work out what that would do, so it did not do it.',
+        'Havoc could not work out what that would do, so it did not do it.',
       );
     }
 
@@ -159,9 +159,9 @@ export class ActionRunner {
         await this.#permissions.require(action.permission, description);
       } catch (error) {
         const message =
-          error instanceof HelixError
+          error instanceof HavocError
             ? error.userMessage
-            : 'Helix does not have permission to do that.';
+            : 'Havoc does not have permission to do that.';
         return this.#refuse(id, 'permission', message);
       }
     }
@@ -175,7 +175,7 @@ export class ActionRunner {
         return this.#refuse(
           id,
           'cannot-ask',
-          'That needs confirming, and Helix has no way to ask you right now.',
+          'That needs confirming, and Havoc has no way to ask you right now.',
         );
       }
 
@@ -211,7 +211,7 @@ export class ActionRunner {
         status: 'failed',
         action: id,
         message:
-          error instanceof HelixError
+          error instanceof HavocError
             ? error.userMessage
             : 'That did not work. The details are in the log.',
       };

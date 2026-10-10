@@ -1,15 +1,15 @@
 /**
- * The Notepad: Helix's own notes.
+ * The Notepad: Havoc's own notes.
  *
- * WHAT THIS IS NOT. It is not a view onto files on the disk. Helix has a
+ * WHAT THIS IS NOT. It is not a view onto files on the disk. Havoc has a
  * separate thing for those - projects, assets and the knowledge index - and
  * conflating the two would mean a note the user wrote living in the same place
  * as a PDF they imported, with the same rules about indexing, extraction and
- * deletion. These are Helix's own notes, in Helix's own storage, and they
+ * deletion. These are Havoc's own notes, in Havoc's own storage, and they
  * exist whether or not there is a filesystem underneath.
  *
  * WHY IT IS NOT MEMORY EITHER. Long-term memory is a set of short statements
- * Helix has been told to hold about the user - "I take my coffee black", "my
+ * Havoc has been told to hold about the user - "I take my coffee black", "my
  * sister is called Ada" - and it is consulted on every turn. A note is a
  * document: a title, a body of any length, written to be read again later.
  * Storing notes as memories would flood every reply's context with paragraphs
@@ -19,7 +19,7 @@
  *
  * WHAT THEY SHARE is the rule that matters most: nothing is written unless the
  * user asks for it. There is no code path that turns a conversation into a
- * note. Helix does not keep a journal of what you said.
+ * note. Havoc does not keep a journal of what you said.
  */
 
 export const NOTE_CATEGORIES = ['note', 'idea', 'list', 'plan', 'reference', 'other'] as const;
@@ -29,7 +29,7 @@ export type NoteCategory = (typeof NOTE_CATEGORIES)[number];
 /**
  * How a note came to exist.
  *
- * There is no 'inferred'. A note Helix decided to write on its own is exactly
+ * There is no 'inferred'. A note Havoc decided to write on its own is exactly
  * what this module exists to make impossible, and leaving the value out of the
  * type is a stronger statement than a comment saying not to use it.
  */

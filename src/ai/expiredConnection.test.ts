@@ -5,7 +5,7 @@ import { expiredConnection, TauriGoogleTransport } from './transport.js';
 /**
  * The seven-day sign-out, which is a weekly event rather than a rare one.
  *
- * Helix stays on Google's Testing publishing status by choice - verification
+ * Havoc stays on Google's Testing publishing status by choice - verification
  * for restricted scopes means an annual paid security assessment - and Google
  * expires a test user's refresh token after seven days. So this path runs
  * about every week for the life of the product, and both halves of it have to
@@ -48,7 +48,7 @@ describe('recognising an expired connection', () => {
    *
    * This regex matches a sentence written in Rust. Nothing in either
    * language's toolchain would notice if that sentence were reworded, and the
-   * symptom would be silent: Helix would keep reporting a connected account
+   * symptom would be silent: Havoc would keep reporting a connected account
    * that no longer works, which is the exact fault this pair was built to
    * remove. So the Rust source is read and the two are held together here.
    */

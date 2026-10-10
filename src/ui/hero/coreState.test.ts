@@ -58,7 +58,7 @@ describe('what the core shows', () => {
   });
 
   /**
-   * Helix has stopped and will not continue by itself. Showing "thinking"
+   * Havoc has stopped and will not continue by itself. Showing "thinking"
    * here would tell the user to wait for something that is waiting for them.
    */
   it('puts a pending question above everything else', () => {

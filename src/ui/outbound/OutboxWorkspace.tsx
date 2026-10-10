@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix } from '../HelixProvider.js';
+import { useHavoc } from '../HavocProvider.js';
 import { CONFIRMATION_TTL_MS, type OutboundDraft } from '../../outbound/outbound.js';
 
 /**
@@ -26,7 +26,7 @@ import { CONFIRMATION_TTL_MS, type OutboundDraft } from '../../outbound/outbound
  * still hold if this file were deleted.
  */
 export function OutboxWorkspace() {
-  const { outbound } = useHelix();
+  const { outbound } = useHavoc();
 
   const [items, setItems] = useState<readonly OutboundDraft[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
@@ -144,7 +144,7 @@ export function OutboxWorkspace() {
             </span>
           </li>
           <li>
-            <strong>Helix will not spend.</strong>
+            <strong>Havoc will not spend.</strong>
             <br />
             <span className="hx-muted">
               A message that is really a purchase — buy, pay, top up, subscribe — is refused at

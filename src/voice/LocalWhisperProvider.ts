@@ -10,7 +10,7 @@ import { rmsFromBytes, SilenceDetector } from './silence.js';
  * Speech recognition using Whisper, running on this machine.
  *
  * Unlike the browser's Web Speech API, no audio leaves the device: the model
- * runs in WebAssembly and its weights are served from Helix's own origin. That
+ * runs in WebAssembly and its weights are served from Havoc's own origin. That
  * is why `processing` is 'on-device' and `requiresNetwork` is false - this
  * works offline, and nothing is sent to a third party.
  *
@@ -130,7 +130,7 @@ export class LocalWhisperProvider implements SpeechToTextProvider {
     this.#loading = (async () => {
       const transformers = await import('@huggingface/transformers');
 
-      // Serve weights from Helix's own origin. The content security policy
+      // Serve weights from Havoc's own origin. The content security policy
       // permits no external origins, and local weights are what make this
       // genuinely on-device.
       transformers.env.allowRemoteModels = false;

@@ -108,7 +108,7 @@ export class DuckDuckGoProvider implements WebSearchProvider {
   }
 
   async search(query: string, limit: number): Promise<readonly SearchResult[]> {
-    const url = `https://api.duckduckgo.com/?format=json&no_html=1&t=helix&q=${encode(query)}`;
+    const url = `https://api.duckduckgo.com/?format=json&no_html=1&t=havoc&q=${encode(query)}`;
     const response = await this.#transport.fetch(url);
 
     const parsed = JSON.parse(response.body) as {
@@ -316,7 +316,7 @@ export interface BraveProviderOptions {
  * FAQ used to describe as an anti-fraud measure that would never be charged -
  * bills once past about a thousand queries.
  *
- * That runs directly into the standing rule that Helix never spends. So this
+ * That runs directly into the standing rule that Havoc never spends. So this
  * provider is off unless deliberately switched on, and `BILLS` is what the
  * interface reads to say so. It is not removed, because it is genuinely the
  * best general web search here and the decision belongs to the user - but it

@@ -3,7 +3,7 @@ import type { PermissionId } from '../security/permissions.js';
 /**
  * What an action is, declared as data (spec 5).
  *
- * The specification's rule is that Helix "must use a centralized ACTION / TOOL
+ * The specification's rule is that Havoc "must use a centralized ACTION / TOOL
  * system rather than directly modifying arbitrary UI state", and that every
  * action carries a name, parameters, a permission requirement, a confirmation
  * requirement, a result and error handling. All six live on this type, which is
@@ -59,7 +59,7 @@ export interface ParameterSpec {
  *   has explicitly turned on quick actions. This is the case the specification
  *   names: "Destructive actions such as Delete must require confirmation unless
  *   the user has explicitly enabled a trusted/quick-action mode."
- * - `always` - confirmed however Helix is configured. Anything that leaves the
+ * - `always` - confirmed however Havoc is configured. Anything that leaves the
  *   machine or reaches another person lives here, because the standing rule for
  *   outbound is that there is no bulk approval and no remembered permission,
  *   and a settings toggle must not be able to weaken it.

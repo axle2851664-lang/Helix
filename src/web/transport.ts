@@ -6,7 +6,7 @@ import type { WebTransport } from './types.js';
  * The same two-host arrangement as inference and Google, and the reason is the
  * content policy rather than a credential this time: the page ships with
  * `connect-src 'self' blob: http://127.0.0.1:11434`, so the browser refuses
- * every request to an outside origin whether or not Helix wants to make one.
+ * every request to an outside origin whether or not Havoc wants to make one.
  * That is deliberate and it is why no key can leak from the web build.
  *
  * The shell has no such restriction, which is exactly why `web.rs` spends most

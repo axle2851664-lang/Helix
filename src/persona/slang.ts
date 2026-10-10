@@ -1,12 +1,12 @@
 /**
  * Recognising a request to put something into slang.
  *
- * The whole requirement is in the word "only": Helix translates into slang
+ * The whole requirement is in the word "only": Havoc translates into slang
  * when asked to, and never otherwise. So the interesting work here is not the
  * translating, it is refusing. Almost every sentence containing the word
  * "slang" is *about* slang rather than a request to produce it - "what does
  * this slang mean", "slang is regional", "define that slang" - and a matcher
- * that fires on the word would have Helix answering in slang to a question
+ * that fires on the word would have Havoc answering in slang to a question
  * about linguistics.
  *
  * The rule that falls out of that: a request must name the act, not the
@@ -97,7 +97,7 @@ function extractSubject(text: string): { subject: string | null; wasQuoted: bool
   const before = text.split(INTO_SLANG)[0] ?? '';
   const stripped = before
     .replace(
-      new RegExp(`^\\s*(?:can you|could you|please|helix)?\\s*(?:${ACTS.join('|')})\\b`, 'i'),
+      new RegExp(`^\\s*(?:can you|could you|please|havoc)?\\s*(?:${ACTS.join('|')})\\b`, 'i'),
       '',
     )
     .replace(/^\s*(?:this|that|it|the following|the phrase|the sentence)\s*/i, '')
@@ -111,7 +111,7 @@ function extractSubject(text: string): { subject: string | null; wasQuoted: bool
  * Was this a request to produce slang?
  *
  * Errs towards no. A missed request costs the user one rephrase; a false
- * positive has Helix answering a serious question in slang, which is the
+ * positive has Havoc answering a serious question in slang, which is the
  * failure the "only when asked" rule exists to prevent.
  */
 export function slangRequest(input: string): SlangRequest {

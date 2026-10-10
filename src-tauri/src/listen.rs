@@ -2,7 +2,7 @@
 //!
 //! The opposite direction from everything else in this shell. `inference`,
 //! `google` and `web` all reach *out*; this one listens, which makes it the
-//! only part of Helix that anything else can start a conversation with. That
+//! only part of Havoc that anything else can start a conversation with. That
 //! difference is the whole design.
 //!
 //! Three independent guards, and none of them is sufficient alone:
@@ -68,7 +68,7 @@ struct Body {
     text: String,
 }
 
-/// May this peer talk to Helix?
+/// May this peer talk to Havoc?
 ///
 /// Loopback for testing on the machine itself, and the Tailscale range for the
 /// phone. Everything else is refused before the request is read - a check on
@@ -139,7 +139,7 @@ fn within(address: &IpAddr, range: &Cidr) -> bool {
     }
 }
 
-/// May this peer talk to Helix?
+/// May this peer talk to Havoc?
 ///
 /// Loopback always, so the machine can test itself. Otherwise only the ranges
 /// the user configured - whichever mesh VPN they run. What must never happen
@@ -190,7 +190,7 @@ fn handle(app: &tauri::AppHandle, mut stream: TcpStream, key: &str, ranges: &[Ci
         // rather than a silent one. Nothing goes back down the socket: telling
         // a stranger why they were refused turns this into an oracle.
         if let Some(address) = peer {
-            eprintln!("helix: refused a connection from {address} - not in the allowed ranges");
+            eprintln!("havoc: refused a connection from {address} - not in the allowed ranges");
         }
         let _ = stream.shutdown(Shutdown::Both);
         return;
@@ -271,7 +271,7 @@ fn handle(app: &tauri::AppHandle, mut stream: TcpStream, key: &str, ranges: &[Ci
         if let Ok(mut map) = pending().lock() {
             map.remove(&id);
         }
-        respond(&mut stream, "503 Service Unavailable", "Helix is not ready.");
+        respond(&mut stream, "503 Service Unavailable", "Havoc is not ready.");
         return;
     }
 
@@ -284,7 +284,7 @@ fn handle(app: &tauri::AppHandle, mut stream: TcpStream, key: &str, ranges: &[Ci
             respond(
                 &mut stream,
                 "504 Gateway Timeout",
-                "Helix took too long to answer. The instruction may still have run.",
+                "Havoc took too long to answer. The instruction may still have run.",
             );
         }
     }

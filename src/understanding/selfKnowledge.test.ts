@@ -37,12 +37,12 @@ describe('the questions a model must never answer', () => {
     }
   });
 
-  it('recognises a question about what Helix can do', () => {
+  it('recognises a question about what Havoc can do', () => {
     expect(selfQuestion('what can you do')?.topic).toBe('capabilities');
     expect(selfQuestion("what can't you do")?.topic).toBe('capabilities');
   });
 
-  it('recognises a question about what Helix keeps', () => {
+  it('recognises a question about what Havoc keeps', () => {
     expect(selfQuestion('what do you store about me')?.topic).toBe('memory-policy');
     expect(selfQuestion('do you keep my conversations')?.topic).toBe('memory-policy');
   });

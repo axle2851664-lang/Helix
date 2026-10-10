@@ -3,7 +3,7 @@ import type { VoiceState } from '../../voice/types.js';
 import type { CoreState } from './Core.js';
 
 /**
- * What the core on screen is showing, derived from what Helix is actually
+ * What the core on screen is showing, derived from what Havoc is actually
  * doing.
  *
  * Six states, and the brief is explicit that they must never be blurred:
@@ -34,7 +34,7 @@ export interface CoreInputs {
 }
 
 /**
- * Activity kinds that mean Helix has started doing something.
+ * Activity kinds that mean Havoc has started doing something.
  *
  * Deliberately a list rather than "anything that is not thinking": a kind
  * added later should have to be classified on purpose. Getting a new one
@@ -50,7 +50,7 @@ const EXECUTING: ReadonlySet<ActivityKind> = new Set<ActivityKind>([
 ]);
 
 export function coreStateFor({ activity, voice, awaitingConsent }: CoreInputs): CoreState {
-  // A question on screen outranks everything. Helix has stopped, and whatever
+  // A question on screen outranks everything. Havoc has stopped, and whatever
   // it was doing a moment ago is not what the user needs to see.
   if (awaitingConsent) return 'awaiting';
 

@@ -1,15 +1,15 @@
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { AssetKind } from './types.js';
 
 /**
  * Upload validation (spec 12, 18, 24).
  *
- * Helix accepts a deliberately narrow set of file types. The list is an
+ * Havoc accepts a deliberately narrow set of file types. The list is an
  * allowlist, not a blocklist: an unrecognised extension is refused rather than
  * accepted by default, so a new dangerous type cannot slip through by not being
  * on a ban list.
  *
- * Nothing imported is ever executed. That is enforced by the fact that Helix
+ * Nothing imported is ever executed. That is enforced by the fact that Havoc
  * has no code path that executes an asset at all - this module additionally
  * refuses to store executable and script types so they cannot sit in the
  * workspace waiting for one to appear.
@@ -126,7 +126,7 @@ export interface ValidationResult {
 }
 
 /**
- * Validate a candidate upload. Throws a HelixError whose userMessage explains
+ * Validate a candidate upload. Throws a HavocError whose userMessage explains
  * the problem in plain language.
  */
 export function validateUpload(
@@ -138,38 +138,38 @@ export function validateUpload(
   const extension = fileExtension(fileName);
 
   if (extension === '') {
-    throw new HelixError(
+    throw new HavocError(
       'VALIDATION_FAILED',
-      `"${fileName}" has no file extension, so Helix cannot tell what it is. Rename it and try again.`,
+      `"${fileName}" has no file extension, so Havoc cannot tell what it is. Rename it and try again.`,
       { technical: `Rejected upload without extension: ${fileName}` },
     );
   }
 
   if (EXECUTABLE_EXTENSIONS.has(extension)) {
-    throw new HelixError(
+    throw new HavocError(
       'VALIDATION_FAILED',
-      `Helix does not accept .${extension} files. Programs and scripts cannot be added to a project.`,
+      `Havoc does not accept .${extension} files. Programs and scripts cannot be added to a project.`,
       { technical: `Rejected executable upload: .${extension}` },
     );
   }
 
   const kind = kindForFile(fileName, file.type);
   if (kind === 'other') {
-    throw new HelixError(
+    throw new HavocError(
       'VALIDATION_FAILED',
-      `Helix does not support .${extension} files yet. Supported types are images, 3D models, documents and data files.`,
+      `Havoc does not support .${extension} files yet. Supported types are images, 3D models, documents and data files.`,
       { technical: `Rejected unsupported type: .${extension} (${file.type || 'no mime type'})` },
     );
   }
 
   if (file.size <= 0) {
-    throw new HelixError('VALIDATION_FAILED', `"${fileName}" is empty.`, {
+    throw new HavocError('VALIDATION_FAILED', `"${fileName}" is empty.`, {
       technical: `Rejected zero-length upload: ${fileName}`,
     });
   }
 
   if (file.size > maxBytes) {
-    throw new HelixError(
+    throw new HavocError(
       'VALIDATION_FAILED',
       `"${fileName}" is ${formatBytes(file.size)}, which is over the ${formatBytes(maxBytes)} limit for a single file.`,
       { technical: `Rejected oversized upload: ${file.size} > ${maxBytes}` },

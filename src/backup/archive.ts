@@ -1,20 +1,20 @@
 /**
  * The backup archive format.
  *
- * An archive is a file that leaves Helix and later comes back, which makes it
- * two quite different things at once: on the way out it is everything Helix
+ * An archive is a file that leaves Havoc and later comes back, which makes it
+ * two quite different things at once: on the way out it is everything Havoc
  * knows about the user, and on the way in it is untrusted input from disk.
  * Both halves are handled here, and the second is where the care goes.
  *
  * Three rules are enforced by the parser rather than left to the caller:
  *
- * 1. **Only namespaces Helix owns may be restored.** A crafted archive naming
+ * 1. **Only namespaces Havoc owns may be restored.** A crafted archive naming
  *    some other namespace is refused outright rather than trusted to be
  *    harmless. Restore writes to storage, so the list of places it can write
  *    is fixed here and nowhere else.
  *
  * 2. **An unknown version is refused, never guessed at.** A future archive
- *    read by an older Helix would restore a shape the code does not
+ *    read by an older Havoc would restore a shape the code does not
  *    understand, and the damage would not show up until much later.
  *
  * 3. **Nothing in an archive is an instruction.** It is data, restored as
@@ -22,16 +22,16 @@
  *    file someone might hand you.
  */
 
-export const ARCHIVE_FORMAT = 'helix.backup';
+export const ARCHIVE_FORMAT = 'havoc.backup';
 /**
  * Bumped to 2 when the Notepad was added.
  *
- * Not cosmetic. An archive carrying a `notepad` section handed to a Helix
+ * Not cosmetic. An archive carrying a `notepad` section handed to a Havoc
  * that has never heard of one is refused by the namespace check below, with
- * the message "that backup contains notepad, which is not part of Helix" -
- * true, unhelpful, and alarming. With the version raised, the older Helix
+ * the message "that backup contains notepad, which is not part of Havoc" -
+ * true, unhelpful, and alarming. With the version raised, the older Havoc
  * refuses it one check earlier and says what is actually wrong: the backup
- * was written by a newer Helix, update before restoring. Archives at version
+ * was written by a newer Havoc, update before restoring. Archives at version
  * 1 still read here, which is the half of compatibility that matters.
  */
 export const ARCHIVE_VERSION = 2;
@@ -40,13 +40,13 @@ export const ARCHIVE_VERSION = 2;
  * Every namespace an archive may contain, and what each holds.
  *
  * Restore will write to these and to nothing else. Adding a namespace to
- * Helix means adding it here deliberately, which is the point: a subsystem
+ * Havoc means adding it here deliberately, which is the point: a subsystem
  * cannot start appearing in backups by accident, and it cannot be written to
  * by a crafted file.
  */
 export const ARCHIVABLE = {
   settings: 'Your preferences.',
-  memory: 'What you asked Helix to remember.',
+  memory: 'What you asked Havoc to remember.',
   notepad: 'The notes you wrote in the Notepad.',
   conversations: 'Saved conversation history.',
   'project-assets': 'The record of each imported file: name, size, kind.',
@@ -116,7 +116,16 @@ export function decodeBase64(text: string): Uint8Array {
   return bytes;
 }
 
-/** How a blob travels: tagged, so a restore knows to turn it back. */
+/**
+ * How a blob travels: tagged, so a restore knows to turn it back.
+ *
+ * RENAMED TO HAVOC, EXCEPT HERE. The tag is deliberately still
+ * `__helixBinary`. It is not branding - it is written into every export this
+ * program has ever made, and `isEncodedBlob` below is what a restore uses to
+ * tell an attachment from an ordinary object. Rename it and every existing
+ * backup still restores, silently, with its images and files turned into
+ * meaningless objects. Nobody ever sees this string.
+ */
 export interface EncodedBlob {
   __helixBinary: true;
   type: string;
@@ -179,17 +188,17 @@ export function parseArchive(text: string): Archive {
   try {
     raw = JSON.parse(text);
   } catch {
-    throw new ArchiveError('That file is not a Helix backup - it is not readable as JSON.');
+    throw new ArchiveError('That file is not a Havoc backup - it is not readable as JSON.');
   }
 
   if (typeof raw !== 'object' || raw === null) {
-    throw new ArchiveError('That file is not a Helix backup.');
+    throw new ArchiveError('That file is not a Havoc backup.');
   }
 
   const candidate = raw as Partial<Archive>;
 
   if (candidate.format !== ARCHIVE_FORMAT) {
-    throw new ArchiveError('That file is not a Helix backup - it has no Helix backup marker.');
+    throw new ArchiveError('That file is not a Havoc backup - it has no Havoc backup marker.');
   }
 
   if (typeof candidate.version !== 'number') {
@@ -200,7 +209,7 @@ export function parseArchive(text: string): Archive {
   // shape this code does not know would corrupt quietly and surface later.
   if (candidate.version > ARCHIVE_VERSION) {
     throw new ArchiveError(
-      `That backup was written by a newer Helix (version ${candidate.version}, this reads ${ARCHIVE_VERSION}). Update Helix before restoring it.`,
+      `That backup was written by a newer Havoc (version ${candidate.version}, this reads ${ARCHIVE_VERSION}). Update Havoc before restoring it.`,
     );
   }
 
@@ -211,7 +220,7 @@ export function parseArchive(text: string): Archive {
   const sections: ArchiveSection[] = [];
   for (const section of candidate.sections) {
     if (typeof section !== 'object' || section === null) {
-      throw new ArchiveError('That backup contains a section Helix cannot read.');
+      throw new ArchiveError('That backup contains a section Havoc cannot read.');
     }
     const { namespace, entries } = section as ArchiveSection;
 
@@ -220,7 +229,7 @@ export function parseArchive(text: string): Archive {
     // state the user believed was complete.
     if (typeof namespace !== 'string' || !isArchivable(namespace)) {
       throw new ArchiveError(
-        `That backup contains "${String(namespace)}", which is not part of Helix. It has not been restored.`,
+        `That backup contains "${String(namespace)}", which is not part of Havoc. It has not been restored.`,
       );
     }
 
@@ -269,7 +278,7 @@ export function summariseArchive(archive: Archive): ArchiveSummary[] {
  * What restoring would replace.
  *
  * Computed before anything is written and shown to the user, because restore
- * is not a merge: a namespace in the archive replaces the one in Helix. That
+ * is not a merge: a namespace in the archive replaces the one in Havoc. That
  * is the right behaviour for a backup and the wrong thing to discover
  * afterwards.
  */

@@ -1,5 +1,5 @@
 import type { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { Logger } from '../core/Logger.js';
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
 import type { PathManager } from '../storage/PathManager.js';
@@ -127,12 +127,12 @@ export class ProjectManager {
   async createProject(name: string, description = ''): Promise<Project> {
     const trimmed = name.trim();
     if (trimmed === '') {
-      throw new HelixError('VALIDATION_FAILED', 'A project needs a name.', {
+      throw new HavocError('VALIDATION_FAILED', 'A project needs a name.', {
         technical: 'createProject called with an empty name.',
       });
     }
     if (trimmed.length > 120) {
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
         'That project name is too long. Keep it under 120 characters.',
         { technical: `Project name length ${trimmed.length}` },
@@ -164,7 +164,7 @@ export class ProjectManager {
   async openProject(projectId: string): Promise<ProjectSummary> {
     const summary = await this.getSummary(projectId);
     if (!summary) {
-      throw new HelixError('NOT_FOUND', 'That project no longer exists.', {
+      throw new HavocError('NOT_FOUND', 'That project no longer exists.', {
         technical: `openProject: unknown project ${projectId}`,
       });
     }
@@ -175,7 +175,7 @@ export class ProjectManager {
   async renameProject(projectId: string, name: string): Promise<Project> {
     const trimmed = name.trim();
     if (trimmed === '') {
-      throw new HelixError('VALIDATION_FAILED', 'A project needs a name.', {
+      throw new HavocError('VALIDATION_FAILED', 'A project needs a name.', {
         technical: 'renameProject called with an empty name.',
       });
     }
@@ -342,7 +342,7 @@ export class ProjectManager {
   static readonly #FILLER = new Set([
     'open', 'show', 'bring', 'up', 'me', 'my', 'the', 'a', 'an', 'please',
     'go', 'to', 'take', 'load', 'launch', 'display', 'switch', 'project',
-    'projects', 'helix', 'can', 'you', 'i', 'want', 'see', 'get',
+    'projects', 'havoc', 'can', 'you', 'i', 'want', 'see', 'get',
   ]);
 
   static normalizeQuery(query: string): string {
@@ -488,7 +488,7 @@ export class ProjectManager {
   async #requireProject(projectId: string): Promise<Project> {
     const project = await this.getProject(projectId);
     if (!project) {
-      throw new HelixError('NOT_FOUND', 'That project no longer exists.', {
+      throw new HavocError('NOT_FOUND', 'That project no longer exists.', {
         technical: `Unknown project ${projectId}`,
       });
     }

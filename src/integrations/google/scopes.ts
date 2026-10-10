@@ -1,9 +1,9 @@
 /**
- * Exactly what Helix asks Google for, and what it deliberately does not.
+ * Exactly what Havoc asks Google for, and what it deliberately does not.
  *
  * An OAuth consent screen is the one moment the user is asked to decide, and
  * it is answered once, quickly, years before the consequence. Whatever is
- * requested there is what Helix can do forever after - so the list is built
+ * requested there is what Havoc can do forever after - so the list is built
  * from what has actually been asked for rather than from what might be handy
  * later, and every entry carries the reason it is present.
  *
@@ -22,11 +22,11 @@
 
 export interface GoogleScope {
   url: string;
-  /** What it lets Helix do, in plain words. */
+  /** What it lets Havoc do, in plain words. */
   grants: string;
-  /** Why Helix needs it. If this is ever hard to write, drop the scope. */
+  /** Why Havoc needs it. If this is ever hard to write, drop the scope. */
   because: string;
-  /** What it also permits that Helix will not do. Null where nothing. */
+  /** What it also permits that Havoc will not do. Null where nothing. */
   alsoPermits: string | null;
 }
 
@@ -42,7 +42,7 @@ export const GMAIL_MODIFY: GoogleScope = {
   grants: 'Change labels on your mail - marking read, archiving, starring.',
   because: 'Marking messages read, and marking a relay command as handled.',
   alsoPermits:
-    'Deleting messages. Helix exposes no way to delete mail, and this scope is not a plan to add one.',
+    'Deleting messages. Havoc exposes no way to delete mail, and this scope is not a plan to add one.',
 };
 
 export const CALENDAR_READ: GoogleScope = {
@@ -56,7 +56,7 @@ export const CALENDAR_READ: GoogleScope = {
  * Sending, added when a feature finally needed it.
  *
  * This was deliberately absent, with a note saying it would go in "when a
- * feature needs it, alongside the confirmation flow that governs it". Helix
+ * feature needs it, alongside the confirmation flow that governs it". Havoc
  * answering the phone is that feature, and this is that moment - so the rule
  * comes with it rather than after it.
  *
@@ -72,7 +72,7 @@ export const GMAIL_SEND: GoogleScope = {
   grants: 'Send mail from your account, appearing as you.',
   because: 'Answering a question you asked from your phone, back to your own address.',
   alsoPermits:
-    'Mailing anyone at all. Helix will only reply to the configured owner address; any other recipient needs your confirmation at the machine.',
+    'Mailing anyone at all. Havoc will only reply to the configured owner address; any other recipient needs your confirmation at the machine.',
 };
 
 /**
@@ -81,12 +81,12 @@ export const GMAIL_SEND: GoogleScope = {
  * There is a wider one and it is tempting for the same reason
  * `https://mail.google.com/` was: `auth/documents` makes everything work and
  * grants access to every document in the account, including ones written years
- * before Helix existed. `drive.file` grants access only to files this
+ * before Havoc existed. `drive.file` grants access only to files this
  * application itself created, or ones the user explicitly hands it through
  * Google's own picker. The Docs API accepts it for creating and editing, which
- * is everything Helix has been asked to do.
+ * is everything Havoc has been asked to do.
  *
- * The cost of the narrow scope is real and worth stating plainly: Helix cannot
+ * The cost of the narrow scope is real and worth stating plainly: Havoc cannot
  * open a document you already have. Asked to edit last year's report, it can
  * only say it has no access to it. That is the correct trade - the alternative
  * is holding a key to every document you own in order to occasionally write a
@@ -94,19 +94,19 @@ export const GMAIL_SEND: GoogleScope = {
  */
 export const DRIVE_FILE: GoogleScope = {
   url: 'https://www.googleapis.com/auth/drive.file',
-  grants: 'Create documents, and edit the ones Helix created.',
+  grants: 'Create documents, and edit the ones Havoc created.',
   because: 'Drafting and formatting a document in Google Docs.',
   alsoPermits:
-    'Nothing beyond files Helix made. Documents you already had are invisible to it, which is why this scope was chosen over auth/documents.',
+    'Nothing beyond files Havoc made. Documents you already had are invisible to it, which is why this scope was chosen over auth/documents.',
 };
 
 /**
  * Putting something on the calendar.
  *
  * `calendar.events` is narrower than `calendar`: it covers events and not the
- * calendars themselves, so Helix cannot create, rename or delete a calendar.
+ * calendars themselves, so Havoc cannot create, rename or delete a calendar.
  *
- * It does permit changing and deleting existing events, and Helix offers
+ * It does permit changing and deleting existing events, and Havoc offers
  * neither - `CalendarProvider` exposes only reading and creating. That gap is
  * deliberate and is the same shape as `gmail.modify` permitting deletion while
  * `GmailProvider` exposes none. A scope is a ceiling, not a plan.
@@ -116,7 +116,7 @@ export const CALENDAR_EVENTS: GoogleScope = {
   grants: 'Create events on your calendars.',
   because: 'Adding something you asked to be added.',
   alsoPermits:
-    'Changing and deleting events that are already there. Helix exposes neither, and creates without attendees so nothing invites anybody.',
+    'Changing and deleting events that are already there. Havoc exposes neither, and creates without attendees so nothing invites anybody.',
 };
 
 export const REQUESTED_SCOPES: readonly GoogleScope[] = [

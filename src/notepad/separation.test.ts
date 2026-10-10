@@ -21,15 +21,15 @@ import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
  *   - "search my notes" was a phrase in the file-search tool, so someone who
  *     had just written three notes and searched for them was told that no
  *     files were indexed.
- *   - The vault graph called every markdown file on disk a "note", so Helix
+ *   - The vault graph called every markdown file on disk a "note", so Havoc
  *     used one word for a file it had only read and for something it had been
  *     asked to write. A user cannot see which one they have got.
  *   - The Graph's subtitle read "Your notes and the links between them",
- *     about files Helix never wrote.
+ *     about files Havoc never wrote.
  *
- * The distinction, stated once: a NOTE is Helix's own, in Helix's own
+ * The distinction, stated once: a NOTE is Havoc's own, in Havoc's own
  * storage, written only when asked. A FILE is the user's, made somewhere
- * else, which Helix reads and indexes and never authored. They have different
+ * else, which Havoc reads and indexes and never authored. They have different
  * rules about writing, deleting and export, so they get different words,
  * different screens and different storage.
  */
@@ -47,7 +47,7 @@ describe('separate storage', () => {
    */
   it('keeps notes out of the file index entirely', async () => {
     const { store, logger, notepad } = makeNotepad();
-    const paths = new PathManager({ root: 'E:/Helix' });
+    const paths = new PathManager({ root: 'E:/Havoc' });
     const projects = new ProjectManager({ store, logger, paths });
     const knowledge = new KnowledgeIndex({ store, projects, logger });
 
@@ -80,7 +80,7 @@ describe('separate storage', () => {
 describe('separate words', () => {
   /**
    * The vault graph shows markdown files on the user's disk. It used to call
-   * them notes. Nothing in Helix may call a file a note.
+   * them notes. Nothing in Havoc may call a file a note.
    */
   it('does not call a file in a vault a note', () => {
     const types: VaultDocumentType[] = [
@@ -97,7 +97,7 @@ describe('separate words', () => {
 
   /**
    * A file in a folder called "Notes" is still a file. The folder name is the
-   * user's, and it must not change what Helix calls the thing.
+   * user's, and it must not change what Havoc calls the thing.
    */
   it('is not fooled by a folder called Notes', () => {
     expect(inferType('Notes/anything.md')).not.toBe('note');
@@ -112,7 +112,7 @@ describe('separate words', () => {
 
   /**
    * The Graph's subtitle read "Your notes and the links between them", about
-   * files Helix never wrote.
+   * files Havoc never wrote.
    */
   it('keeps the word out of the file-facing screens', () => {
     for (const id of ['files', 'graph', 'upload-project'] as const) {

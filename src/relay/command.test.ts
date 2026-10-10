@@ -33,7 +33,7 @@ describe('a message that should be acted on', () => {
   it('takes the key from the body when the Shortcut puts it there', () => {
     const verdict = readRelayMessage(
       message({
-        subject: 'Helix',
+        subject: 'Havoc',
         body: 'helix-key: correct-horse-battery\nOpen my Iron Man project.',
       }),
       config,
@@ -84,7 +84,7 @@ describe('a message that must not be acted on', () => {
    */
   it('refuses a forged sender without the key', () => {
     const verdict = readRelayMessage(
-      message({ subject: 'Helix', body: 'Delete all my projects.' }),
+      message({ subject: 'Havoc', body: 'Delete all my projects.' }),
       config,
     );
 

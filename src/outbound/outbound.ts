@@ -1,7 +1,7 @@
 /**
  * Things that leave the machine.
  *
- * The standing rule used to be that nothing did. That has changed: Helix may
+ * The standing rule used to be that nothing did. That has changed: Havoc may
  * send a message and place a call. What has not changed is that it may not
  * spend, and what is added here is the gate that makes the new permission
  * safe to hold.
@@ -26,7 +26,7 @@
  *
  * 4. **Cost is stated, and unknown cost is stated as unknown.** A call costs
  *    money. Reporting zero because nothing was measured would turn "never
- *    spend" into a rule Helix breaks while believing it is keeping it.
+ *    spend" into a rule Havoc breaks while believing it is keeping it.
  */
 
 export type OutboundKind = 'email' | 'message' | 'calendar-invite' | 'call' | 'sms';
@@ -100,7 +100,7 @@ const PURCHASE_PATTERNS = [
 ];
 
 /**
- * Is this request asking Helix to spend?
+ * Is this request asking Havoc to spend?
  *
  * Deliberately blunt and erring towards refusing. A false positive costs the
  * user one rephrase; a false negative spends their money.
@@ -138,7 +138,7 @@ export function draft(request: DraftRequest): OutboundDraft {
 
   if (looksLikePurchase(haystack)) {
     throw new OutboundError(
-      'That reads as a request to spend money, which Helix will not do. It may send and it may call, but buying, paying and topping up are yours.',
+      'That reads as a request to spend money, which Havoc will not do. It may send and it may call, but buying, paying and topping up are yours.',
     );
   }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import { Logger } from '../core/Logger.js';
 import { MemoryKeyValueStore, type KeyValueStore } from '../storage/KeyValueStore.js';
 import { PermissionManager, type PermissionPrompter } from './PermissionManager.js';
@@ -193,11 +193,11 @@ describe('require', () => {
     const manager = makeManager({ prompter: deny });
     const error = await manager.require('MICROPHONE', 'hear you').catch((e: unknown) => e);
 
-    expect(error).toBeInstanceOf(HelixError);
-    const helixError = error as HelixError;
-    expect(helixError.code).toBe('PERMISSION_DENIED');
-    expect(helixError.remedy).toBe('settings:privacy');
-    expect(helixError.userMessage).toBe('Helix needs your permission to use your microphone.');
+    expect(error).toBeInstanceOf(HavocError);
+    const havocError = error as HavocError;
+    expect(havocError.code).toBe('PERMISSION_DENIED');
+    expect(havocError.remedy).toBe('settings:privacy');
+    expect(havocError.userMessage).toBe('Havoc needs your permission to use your microphone.');
   });
 });
 
@@ -337,7 +337,7 @@ describe('persistence', () => {
   });
 });
 
-describe('telling the rest of Helix', () => {
+describe('telling the rest of Havoc', () => {
   it('announces the question and the answer', async () => {
     const bus = new EventBus();
     const requested: string[] = [];

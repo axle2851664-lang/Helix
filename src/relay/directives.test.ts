@@ -21,7 +21,7 @@ describe('matching a phone action', () => {
   });
 
   it('sees through a polite lead-in', () => {
-    expect(matchPhoneAction('Helix, could you set brightness to 25')).toEqual({
+    expect(matchPhoneAction('Havoc, could you set brightness to 25')).toEqual({
       action: 'brightness',
       argument: '25',
     });

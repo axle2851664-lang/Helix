@@ -1,5 +1,5 @@
 import type { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { Logger } from '../core/Logger.js';
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
 import {
@@ -33,7 +33,7 @@ export interface PermissionRecord {
   state: PermissionState;
   /** When the state last changed. Null while nothing has ever decided it. */
   decidedAt: number | null;
-  /** What Helix said it was for when it asked. Shown back in Settings. */
+  /** What Havoc said it was for when it asked. Shown back in Settings. */
   reason: string | null;
 }
 
@@ -42,10 +42,10 @@ export interface PermissionEntry {
   record: PermissionRecord;
 }
 
-/** What the user is being asked, at the moment Helix needs it. */
+/** What the user is being asked, at the moment Havoc needs it. */
 export interface PermissionPrompt {
   permission: PermissionDescriptor;
-  /** Why Helix is asking, right now, in terms of the thing being attempted. */
+  /** Why Havoc is asking, right now, in terms of the thing being attempted. */
   reason: string;
 }
 
@@ -105,7 +105,7 @@ function blankRecord(): PermissionRecord {
  * - **A grant here is necessary, never sufficient.** The microphone still needs
  *   the operating system's own permission, and Gmail still needs Google's
  *   consent screen. `PermissionDescriptor.secondGate` names that other gate,
- *   and nothing in this class can satisfy it. Helix does not bypass OS
+ *   and nothing in this class can satisfy it. Havoc does not bypass OS
  *   permissions or OAuth consent, and this type is where that is written down.
  *
  * - **A failed write is reported, never swallowed.** As with settings, the
@@ -226,7 +226,7 @@ export class PermissionManager {
     if (await this.request(id, reason)) return;
 
     const descriptor = describePermission(id);
-    throw new HelixError('PERMISSION_DENIED', `Helix needs your permission to ${lowerFirst(descriptor.label)}.`, {
+    throw new HavocError('PERMISSION_DENIED', `Havoc needs your permission to ${lowerFirst(descriptor.label)}.`, {
       remedy: 'settings:privacy',
       technical: `Permission ${id} is ${this.state(id)}.`,
     });
@@ -261,7 +261,7 @@ export class PermissionManager {
     }
   }
 
-  /** Back to nothing granted. Used by "reset Helix" and by tests. */
+  /** Back to nothing granted. Used by "reset Havoc" and by tests. */
   async revokeAll(): Promise<void> {
     const changed = PERMISSION_IDS.filter((id) => this.#record(id).state !== 'not-granted');
     if (changed.length === 0) return;
@@ -273,7 +273,7 @@ export class PermissionManager {
   /**
    * Whether this particular use still needs its own confirmation.
    *
-   * Separate from the grant on purpose: agreeing that Helix *may* delete files
+   * Separate from the grant on purpose: agreeing that Havoc *may* delete files
    * is not agreeing to a specific deletion. The action layer asks this; a
    * granted permission alone is not an answer.
    */
@@ -299,7 +299,7 @@ export class PermissionManager {
 
   #assertKnown(id: PermissionId): void {
     if (!isPermissionId(id)) {
-      throw new HelixError('VALIDATION_FAILED', 'Helix does not have a permission by that name.', {
+      throw new HavocError('VALIDATION_FAILED', 'Havoc does not have a permission by that name.', {
         technical: `Unknown permission id: ${String(id)}`,
       });
     }
@@ -424,7 +424,7 @@ export class PermissionManager {
       .catch((error: unknown) => {
         this.#persistent = false;
         this.#logger.error(
-          'Could not save your permission choices; Helix will ask again after a restart.',
+          'Could not save your permission choices; Havoc will ask again after a restart.',
           error,
         );
       });
@@ -483,7 +483,7 @@ export class PermissionManager {
    */
   #migrate(stored: StoredPermissions): StoredPermissions {
     if (typeof stored.version !== 'number' || stored.version > SCHEMA_VERSION) {
-      this.#logger.warn('Permissions were written by a newer version of Helix.', {
+      this.#logger.warn('Permissions were written by a newer version of Havoc.', {
         storedVersion: stored.version,
         supported: SCHEMA_VERSION,
       });

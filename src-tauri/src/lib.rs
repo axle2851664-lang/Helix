@@ -1,4 +1,4 @@
-//! The Helix desktop shell.
+//! The Havoc desktop shell.
 //!
 //! This exists to provide the three things a browser genuinely cannot, and
 //! deliberately nothing else. Every command below is a capability the web
@@ -19,7 +19,7 @@
 //!
 //! What this shell must not become is a general escape hatch. It exposes named
 //! commands with narrow shapes, not a filesystem or a shell. The standing rule
-//! that Helix never writes outside its own folders survives the move only if
+//! that Havoc never writes outside its own folders survives the move only if
 //! this file refuses to offer the means.
 
 mod env_file;
@@ -36,7 +36,7 @@ mod vault;
 use serde::Serialize;
 use sysinfo::Disks;
 
-/// Volume figures for the disk Helix lives on.
+/// Volume figures for the disk Havoc lives on.
 ///
 /// Mirrors the `VolumeStats` shape the TypeScript side already uses, including
 /// `source`, which tells the interface whether it is looking at a real volume
@@ -47,7 +47,7 @@ use sysinfo::Disks;
 pub struct VolumeStats {
     pub free_bytes: u64,
     pub total_bytes: u64,
-    pub used_by_helix_bytes: u64,
+    pub used_by_havoc_bytes: u64,
     /// Always "volume" from here. A browser answers "origin-quota".
     pub source: String,
 }
@@ -77,10 +77,10 @@ fn volume_stats(path: String) -> Option<VolumeStats> {
     best.map(|(disk, _)| VolumeStats {
         free_bytes: disk.available_space(),
         total_bytes: disk.total_space(),
-        // Helix's own footprint is measured on the TypeScript side, which
+        // Havoc's own footprint is measured on the TypeScript side, which
         // knows what belongs to it. Reporting the disk's used space here would
         // answer a different question than the one being asked.
-        used_by_helix_bytes: 0,
+        used_by_havoc_bytes: 0,
         source: "volume".to_string(),
     })
 }
@@ -122,13 +122,13 @@ fn shell_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
-/// The directory Helix is installed in.
+/// The directory Havoc is installed in.
 ///
 /// PathManager has always documented its root as "resolved by the host at
 /// runtime" and the browser has none to give, so the shell is the only thing
 /// that can answer. Returns None rather than a guess if the executable's own
 /// location cannot be determined: an invented root would put the user's data
-/// somewhere neither they nor Helix expects.
+/// somewhere neither they nor Havoc expects.
 #[tauri::command]
 fn install_root() -> Option<String> {
     std::env::current_exe()
@@ -177,5 +177,5 @@ pub fn run() {
             tailscale::tailscale_address
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Helix");
+        .expect("error while running Havoc");
 }

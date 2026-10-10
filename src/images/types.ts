@@ -4,7 +4,7 @@ import type { WebTransport } from '../web/types.js';
  * Searching the web for pictures.
  *
  * The rules are the ones the rest of `web/` already holds, with one addition
- * that matters more here than anywhere else in Helix.
+ * that matters more here than anywhere else in Havoc.
  *
  * **Nothing is invented.** A field is either something a provider actually
  * returned or it is absent. That applies hardest to `license`: an image whose

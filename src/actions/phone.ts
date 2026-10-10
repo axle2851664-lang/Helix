@@ -1,4 +1,4 @@
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import {
   endpointUrl,
   generateKey,
@@ -70,7 +70,7 @@ export function phoneActions(services: PhoneActionServices): ActionDefinition[] 
         const port = optionalNumber(params, 'port') ?? settings.get('phoneListenerPort');
 
         const problem = hostProblem(host) ?? portProblem(port);
-        if (problem) throw new HelixError('VALIDATION_FAILED', problem);
+        if (problem) throw new HavocError('VALIDATION_FAILED', problem);
 
         const key = generateKey();
         await settings.set('relaySecret', key);
@@ -105,7 +105,7 @@ export function phoneActions(services: PhoneActionServices): ActionDefinition[] 
       run: async () => {
         await settings.set('phoneListenerEnabled', false);
         await settings.set('relaySecret', '');
-        return { message: 'The key is gone and Helix is no longer listening for a phone.' };
+        return { message: 'The key is gone and Havoc is no longer listening for a phone.' };
       },
     },
   ];

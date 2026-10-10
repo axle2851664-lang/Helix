@@ -4,8 +4,8 @@ import { scanForInjection, type InjectionFinding } from '../guardrails/untrusted
  * Turning an email into an instruction, and refusing to most of the time.
  *
  * The relay works like this: a Shortcut on the phone emails a dedicated
- * address, Helix polls that mailbox, and a message that passes every check
- * below becomes a command. It is the only way a phone reaches Helix from
+ * address, Havoc polls that mailbox, and a message that passes every check
+ * below becomes a command. It is the only way a phone reaches Havoc from
  * outside the house without opening a port, and it has one property that
  * makes it dangerous in a way the chat box is not.
  *
@@ -25,7 +25,7 @@ import { scanForInjection, type InjectionFinding } from '../guardrails/untrusted
  *      supply, and it is compared in constant time so a wrong guess reveals
  *      nothing about how wrong it was.
  *   3. **The body is data, not instructions.** What survives is a command to
- *      be matched against Helix's own tools, never a prompt handed to a model
+ *      be matched against Havoc's own tools, never a prompt handed to a model
  *      as though the user had typed it. Text found in a message is scanned for
  *      injection and the findings travel with it.
  *
@@ -54,7 +54,7 @@ export interface RelayMessage {
 }
 
 export interface RelayConfig {
-  /** The address allowed to command Helix. Empty disables the relay. */
+  /** The address allowed to command Havoc. Empty disables the relay. */
   ownerAddress: string;
   /** Shared secret the phone includes. Empty disables the relay. */
   secret: string;

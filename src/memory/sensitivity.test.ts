@@ -30,7 +30,7 @@ describe('what counts as too private for a model prompt', () => {
   });
 
   /**
-   * A name is different in kind. Helix using it in conversation is the point
+   * A name is different in kind. Havoc using it in conversation is the point
    * of knowing it, and a name said unprompted is awkward rather than harmful.
    */
   it('lets a name through', () => {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
 import { formatBytes } from '../../storage/budget.js';
 import { assessFit, footprintFromName, largestComfortableModel } from '../../ai/resources.js';
 import type { FitVerdict } from '../../ai/resources.js';
@@ -38,7 +38,7 @@ const VERDICT_TONE: Record<FitVerdict, 'ok' | 'warn' | 'off'> = {
 };
 
 export function ModelsWorkspace() {
-  const { ai, platform } = useHelix();
+  const { ai, platform } = useHavoc();
   const settings = useSettings(['languageModel', 'preferLocalInference']);
 
   const [status, setStatus] = useState<LocalAIStatus | null>(null);
@@ -150,11 +150,11 @@ export function ModelsWorkspace() {
           <>
             <p className="hx-muted">
               {status?.serviceRunning === false
-                ? 'The local AI service is not running, so Helix cannot see what is installed.'
+                ? 'The local AI service is not running, so Havoc cannot see what is installed.'
                 : 'No local AI model is installed.'}
             </p>
             <p className="hx-settings__note">
-              Install one from a terminal. Helix does not download models on your behalf - they are
+              Install one from a terminal. Havoc does not download models on your behalf - they are
               several gigabytes each, and that should be a deliberate act rather than the result of
               a click.
             </p>
@@ -214,7 +214,7 @@ export function ModelsWorkspace() {
         <p className="hx-settings__note">
           <Icon name="lock" size={12} /> With a local model running, ordinary conversation stays on
           this machine: nothing is sent anywhere, and no paid API is involved. A cloud provider is
-          used only if you configure one and the local model cannot answer - and Helix says so in
+          used only if you configure one and the local model cannot answer - and Havoc says so in
           the reply when that happens rather than letting it pass unmentioned.
         </p>
       </section>

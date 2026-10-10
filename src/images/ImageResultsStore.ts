@@ -8,7 +8,7 @@ import type { ImageSearchOutcome } from './types.js';
  * from the stage without searching again, because searching again spends
  * somebody's quota to fetch what is already in hand.
  *
- * Only the latest search is kept. A history of every search Helix ever ran is
+ * Only the latest search is kept. A history of every search Havoc ever ran is
  * a record of what the user was looking at, which is not a thing to accumulate
  * without being asked.
  */

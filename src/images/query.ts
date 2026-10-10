@@ -3,7 +3,7 @@
  *
  * Deliberately not done by the model. The obvious build is to let the language
  * model emit a `search_images({...})` call, and there are two reasons not to
- * here. The first is that Helix runs on a 3B local model much of the time, and
+ * here. The first is that Havoc runs on a 3B local model much of the time, and
  * a model that size produces malformed tool calls often enough to matter. The
  * second is the same rule the phone directives follow: a structured command
  * assembled from generated text is generated text being executed.

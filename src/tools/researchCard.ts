@@ -7,7 +7,7 @@ import type { ResearchFinding } from '../web/WebResearch.js';
  * The spoken half of the reply is a sentence a model wrote from the evidence.
  * This is the half that lets the user check it: every source named, every
  * provider that could not answer named too, and anything that tried to give
- * Helix instructions marked as such.
+ * Havoc instructions marked as such.
  *
  * The card is what makes the prose accountable. Without it, a summary of five
  * pages is indistinguishable from a summary of nothing, and the user has no
@@ -56,7 +56,7 @@ export function researchCard(finding: ResearchFinding): ToolCard {
         detail: failure.reason,
         meta: 'unavailable',
         accent: 'warn' as const,
-        source: 'Helix providers',
+        source: 'Havoc providers',
       })),
     });
   }
@@ -73,7 +73,7 @@ export function researchCard(finding: ResearchFinding): ToolCard {
     sections,
     // Required on every card. The limit worth stating is that these are
     // snippets, not the pages themselves - a snippet can be out of date or out
-    // of context, and Helix has not read the article.
+    // of context, and Havoc has not read the article.
     caveat:
       'These are search snippets, not the full pages. Follow a source before relying on it for anything that matters.',
   };

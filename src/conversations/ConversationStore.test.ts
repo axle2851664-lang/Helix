@@ -50,10 +50,10 @@ describe('ConversationStore', () => {
     const conversation = await conversations.create();
 
     await conversations.appendMessage(conversation.id, { role: 'user', text: 'hello' });
-    await conversations.appendMessage(conversation.id, { role: 'helix', text: 'hi' });
+    await conversations.appendMessage(conversation.id, { role: 'havoc', text: 'hi' });
 
     const loaded = await conversations.get(conversation.id);
-    expect(loaded?.messages.map((m) => m.role)).toEqual(['user', 'helix']);
+    expect(loaded?.messages.map((m) => m.role)).toEqual(['user', 'havoc']);
     expect(loaded?.messages[0]?.text).toBe('hello');
   });
 
@@ -62,7 +62,7 @@ describe('ConversationStore', () => {
     const conversation = await conversations.create();
 
     await conversations.appendMessage(conversation.id, {
-      role: 'helix',
+      role: 'havoc',
       text: 'No language provider is configured.',
       failure: 'PROVIDER_NOT_CONFIGURED',
     });

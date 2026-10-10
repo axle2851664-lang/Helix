@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { HavocOrchestrator } from './HavocOrchestrator.js';
 import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
@@ -29,7 +29,7 @@ async function makeContext(confirms: boolean | null = true) {
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
   const activity = new ActivityManager();
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const notepad = new NotepadManager({ store: kv, logger });
@@ -47,7 +47,7 @@ async function makeContext(confirms: boolean | null = true) {
           confirmer: async () => confirms,
         });
 
-  const orchestrator = new HelixOrchestrator({
+  const orchestrator = new HavocOrchestrator({
     settings,
     conversations,
     activity,
@@ -99,7 +99,7 @@ describe('orchestrator: the notepad', () => {
     /**
      * "Write this down" with nothing after it. There is no honest way to know
      * what "this" was, and reaching into the transcript for the last plausible
-     * sentence would be Helix deciding what to keep - which is precisely what
+     * sentence would be Havoc deciding what to keep - which is precisely what
      * the Notepad promises not to do.
      */
     it('asks what to write rather than guessing from the conversation', async () => {
@@ -154,7 +154,7 @@ describe('orchestrator: the notepad', () => {
       expect(response.card?.caveat.length).toBeGreaterThan(40);
     });
 
-    /** Every row quotes the note. A summary would be Helix's words as theirs. */
+    /** Every row quotes the note. A summary would be Havoc's words as theirs. */
     it('quotes the note on every row', async () => {
       const { ask, notepad } = await makeContext();
       await seed(notepad);
@@ -169,7 +169,7 @@ describe('orchestrator: the notepad', () => {
 
     /**
      * The regression this ordering exists for. "search my notes" was a phrase
-     * in the file-search tool, written when the only notes Helix had were
+     * in the file-search tool, written when the only notes Havoc had were
      * markdown files in a vault. Someone who had just written three notes and
      * searched for them was told no files were indexed.
      */

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix, useSettings } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
+import { toUserMessage } from '../../core/HavocError.js';
 import { formatBytes } from '../../storage/budget.js';
 import type { Archive, RestorePlan } from '../../backup/archive.js';
 import type { SnapshotSummary } from '../../backup/BackupManager.js';
@@ -10,7 +10,7 @@ import type { SnapshotSummary } from '../../backup/BackupManager.js';
  * Backup, export and restore.
  *
  * The important part of this screen is the thing it refuses to do quickly.
- * Restore replaces what Helix holds, so the file is read, the consequences
+ * Restore replaces what Havoc holds, so the file is read, the consequences
  * are counted, and the user is shown exactly what disappears before anything
  * is written. There is no one-click restore and there is deliberately no
  * "restore latest" button.
@@ -25,7 +25,7 @@ function when(timestamp: number): string {
 }
 
 export function BackupPanel() {
-  const { backup } = useHelix();
+  const { backup } = useHavoc();
   const config = useSettings(['backupCount']);
 
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
@@ -61,7 +61,7 @@ export function BackupPanel() {
   /**
    * Hand the file to the browser's own save dialogue.
    *
-   * Helix never writes to the user's folders; this is the browser doing it, at
+   * Havoc never writes to the user's folders; this is the browser doing it, at
    * the user's request, to a location the user chooses.
    */
   const download = (fileName: string, text: string) => {
@@ -77,7 +77,7 @@ export function BackupPanel() {
     run(scope, async () => {
       const result = await backup.export(scope);
       download(result.fileName, result.text);
-      // What Helix actually knows. Whether the file reached disk is between
+      // What Havoc actually knows. Whether the file reached disk is between
       // the browser and the user - it can be blocked or cancelled, and
       // claiming it was saved would be asserting something unobserved.
       setNotice(
@@ -142,7 +142,7 @@ export function BackupPanel() {
         <p className="hx-settings__note">
           An export is a single file you save where you like. It is the only one of these two
           that survives losing this machine - a snapshot lives in the same browser profile as
-          everything it is protecting. The file is not encrypted and holds everything Helix knows
+          everything it is protecting. The file is not encrypted and holds everything Havoc knows
           about you, so it wants keeping somewhere you would keep the originals.
         </p>
 
@@ -186,7 +186,7 @@ export function BackupPanel() {
               </button>
             </div>
             <p className="hx-settings__note">
-              Nothing is restored on choosing a file. Helix reads it, works out what it would
+              Nothing is restored on choosing a file. Havoc reads it, works out what it would
               replace, and shows you before anything is written.
             </p>
           </>
@@ -225,7 +225,7 @@ export function BackupPanel() {
             ))}
 
             <p className="hx-settings__note">
-              A restore replaces rather than merges: anything in Helix that is not in this backup
+              A restore replaces rather than merges: anything in Havoc that is not in this backup
               goes.{' '}
               {config.backupCount > 0
                 ? 'A snapshot will be taken first, so this can be undone.'
@@ -277,7 +277,7 @@ export function BackupPanel() {
           </p>
         ) : snapshots.length === 0 ? (
           <p className="hx-muted">
-            None yet. Helix keeps the {config.backupCount} most recent, and takes one
+            None yet. Havoc keeps the {config.backupCount} most recent, and takes one
             automatically before any restore.
           </p>
         ) : (
@@ -313,7 +313,7 @@ export function BackupPanel() {
         )}
 
         <p className="hx-settings__note">
-          A snapshot guards against a mistake inside Helix - a restore gone wrong, a project
+          A snapshot guards against a mistake inside Havoc - a restore gone wrong, a project
           deleted in error. It is on this disk, in this browser profile, and it goes when they do.
         </p>
       </section>

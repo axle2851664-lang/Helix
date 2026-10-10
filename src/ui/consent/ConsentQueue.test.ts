@@ -70,7 +70,7 @@ describe('the consent queue', () => {
 });
 
 describe('what the dialog says', () => {
-  it('warns that a Helix permission is not the whole decision', () => {
+  it('warns that a Havoc permission is not the whole decision', () => {
     const request = permissionConsent({
       permission: describePermission('MICROPHONE'),
       reason: 'hear you speaking',
@@ -119,7 +119,7 @@ const fakeAction: ActionDefinition = {
   id: 'memory.forget',
   label: 'Forget',
   group: 'memory',
-  summary: 'Delete one thing Helix remembers.',
+  summary: 'Delete one thing Havoc remembers.',
   parameters: {},
   permission: null,
   confirmation: 'destructive',

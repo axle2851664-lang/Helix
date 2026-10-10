@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AIRouter } from '../ai/AIRouter.js';
 import { Logger } from '../core/Logger.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import { CodeWriter, codePrompt, extractCode } from './CodeWriter.js';
 import type { GenerateRequest, InferenceProvider, ModelInfo } from '../ai/types.js';
 
@@ -75,8 +75,8 @@ describe('staying on this machine', () => {
     expect(writer.available().reason).toContain('only a cloud one');
 
     const error = await writer.write({ instruction: 'print hi' }).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(HelixError);
-    expect((error as HelixError).code).toBe('PROVIDER_NOT_CONFIGURED');
+    expect(error).toBeInstanceOf(HavocError);
+    expect((error as HavocError).code).toBe('PROVIDER_NOT_CONFIGURED');
     expect(cloud.calls).toHaveLength(0);
   });
 
@@ -88,7 +88,7 @@ describe('staying on this machine', () => {
       .write({ instruction: 'print hi' })
       .catch((e: unknown) => e);
 
-    expect((error as HelixError).code).toBe('PROVIDER_UNREACHABLE');
+    expect((error as HavocError).code).toBe('PROVIDER_UNREACHABLE');
     expect(cloud.calls).toHaveLength(0);
   });
 

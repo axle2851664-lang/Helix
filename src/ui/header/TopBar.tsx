@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
 import type { CameraSnapshot } from '../../camera/CameraManager.js';
 
 interface TopBarProps {
@@ -28,7 +28,7 @@ export function TopBar({
   // The active-camera indicator lives in the top bar, not on the camera screen,
   // so it stays visible wherever the user navigates while the device is live
   // (spec 10: a visible camera-active indicator is mandatory).
-  const { camera } = useHelix();
+  const { camera } = useHavoc();
   const [cameraState, setCameraState] = useState<CameraSnapshot>(() => camera.snapshot);
   useEffect(() => camera.subscribe(setCameraState), [camera]);
 
@@ -43,7 +43,7 @@ export function TopBar({
         >
           <Icon name="menu" size={18} />
         </button>
-        <span className="hx-topbar__brand">HELIX</span>
+        <span className="hx-topbar__brand">HAVOC</span>
         {cameraState.live && (
           <button
             type="button"

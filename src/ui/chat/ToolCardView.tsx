@@ -19,7 +19,7 @@ const KIND_ICON = {
   brief: 'activity',
   plan: 'check',
   requirement: 'alert',
-  // A search result came from outside Helix, which the globe says at a glance.
+  // A search result came from outside Havoc, which the globe says at a glance.
   result: 'globe',
 } as const;
 

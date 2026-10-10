@@ -1,4 +1,4 @@
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { DocsProvider } from '../integrations/google/DocsProvider.js';
 import type { ActionDefinition } from './action.js';
 import { optionalString, readString } from './action.js';
@@ -49,7 +49,7 @@ export function docsActions(services: DocsActionServices): ActionDefinition[] {
       permission: 'GOOGLE_DRIVE_WRITE',
       confirmation: 'always',
       // Nothing is overwritten and the document can be deleted, but it does
-      // appear in a place Helix does not control.
+      // appear in a place Havoc does not control.
       reversible: true,
       appliesTo: [],
       describe: (params) => {
@@ -65,7 +65,7 @@ export function docsActions(services: DocsActionServices): ActionDefinition[] {
       run: async (params) => {
         const refusal = docs.unavailableReason();
         if (refusal !== null) {
-          throw new HelixError('PROVIDER_NOT_CONFIGURED', refusal, { remedy: 'settings:relay' });
+          throw new HavocError('PROVIDER_NOT_CONFIGURED', refusal, { remedy: 'settings:relay' });
         }
 
         const created = await docs.create(

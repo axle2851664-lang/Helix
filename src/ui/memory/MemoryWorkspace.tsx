@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix, useSettings } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
+import { toUserMessage } from '../../core/HavocError.js';
 import {
   MEMORY_CATEGORIES,
   type MemoryCategory,
@@ -11,13 +11,13 @@ import {
 /**
  * Inspect, add and delete long-term memory (spec 6, 10).
  *
- * The specification requires a way to see and remove everything Helix has
+ * The specification requires a way to see and remove everything Havoc has
  * retained, so this screen is the full surface: every stored memory is listed,
  * each can be deleted individually, and the whole store can be cleared behind a
  * confirmation.
  */
 export function MemoryWorkspace() {
-  const { memory, settings } = useHelix();
+  const { memory, settings } = useHavoc();
   const privacy = useSettings(['allowLongTermMemory']);
 
   const [records, setRecords] = useState<MemoryRecord[]>([]);

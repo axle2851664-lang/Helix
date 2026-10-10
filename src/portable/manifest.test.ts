@@ -11,7 +11,7 @@ describe('the note left on the disk', () => {
       when,
     );
 
-    expect(text).toContain('Helix itself');
+    expect(text).toContain('Havoc itself');
     expect(text).toContain('1.0 MB');
     expect(text).toContain('Your settings');
     expect(text).not.toContain('Your conversations');
@@ -19,7 +19,7 @@ describe('the note left on the disk', () => {
 
   /**
    * The reader who matters most is somebody finding this in a drawer with no
-   * Helix to open it, so the warning has to be in the file itself.
+   * Havoc to open it, so the warning has to be in the file itself.
    */
   it('warns that the disk is unencrypted when anything personal is on it', () => {
     const text = manifestText(planPortable({ selected: ['conversations'] }), when);
@@ -45,9 +45,9 @@ describe('the note left on the disk', () => {
   });
 
   it('tells the reader what to do with it, differently for app and data', () => {
-    expect(manifestText(planPortable({ selected: ['app'] }), when)).toContain('run Helix from there');
+    expect(manifestText(planPortable({ selected: ['app'] }), when)).toContain('run Havoc from there');
     expect(manifestText(planPortable({ selected: ['memory'] }), when)).toContain(
-      'Install Helix on the other machine first',
+      'Install Havoc on the other machine first',
     );
     expect(manifestText(planPortable({ selected: ['memory'] }), when)).toContain('Restore');
   });

@@ -3,13 +3,13 @@ import { OllamaProvider } from './OllamaProvider.js';
 import type { InferenceTransport } from './types.js';
 
 /**
- * Ollama started after Helix.
+ * Ollama started after Havoc.
  *
- * This is the ordinary case now, not an edge one: Helix refuses cloud
+ * This is the ordinary case now, not an edge one: Havoc refuses cloud
  * inference by default, so the first thing it says on a fresh machine is
  * "no local model is available" - and the obvious next action is to go and
  * start Ollama. If that only takes effect after a restart, the instruction
- * Helix just gave does not work.
+ * Havoc just gave does not work.
  *
  * The trap underneath is real and cost a fix that did nothing:
  * `getAvailableModels()` caches an empty list when a probe fails, so a poll
@@ -41,7 +41,7 @@ function lateTransport(options: { startsAfter: number }) {
   return { transport, calls: () => calls };
 }
 
-describe('a local runtime that starts after Helix', () => {
+describe('a local runtime that starts after Havoc', () => {
   it('is found by a later refresh', async () => {
     const { transport } = lateTransport({ startsAfter: 2 });
     const provider = new OllamaProvider({ transport });

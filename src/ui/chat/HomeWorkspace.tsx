@@ -1,38 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Composer } from './Composer.js';
 import { ToolCardView } from './ToolCardView.js';
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
 import { Core } from '../hero/Core.js';
 import { endsTheCall } from '../../voice/goodbye.js';
-import { coreStateFor, coreStateLabel } from '../hero/coreState.js';
-import { describeReasoning, reactorSegments } from '../hero/capabilities.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { coreStateFor } from '../hero/coreState.js';
+import { toUserMessage } from '../../core/HavocError.js';
 import type { VoiceSnapshot } from '../../voice/VoiceManager.js';
 import type { Conversation, ConversationMessage } from '../../conversations/ConversationStore.js';
 import type { WorkspaceId } from '../workspaces/registry.js';
-import type { HelixResponse } from '../../core/HelixOrchestrator.js';
+import type { HavocResponse } from '../../core/HavocOrchestrator.js';
 
 /**
- * The main Helix interaction surface.
+ * The main Havoc interaction surface.
  *
- * Real behaviour: the composer submits to HelixOrchestrator, which routes to a
+ * Real behaviour: the composer submits to HavocOrchestrator, which routes to a
  * registered tool. Navigation genuinely works. Anything needing a language
  * model returns an honest failure naming the missing provider, and that failure
- * is what appears in the transcript - Helix never shows an answer it did not
+ * is what appears in the transcript - Havoc never shows an answer it did not
  * produce.
  */
 
-/**
- * How long a word stays under the core after the state that produced it has
- * gone.
- *
- * Long enough to read, short enough that the screen returns to the core. The
- * brief is for no permanent dashboards, and a label that never leaves is one.
- */
-const STATE_LINGER_MS = 1600;
 
 /**
- * How fast the swell decays between the words Helix is speaking.
+ * How fast the swell decays between the words Havoc is speaking.
  *
  * A word onset sets the level to 1 and this walks it back down, so each word
  * is a distinct beat. It is a decay on a real event, not an oscillator: with
@@ -63,8 +54,8 @@ interface HomeWorkspaceProps {
   onOpenProject: (projectId: string) => void;
   /** Called when a tool resolved a note the Notepad should open on. */
   onOpenNote: (noteId: string) => void;
-  /** Called when Helix asked for a change to the interface itself. */
-  onUi: (ui: HelixResponse['ui']) => void;
+  /** Called when Havoc asked for a change to the interface itself. */
+  onUi: (ui: HavocResponse['ui']) => void;
 }
 
 export function HomeWorkspace({
@@ -80,14 +71,8 @@ export function HomeWorkspace({
     conversations,
     activity,
     voice,
-    platform,
-    store,
-    projects,
-    memory,
-    knowledge,
-    ai,
     bus,
-  } = useHelix();
+  } = useHavoc();
   const config = useSettings([
     'languageProvider',
     'speechToTextProvider',
@@ -103,13 +88,6 @@ export function HomeWorkspace({
   const [busy, setBusy] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceSnapshot>(() => voice.snapshot);
   const [coreNotice, setCoreNotice] = useState<string | null>(null);
-  const [online, setOnline] = useState(() => platform.isOnline());
-  const [counts, setCounts] = useState({
-    projects: 0,
-    memories: 0,
-    unindexed: 0,
-    searchable: 0,
-  });
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const reload = useCallback(async () => {
@@ -130,10 +108,9 @@ export function HomeWorkspace({
 
   useEffect(() => voice.subscribe(setVoiceState), [voice]);
 
-  useEffect(() => platform.onConnectivityChange(setOnline), [platform]);
 
   /**
-   * What Helix is doing, from the manager that hands out a token to the code
+   * What Havoc is doing, from the manager that hands out a token to the code
    * doing it. Subscribed rather than read, because `activity.current` is a
    * mutable field and React has no reason to re-render when it changes.
    */
@@ -159,7 +136,7 @@ export function HomeWorkspace({
    * synthesiser: each one sets it to 1 and it decays from there, so a word
    * reads as a beat rather than as a wave. There is no third source. If the
    * synthesiser reports no boundaries - some Linux voices do not - nothing
-   * sets it, and the core does not swell while Helix talks. That is the honest
+   * sets it, and the core does not swell while Havoc talks. That is the honest
    * failure; an oscillator would look identical and mean nothing.
    */
   /**
@@ -222,37 +199,6 @@ export function HomeWorkspace({
   }, [voiceState.state, voiceState.level]);
 
 
-  /**
-   * The counts behind the ring and the examples.
-   *
-   * Resolved together and set in one update: separately, the ring would light
-   * a segment on one round trip and the matching example would appear on the
-   * next, which reads as a glitch rather than as state arriving.
-   */
-  useEffect(() => {
-    const refresh = () => {
-      void Promise.all([
-        projects.listProjects(),
-        projects.countAssets(),
-        memory.count(),
-        knowledge.list(),
-      ]).then(([list, assets, memories, documents]) => {
-        const searchable = documents.filter((document) => document.indexed).length;
-        setCounts({
-          projects: list.length,
-          memories,
-          // Files with no index record at all. Files that were indexed and
-          // yielded nothing are a missing parser, not work anyone can do.
-          unindexed: Math.max(0, assets - documents.length),
-          searchable,
-        });
-      });
-    };
-    refresh();
-
-    const unsubscribes = [projects.subscribe(refresh), memory.subscribe(refresh), knowledge.subscribe(refresh)];
-    return () => unsubscribes.forEach((stop) => stop());
-  }, [projects, memory, knowledge]);
 
   /**
    * The reply being written, before it is saved.
@@ -300,13 +246,13 @@ export function HomeWorkspace({
 
       // A resolved target takes precedence over a plain workspace change: the
       // tool found the specific thing, and landing on the list instead would
-      // make the user search for what Helix has already located.
+      // make the user search for what Havoc has already located.
       if (response.openProjectId) onOpenProject(response.openProjectId);
       else if (response.openNoteId) onOpenNote(response.openNoteId);
       else if (response.navigateTo) onNavigate(response.navigateTo);
 
       // Only the short line is ever spoken. The card is deliberately left on
-      // screen unread - it exists precisely so Helix does not recite a list.
+      // screen unread - it exists precisely so Havoc does not recite a list.
       if (options.speak === true && voice.outputBlocker() === null) {
         await voice.speak(response.text);
       }
@@ -319,7 +265,7 @@ export function HomeWorkspace({
   /**
    * Clicking the core starts or ends a call.
    *
-   * A call, not a single turn. It used to be one press for one turn: Helix
+   * A call, not a single turn. It used to be one press for one turn: Havoc
    * answered and then sat there, and the next thing you said went nowhere
    * because the microphone had closed. Pressing again between every sentence
    * is not a conversation, and from the outside it looked exactly like the
@@ -427,31 +373,11 @@ export function HomeWorkspace({
 
   // Read from the voice manager rather than from settings: it knows what this
   // build can actually load, which is not the same as what is selected.
-  const hearingBlocker = voice.inputBlocker();
 
   // What would actually answer, refreshed when the local probe reports in.
   // The registry holds only a placeholder until then, so a value read at first
   // paint would say nothing is available and never correct itself.
-  const [reasoning, setReasoning] = useState(() => describeReasoning(ai));
-  useEffect(() => {
-    setReasoning(describeReasoning(ai));
-    return bus.on('AI_MODELS_REGISTERED', () => setReasoning(describeReasoning(ai)));
-  }, [ai, bus]);
 
-  const segments = reactorSegments({
-    online,
-    reasoning,
-    languageProvider: config.languageProvider,
-    hearingBlocker,
-    hearingProvider: config.speechToTextProvider,
-    speechBlocker: voice.outputBlocker(),
-    visionProvider: config.visionProvider,
-    gestureProvider: config.gestureProvider,
-    memoryAllowed: config.allowLongTermMemory,
-    durableStorage: (store as { durable?: boolean }).durable ?? false,
-    projectCount: counts.projects,
-    searchableFiles: counts.searchable,
-  });
 
   /**
    * What the core is doing, and the word for it.
@@ -467,23 +393,6 @@ export function HomeWorkspace({
     awaitingConsent,
   });
 
-  /**
-   * The word, held for a moment after the state that produced it has passed.
-   *
-   * Without the delay a state that lasts 200ms - which most of them do - would
-   * flash a word nobody could read. With it, the word appears, is readable,
-   * and then goes; the screen returns to the core, which is the point.
-   */
-  const [lingeringLabel, setLingeringLabel] = useState<string | null>(null);
-  useEffect(() => {
-    const label = coreStateLabel(coreState);
-    if (label !== null) {
-      setLingeringLabel(label);
-      return;
-    }
-    const timer = window.setTimeout(() => setLingeringLabel(null), STATE_LINGER_MS);
-    return () => window.clearTimeout(timer);
-  }, [coreState]);
 
 
   return (
@@ -491,36 +400,46 @@ export function HomeWorkspace({
       {isEmpty ? (
         <div className="hx-home__hero">
           {/*
-            The whole screen: one sphere, its aura, and a word that appears
-            while something is happening and then leaves.
+            The whole screen: one sphere and its aura.
 
-            What used to be here as well - a segmented capability ring, a
-            four-corner HUD of readouts, a title, a subtitle and a rotating row
-            of suggestion chips - is gone. None of it was invented, which is
-            why it survived this long, but the brief asks for a screen with no
-            permanent dashboards, and a ring of arcs around the sphere is a
-            permanent dashboard drawn in a circle. The capability measurements
-            did not go with it: they are what lights the sphere's own bands,
-            and the words that explain them are in Diagnostics.
+            What used to be here is gone in two passes. First a segmented
+            capability ring, a four-corner HUD, a title, a subtitle and a row
+            of suggestion chips. Then the last two capability readouts: the
+            word that named the core's state, and the sphere's own banding,
+            which was brighter at the latitudes whose subsystem worked. None
+            of it was invented, which is why it survived, but a status display
+            is a status display whether it is drawn as a ring, a word or a
+            gradient across a sphere.
+
+            The measurements are not lost; they are in Diagnostics, where the
+            words that explain them already were.
           */}
           <Core
-            segments={segments}
             state={coreState}
             level={level}
             reduceMotion={config.reduceMotion === true}
             size={coreSize}
             onActivate={() => void toggleCall()}
             label={
-              voiceState.state === 'listening' ? 'Stop listening' : 'Speak to Helix'
+              voiceState.state === 'listening' ? 'Stop listening' : 'Speak to Havoc'
             }
           />
 
           {/*
-            Occupies its line whether or not there is anything to say, so the
-            core does not shift up and down as states come and go.
+            A notice, and only a notice.
+            
+            The state word that used to live here - "Thinking", "Listening" -
+            is gone. What the core is doing, the core says: that is what the
+            brightness, the particle motion and the swell are for, and a word
+            underneath was the interface explaining its own animation.
+            
+            What remains is the line that carries a real failure, which is not
+            decoration: it is the only place a declined microphone or a
+            rejected key is ever seen. It keeps its line whether or not there
+            is anything in it, so the core does not shift up and down.
           */}
           <p className="hx-core__state" role="status" aria-live="polite">
-            {coreNotice ?? lingeringLabel ?? ''}
+            {coreNotice ?? ''}
           </p>
         </div>
       ) : (
@@ -529,8 +448,8 @@ export function HomeWorkspace({
             <MessageBubble key={message.id} message={message} />
           ))}
           {busy && (
-            <div className="hx-msg hx-msg--helix">
-              <div className="hx-msg__role">Helix</div>
+            <div className="hx-msg hx-msg--havoc">
+              <div className="hx-msg__role">Havoc</div>
               {/*
                 The reply as it is written, or the activity label until the
                 first word arrives. Once text is coming there is no reason to
@@ -558,7 +477,7 @@ function MessageBubble({ message }: { message: ConversationMessage }) {
   const failed = message.failure !== undefined;
   return (
     <div className={`hx-msg hx-msg--${message.role}`}>
-      <div className="hx-msg__role">{message.role === 'user' ? 'You' : 'Helix'}</div>
+      <div className="hx-msg__role">{message.role === 'user' ? 'You' : 'Havoc'}</div>
       <div className={`hx-msg__body${failed ? ' hx-msg__body--failed' : ''}`}>
         {message.text}
         {failed && (

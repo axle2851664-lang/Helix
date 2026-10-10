@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
 import type { ConversationSummary } from '../../conversations/ConversationStore.js';
 
 /**
@@ -15,7 +15,7 @@ export function ConversationsWorkspace({
 }: {
   onOpen: (conversationId: string) => void;
 }) {
-  const { conversations, settings } = useHelix();
+  const { conversations, settings } = useHavoc();
   const privacy = useSettings(['saveConversationHistory']);
   const [items, setItems] = useState<ConversationSummary[]>([]);
 
@@ -39,7 +39,7 @@ export function ConversationsWorkspace({
         ) : (
           <>
             <strong>History is not being saved.</strong> Conversations last for this session only,
-            and are discarded when Helix closes. Turn on &ldquo;Keep conversation history&rdquo; in
+            and are discarded when Havoc closes. Turn on &ldquo;Keep conversation history&rdquo; in
             Settings &rarr; Privacy to keep them.{' '}
             <button
               type="button"

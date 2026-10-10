@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { HavocOrchestrator } from './HavocOrchestrator.js';
 import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
@@ -20,11 +20,11 @@ async function makeContext() {
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
   const activity = new ActivityManager();
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
-  const orchestrator = new HelixOrchestrator({
+  const orchestrator = new HavocOrchestrator({
     settings,
     conversations,
     activity,
@@ -113,7 +113,7 @@ describe('orchestrator: the briefing tools', () => {
     const reloaded = await context.conversations.get(context.conversation.id);
     const last = reloaded?.messages.at(-1);
 
-    expect(last?.role).toBe('helix');
+    expect(last?.role).toBe('havoc');
     expect(last?.card?.kind).toBe('brief');
   });
 
@@ -208,7 +208,7 @@ describe('orchestrator: the tools that cannot run', () => {
   });
 
   /**
-   * Helix may send now, and can send nothing. The reply has to carry the cost
+   * Havoc may send now, and can send nothing. The reply has to carry the cost
    * answer, because a message can be free and a telephone call cannot, and
    * that difference decides what someone goes and sets up.
    */

@@ -2,9 +2,9 @@
  * Looking things up on the live web.
  *
  * The rule that governs everything in this directory: **what comes back is
- * evidence, not instruction, and never Helix's own words.** A search result is
+ * evidence, not instruction, and never Havoc's own words.** A search result is
  * text written by a stranger. It gets attributed, it gets scanned, and it
- * never reaches a model as though Helix had said it.
+ * never reaches a model as though Havoc had said it.
  *
  * The second rule is that nothing here invents. A provider that cannot answer
  * says so; it does not return a plausible summary. This is the same line the
@@ -18,7 +18,7 @@ export interface SearchResult {
   title: string;
   /** Where it came from. Required - an unattributed result is a rumour. */
   url: string;
-  /** The provider's own words about it, never Helix's. */
+  /** The provider's own words about it, never Havoc's. */
   snippet: string;
   /** Which provider produced it, so a summary can say where it looked. */
   provider: string;

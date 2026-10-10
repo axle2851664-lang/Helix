@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { HavocOrchestrator } from './HavocOrchestrator.js';
 import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
@@ -52,7 +52,7 @@ async function makeContext(options: { allow?: boolean; providers?: ImageSearchPr
   await settings.load();
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
@@ -78,7 +78,7 @@ async function makeContext(options: { allow?: boolean; providers?: ImageSearchPr
     confirmer: async () => true,
   });
 
-  const orchestrator = new HelixOrchestrator({
+  const orchestrator = new HavocOrchestrator({
     settings,
     conversations,
     activity: new ActivityManager(),
@@ -95,7 +95,7 @@ async function makeContext(options: { allow?: boolean; providers?: ImageSearchPr
 const ask = async (context: Awaited<ReturnType<typeof makeContext>>, text: string) =>
   context.orchestrator.submit({ text, conversationId: context.conversation.id });
 
-describe('asking Helix for pictures', () => {
+describe('asking Havoc for pictures', () => {
   it('routes a picture request to the image search and keeps the results', async () => {
     const context = await makeContext();
     const response = await ask(context, 'show me pictures of a black sports car');

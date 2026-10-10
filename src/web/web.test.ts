@@ -118,7 +118,7 @@ describe('BraveProvider', () => {
    * true when written and stopped being true in February 2026: every plan now
    * requires a card on file and bills past roughly a thousand queries.
    *
-   * The standing rule is that Helix never spends, so a key is not enough. The
+   * The standing rule is that Havoc never spends, so a key is not enough. The
    * refusal has to name money rather than configuration, or the user goes and
    * fixes the wrong thing.
    */
@@ -309,7 +309,7 @@ describe('WebResearch', () => {
    * Search snippets are written by strangers and are about to be handed to a
    * language model. This is a cheap, real attack.
    */
-  it('flags a result trying to give Helix instructions', async () => {
+  it('flags a result trying to give Havoc instructions', async () => {
     const research = new WebResearch({
       providers: [
         stub('a', [

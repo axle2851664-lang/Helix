@@ -1,12 +1,12 @@
 import { ARCHIVABLE, type ArchivableNamespace } from '../backup/archive.js';
 
 /**
- * What to take when Helix goes on a flash drive, decided one part at a time.
+ * What to take when Havoc goes on a flash drive, decided one part at a time.
  *
  * A removable disk is the easiest thing in computing to lose. It ends up in a
  * drawer, in a coat, in somebody else's laptop; it is not encrypted, it has no
  * screen lock, and finding one tells you nothing about whose it is. So the
- * question this module exists to make the user answer is not "back up Helix?"
+ * question this module exists to make the user answer is not "back up Havoc?"
  * but "which of these specific things should leave the machine?", asked with
  * the consequence of each one attached.
  *
@@ -34,7 +34,7 @@ export const NEVER_COPIED: ReadonlyArray<{ what: string; because: string }> = [
   {
     what: 'The phone relay secret',
     because:
-      'It is the one thing standing between your phone pairing and anybody else’s. Copying it copies the ability to speak to Helix as you.',
+      'It is the one thing standing between your phone pairing and anybody else’s. Copying it copies the ability to speak to Havoc as you.',
   },
   {
     what: 'API keys',
@@ -70,7 +70,7 @@ export function portableItems(sizes: Partial<Record<PortableItemId, number>> = {
   return [
     {
       id: 'app',
-      label: 'Helix itself',
+      label: 'Havoc itself',
       detail: 'The program, so it runs on another machine without installing anything.',
       ifLost: null,
       bytes: size('app'),
@@ -79,7 +79,7 @@ export function portableItems(sizes: Partial<Record<PortableItemId, number>> = {
       id: 'settings',
       label: 'Your settings',
       detail: ARCHIVABLE.settings,
-      ifLost: 'It shows how you have Helix set up. No messages, no files.',
+      ifLost: 'It shows how you have Havoc set up. No messages, no files.',
       bytes: size('settings'),
     },
     {
@@ -92,16 +92,16 @@ export function portableItems(sizes: Partial<Record<PortableItemId, number>> = {
     },
     {
       id: 'memory',
-      label: 'What Helix remembers',
+      label: 'What Havoc remembers',
       detail: ARCHIVABLE.memory,
-      ifLost: 'Everything you asked Helix to remember about you, in plain text.',
+      ifLost: 'Everything you asked Havoc to remember about you, in plain text.',
       bytes: size('memory'),
     },
     {
       id: 'conversations',
       label: 'Your conversations',
       detail: ARCHIVABLE.conversations,
-      ifLost: 'Every conversation you have had with Helix, readable by anyone who finds it.',
+      ifLost: 'Every conversation you have had with Havoc, readable by anyone who finds it.',
       bytes: size('conversations'),
     },
     {
@@ -167,7 +167,7 @@ export function planPortable(options: PortablePlanOptions): PortablePlan {
     bytes > options.freeBytes
   ) {
     // Refused before anything is written. A copy that fills the disk and
-    // stops halfway leaves a portable Helix that looks complete and is not.
+    // stops halfway leaves a portable Havoc that looks complete and is not.
     problem = `That is ${formatBytes(bytes)}, and the disk has ${formatBytes(
       options.freeBytes,
     )} free. Choose less, or use a larger disk.`;
@@ -202,7 +202,7 @@ export function formatBytes(bytes: number): string {
  * Ready-made selections, for the two things people actually want.
  *
  * The item-by-item list stays, and it is still the honest shape of the
- * question: a single "copy Helix to USB" button would quietly put a
+ * question: a single "copy Havoc to USB" button would quietly put a
  * conversation history in a coat pocket. But two combinations come up often
  * enough that making the user assemble them each time is friction with no
  * safety in it, and both were asked for by name.
@@ -232,14 +232,14 @@ export const PORTABLE_PRESETS: readonly PortablePreset[] = [
   },
   {
     id: 'helix-and-notepad',
-    label: 'Helix and your Notepad',
+    label: 'Havoc and your Notepad',
     detail:
       'The program, so it runs on another machine, and your notes to work from. Nothing else about you goes with it.',
     items: ['app', 'notepad'],
   },
   {
     id: 'everything',
-    label: 'Everything Helix has',
+    label: 'Everything Havoc has',
     detail:
       'The program and every piece of your data. Read the warning below before choosing this one: an unencrypted disk holds all of it in plain text.',
     items: ['app', 'settings', 'notepad', 'memory', 'conversations', 'project-assets', 'asset-blobs', 'knowledge'],

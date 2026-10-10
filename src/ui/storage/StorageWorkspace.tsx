@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { BackupPanel } from './BackupPanel.js';
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
 import { formatBytes, pressure, pressureNotice } from '../../storage/budget.js';
 import type { Reclaimable, StorageReport } from '../../storage/StorageManager.js';
 
 /**
- * What Helix is holding, and what bounds it.
+ * What Havoc is holding, and what bounds it.
  *
  * The screen this replaces promised four things: a breakdown by category,
  * warnings at 75, 85, 95 and 99 per cent, cleanup that never touches user
@@ -28,7 +28,7 @@ const PRESSURE_TONE = {
 } as const;
 
 export function StorageWorkspace() {
-  const { storage, paths, store, backup, projects, knowledge, memory } = useHelix();
+  const { storage, paths, store, backup, projects, knowledge, memory } = useHavoc();
   // The ceiling is a setting, so the report has to follow it changing.
   const config = useSettings(['storageLimitGb']);
 
@@ -178,7 +178,7 @@ export function StorageWorkspace() {
         <h2 className="hx-panel__title">What could be freed</h2>
         {report.reclaimable.length === 0 ? (
           <p className="hx-muted">
-            Nothing is going spare. Everything Helix holds is either yours or in use.
+            Nothing is going spare. Everything Havoc holds is either yours or in use.
           </p>
         ) : (
           <ul className="hx-reclaim">
@@ -219,12 +219,12 @@ export function StorageWorkspace() {
             the allowance it gives this origin, which is not the same thing and may be revised.
           </li>
           <li>
-            <Icon name="alert" size={13} /> Space used outside Helix - model weights served from
+            <Icon name="alert" size={13} /> Space used outside Havoc - model weights served from
             the application folder are not counted here.
           </li>
         </ul>
         <p className="hx-settings__note">
-          Both need the desktop shell. Until then Helix reports what it can measure and names
+          Both need the desktop shell. Until then Havoc reports what it can measure and names
           what it cannot, rather than filling the gap with a plausible figure.
         </p>
       </section>

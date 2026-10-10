@@ -1,7 +1,7 @@
 /**
  * THE ONLY FILE THAT DECIDES BETWEEN DEMO AND REAL DATA.
  *
- * Everything else in Helix asks this module which vault to load and never
+ * Everything else in Havoc asks this module which vault to load and never
  * inspects the environment itself. One switch, one place, so it is impossible
  * to half-enable real data by editing the wrong file.
  *
@@ -35,19 +35,19 @@ export const REAL_VAULT: RealVaultConfig = {
 /**
  * Resolve the mode.
  *
- * Reads `VITE_HELIX_VAULT` at build time (Vite inlines it) and falls back to
+ * Reads `VITE_HAVOC_VAULT` at build time (Vite inlines it) and falls back to
  * demo. Anything other than the exact string 'real' is treated as demo, so a
  * typo fails safe rather than exposing real folders.
  */
 export function vaultMode(): VaultMode {
   const configured =
     typeof import.meta.env !== 'undefined'
-      ? (import.meta.env['VITE_HELIX_VAULT'] as string | undefined)
+      ? (import.meta.env['VITE_HAVOC_VAULT'] as string | undefined)
       : undefined;
   return configured === 'demo' ? 'demo' : 'real';
 }
 
-/** True when Helix is running on invented fixtures. Safe to screen-record. */
+/** True when Havoc is running on invented fixtures. Safe to screen-record. */
 export function isDemo(): boolean {
   return vaultMode() === 'demo';
 }

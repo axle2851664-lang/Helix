@@ -223,7 +223,7 @@ describe('watching for a phone during setup', () => {
     expect(seen[0]?.outcome).toBe('failed');
   });
 
-  it('reports nothing before a phone has ever reached Helix', () => {
+  it('reports nothing before a phone has ever reached Havoc', () => {
     const shell = new FakeShell();
     const listener = new PhoneListener({ sink: sink(), listen: shell.listen, reply: shell.reply });
     expect(listener.lastActivity).toBeNull();

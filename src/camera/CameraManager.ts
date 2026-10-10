@@ -1,5 +1,5 @@
 import type { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { Logger } from '../core/Logger.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
@@ -10,7 +10,7 @@ import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
  * Rules enforced here rather than left to the UI:
  *
  * - **The camera is never started implicitly.** `start()` is only ever called
- *   from an explicit user action. Nothing in Helix opens the device on load, on
+ *   from an explicit user action. Nothing in Havoc opens the device on load, on
  *   navigation, or in the background.
  * - **The active indicator cannot drift from reality.** CAMERA_STARTED is
  *   emitted only once a live MediaStream exists, and CAMERA_STOPPED from the
@@ -157,7 +157,7 @@ export class CameraManager {
 
   /**
    * List cameras. Labels are only populated after permission has been granted
-   * once - before that the browser returns empty labels, and Helix says so
+   * once - before that the browser returns empty labels, and Havoc says so
    * rather than showing blank entries.
    */
   async listDevices(): Promise<CameraDevice[]> {
@@ -178,14 +178,14 @@ export class CameraManager {
 
   /**
    * Open the camera. Only ever called from an explicit user action.
-   * Throws a HelixError with a readable message when it cannot start.
+   * Throws a HavocError with a readable message when it cannot start.
    */
   async start(options: { deviceId?: string } = {}): Promise<MediaStream> {
     const blocker = this.blocker();
     if (blocker !== null) {
       this.#error = blocker;
       this.#setState('error');
-      throw new HelixError('CAPABILITY_UNAVAILABLE', blocker, {
+      throw new HavocError('CAPABILITY_UNAVAILABLE', blocker, {
         technical: 'CameraManager.start() called while blocked.',
       });
     }
@@ -215,7 +215,7 @@ export class CameraManager {
       this.#setState('error');
       // The error name is useful; the message may name a device, so log the name only.
       this.#logger.warn('Camera could not be started.', { name });
-      throw new HelixError('PERMISSION_DENIED', message, {
+      throw new HavocError('PERMISSION_DENIED', message, {
         technical: `getUserMedia failed: ${name}`,
       });
     }
@@ -226,11 +226,11 @@ export class CameraManager {
     this.#width = track?.getSettings().width ?? null;
     this.#height = track?.getSettings().height ?? null;
 
-    // The OS or another application can end the track without telling Helix -
+    // The OS or another application can end the track without telling Havoc -
     // an unplugged webcam, a privacy shutter, a competing app. Without this the
     // indicator would keep claiming the camera is live after it had stopped.
     track?.addEventListener('ended', () => {
-      this.#logger.info('Camera track ended outside Helix.');
+      this.#logger.info('Camera track ended outside Havoc.');
       this.stop('device-ended');
     });
 
@@ -268,7 +268,7 @@ export class CameraManager {
   /**
    * Capture a single still from the live stream.
    *
-   * The frame is returned to the caller and not retained here. Helix stores it
+   * The frame is returned to the caller and not retained here. Havoc stores it
    * only if the user then chooses to save it into a project.
    */
   async capture(
@@ -276,7 +276,7 @@ export class CameraManager {
     options: { type?: string; quality?: number } = {},
   ): Promise<CapturedFrame> {
     if (!this.#stream) {
-      throw new HelixError('CAPABILITY_UNAVAILABLE', 'The camera is not running.', {
+      throw new HavocError('CAPABILITY_UNAVAILABLE', 'The camera is not running.', {
         technical: 'capture() called with no active stream.',
       });
     }
@@ -284,7 +284,7 @@ export class CameraManager {
     const width = video.videoWidth || this.#width || 0;
     const height = video.videoHeight || this.#height || 0;
     if (width === 0 || height === 0) {
-      throw new HelixError(
+      throw new HavocError(
         'INTERNAL',
         'The camera image is not ready yet. Try again in a moment.',
         { technical: `capture() with zero dimensions (${width}x${height})` },
@@ -296,7 +296,7 @@ export class CameraManager {
     canvas.height = height;
     const context = canvas.getContext('2d');
     if (!context) {
-      throw new HelixError('INTERNAL', 'This browser could not process the camera image.', {
+      throw new HavocError('INTERNAL', 'This browser could not process the camera image.', {
         technical: '2d canvas context unavailable.',
       });
     }
@@ -308,7 +308,7 @@ export class CameraManager {
     });
 
     if (!blob) {
-      throw new HelixError('INTERNAL', 'The camera image could not be saved.', {
+      throw new HavocError('INTERNAL', 'The camera image could not be saved.', {
         technical: 'canvas.toBlob returned null.',
       });
     }

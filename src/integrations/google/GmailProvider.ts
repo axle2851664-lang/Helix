@@ -28,7 +28,7 @@ export interface GmailStatus {
   connected: boolean;
   /** The account, once known. Never guessed. */
   address: string | null;
-  /** One sentence, in Helix's voice, safe to show. */
+  /** One sentence, in Havoc's voice, safe to show. */
   message: string;
 }
 
@@ -78,7 +78,7 @@ export class GmailProvider {
   }
 
   /**
-   * Whether Helix can reach Gmail at all.
+   * Whether Havoc can reach Gmail at all.
    *
    * Two failures kept apart, because they need different fixes: a host that
    * cannot hold a token, and a host that can but has not been authorised yet.
@@ -100,7 +100,7 @@ export class GmailProvider {
         connected: false,
         address: null,
         message:
-          'Gmail is not connected yet. You will need to authorise Helix with your Google account first.',
+          'Gmail is not connected yet. You will need to authorise Havoc with your Google account first.',
       };
     }
 
@@ -177,7 +177,7 @@ export class GmailProvider {
     // Refused here rather than trusted not to be asked for.
     const requested = [...(change.add ?? []), ...(change.remove ?? [])];
     if (requested.some((label) => label === 'TRASH' || label === 'SPAM')) {
-      throw new Error('Helix does not move mail to Trash or Spam.');
+      throw new Error('Havoc does not move mail to Trash or Spam.');
     }
 
     await this.#transport.request({
@@ -232,7 +232,7 @@ export class GmailProvider {
    * Move messages to Trash.
    *
    * This is what "delete" means in Gmail: its own Delete button moves a
-   * message here, where it stays recoverable for thirty days. Helix exposes
+   * message here, where it stays recoverable for thirty days. Havoc exposes
    * no permanent delete, which the granted scope would allow - the recoverable
    * act covers what anybody means by deleting an email, and the unrecoverable
    * one has no undo to offer if it was the wrong message.
@@ -363,7 +363,7 @@ export class GmailProvider {
 
     if (owner === '' || recipient !== owner) {
       throw new Error(
-        `Helix only replies to your own address. Sending to ${options.to} needs your confirmation here.`,
+        `Havoc only replies to your own address. Sending to ${options.to} needs your confirmation here.`,
       );
     }
 

@@ -380,7 +380,7 @@ export class TauriGoogleTransport implements InferenceTransport {
       // failed. That is the same lie the shell just went to the trouble of
       // removing, moved one layer up.
       //
-      // This matters weekly rather than rarely: Helix stays on Google's
+      // This matters weekly rather than rarely: Havoc stays on Google's
       // Testing status by choice, and a test user's sign-in lasts seven days.
       if (expiredConnection(error)) await this.refreshStatus();
       throw error;

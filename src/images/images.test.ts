@@ -380,7 +380,7 @@ describe('choosing and falling back', () => {
     expect((await search.search({ query: 'car' })).results).toHaveLength(1);
   });
 
-  it('says so when the named provider is one Helix does not have', async () => {
+  it('says so when the named provider is one Havoc does not have', async () => {
     const search = new ImageSearch({
       providers: [fakeProvider({ id: 'openverse', ready: false })],
       logger: silentLogger(),

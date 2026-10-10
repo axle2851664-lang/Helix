@@ -12,7 +12,7 @@ describe('the replies this exists because of', () => {
    */
   it('catches the prompt read back with the honorifics stripped out', () => {
     const said =
-      'You are Helix, an assistant on this person\'s own computer. Cold, precise, composed. ' +
+      'You are Havoc, an assistant on this person\'s own computer. Cold, precise, composed. ' +
       'Never address the user by a title - no "", "", "", "", "", "", "" - and never invent one. ' +
       'Never put in the past tense an action that has not happened.';
 
@@ -36,7 +36,7 @@ describe('the replies this exists because of', () => {
 
   it('catches a paragraph of the prompt with a sentence of its own bolted on', () => {
     const said =
-      'You are Helix, an assistant on this person\'s own computer. Never address the user ' +
+      'You are Havoc, an assistant on this person\'s own computer. Never address the user ' +
       'by a title and never invent one. I need permission to access your files.';
 
     expect(detectEcho(said).echoed).toBe(true);
@@ -45,21 +45,21 @@ describe('the replies this exists because of', () => {
 
 describe('what it must never flag', () => {
   /**
-   * The line this detector must not cross. The prompt tells Helix to say
+   * The line this detector must not cross. The prompt tells Havoc to say
    * these exact sentences in specific situations, so a reply consisting of
-   * one of them is Helix obeying, not reciting. Flagging these would turn
+   * one of them is Havoc obeying, not reciting. Flagging these would turn
    * the correct behaviour into a reported fault.
    */
-  it('lets through every sentence the prompt tells Helix to say', () => {
+  it('lets through every sentence the prompt tells Havoc to say', () => {
     for (const phrase of SANCTIONED_PHRASES) {
       expect(detectEcho(phrase).echoed, phrase).toBe(false);
     }
   });
 
-  /** Every demonstration is, by construction, a reply Helix should give. */
+  /** Every demonstration is, by construction, a reply Havoc should give. */
   it('lets through every worked example', () => {
     for (const example of PERSONA_EXAMPLES) {
-      expect(detectEcho(example.helix).echoed, example.helix).toBe(false);
+      expect(detectEcho(example.havoc).echoed, example.havoc).toBe(false);
     }
   });
 
@@ -81,7 +81,7 @@ describe('what it must never flag', () => {
 
   /**
    * A reply that happens to use a phrase from the rules is not a recitation.
-   * Helix is supposed to say these things - the rules exist to make it say
+   * Havoc is supposed to say these things - the rules exist to make it say
    * them - so a detector that fired on them would be punishing success.
    */
   it('lets through an answer that uses the prompt\'s own vocabulary', () => {

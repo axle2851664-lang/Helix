@@ -26,7 +26,7 @@ async function harness(options: { confirmer?: ActionConfirmer; prompter?: Permis
   const settings = new SettingsManager({ store, logger });
   await settings.load();
 
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store, logger, paths });
   const knowledge = new KnowledgeIndex({ store, projects, logger });
   const memory = new MemoryManager({ store, settings, logger });
@@ -166,7 +166,7 @@ describe('memory.forget', () => {
 
     expect(result.status).toBe('failed');
     expect(result.status === 'failed' && result.message).toBe(
-      'Helix has no memory like that to forget.',
+      'Havoc has no memory like that to forget.',
     );
   });
 

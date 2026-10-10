@@ -20,12 +20,12 @@ const REMEDIES: ReadonlyArray<{ matches: RegExp; remedy: string }> = [
   {
     matches: /access_denied/i,
     remedy:
-      'Google blocked the sign-in rather than Helix refusing it. While an app is on Testing, only accounts listed as test users may sign in: open console.cloud.google.com, pick this project, then APIs & Services → OAuth consent screen → Audience, and add your own address under Test users. This also happens if you pressed Cancel on the consent screen.',
+      'Google blocked the sign-in rather than Havoc refusing it. While an app is on Testing, only accounts listed as test users may sign in: open console.cloud.google.com, pick this project, then APIs & Services → OAuth consent screen → Audience, and add your own address under Test users. This also happens if you pressed Cancel on the consent screen.',
   },
   {
     matches: /redirect_uri_mismatch/i,
     remedy:
-      'The OAuth client is the wrong type. Helix listens on a loopback port that changes each time, which only a Desktop app client allows. In Google Cloud Console under Credentials, create an OAuth client ID of type "Desktop app" and use its id and secret here.',
+      'The OAuth client is the wrong type. Havoc listens on a loopback port that changes each time, which only a Desktop app client allows. In Google Cloud Console under Credentials, create an OAuth client ID of type "Desktop app" and use its id and secret here.',
   },
   {
     matches: /invalid_client|unauthorized_client/i,
@@ -52,7 +52,7 @@ const REMEDIES: ReadonlyArray<{ matches: RegExp; remedy: string }> = [
   {
     matches: /has not completed the Google verification|unverified/i,
     remedy:
-      'This is the expected warning for an app on Testing status. Choose Advanced, then "Go to Helix (unsafe)" - it is your own app, on your own machine. You must also be listed as a test user.',
+      'This is the expected warning for an app on Testing status. Choose Advanced, then "Go to Havoc (unsafe)" - it is your own app, on your own machine. You must also be listed as a test user.',
   },
 ];
 

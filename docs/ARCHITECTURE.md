@@ -1,15 +1,15 @@
-# Helix Architecture
+# Havoc Architecture
 
 ## Current state
 
-Helix began as an empty repository (`git init`, zero commits, zero files). There
+Havoc began as an empty repository (`git init`, zero commits, zero files). There
 was no prior framework, build system or feature set to preserve. Everything here
 is new, which is why this document describes intent as well as implementation —
 but implemented and planned items are labelled distinctly throughout.
 
 ## Shell strategy: browser-first, Tauri later
 
-**Target:** a portable `Helix.exe` built with Tauri.
+**Target:** a portable `Havoc.exe` built with Tauri.
 
 **Why Tauri over Electron.** The requirement that "Core should remain small" is
 decisive. A Tauri binary is single-digit megabytes; Electron bundles a ~150 MB+
@@ -21,11 +21,11 @@ costs nothing.
 **Why not Tauri from day one.** Building Tauri requires the Rust toolchain, MSVC
 Build Tools and the Windows SDK — roughly 7–10 GB, none of which is installed on
 the development machine. Rather than block every feature phase behind that
-install, Helix is built browser-first.
+install, Havoc is built browser-first.
 
 **Why this is safe.** Nearly everything in phases 3–8 is browser-native:
 `getUserMedia` for camera and microphone, MediaPipe for hand tracking, WebGL2
-and Three.js for the 3D viewer, Spatial Mode and Helix Earth. These run
+and Three.js for the 3D viewer, Spatial Mode and Havoc Earth. These run
 unmodified inside a Tauri WebView later.
 
 **What absorbs the change.** [`PlatformAdapter`](../src/platform/PlatformAdapter.ts)
@@ -50,12 +50,12 @@ src/
 ├── core/
 │   ├── EventBus.ts          ✅ typed pub/sub, error-isolated dispatch
 │   ├── events.ts            ✅ the event catalogue (single source of truth)
-│   ├── HelixKernel.ts       ✅ DI container, startup and shutdown
+│   ├── HavocKernel.ts       ✅ DI container, startup and shutdown
 │   ├── Logger.ts            ✅ structured logging, redacts secrets on write
-│   ├── HelixError.ts        ✅ user-facing vs technical messages
-│   ├── HelixOrchestrator.ts ✅ tool registry and routing
+│   ├── HavocError.ts        ✅ user-facing vs technical messages
+│   ├── HavocOrchestrator.ts ✅ tool registry and routing
 │   ├── ActivityManager.ts   ✅ real activity tracking
-│   ├── HelixCore.ts         ▫ later — deeper orchestration
+│   ├── HavocCore.ts         ▫ later — deeper orchestration
 │   ├── ContextManager.ts    ▫ phase 5 — context assembly
 │   ├── ProviderManager.ts   ▫ phase 5 — local/cloud/hybrid selection
 │   ├── secrets.ts           ✅ shared credential detection
@@ -96,7 +96,7 @@ src/
 │   ├── BrowserSpeechSynthesis.ts   ✅ speech output
 │   └── selectVoice.ts       ✅ British voice preference
 ├── persona/
-│   └── voice.ts             ✅ the Helix character, in one place
+│   └── voice.ts             ✅ the Havoc character, in one place
 ├── vault/
 │   ├── VaultGraph.ts        ✅ notes and wikilink edges
 │   ├── layout.ts            ✅ force layout, spatial grid
@@ -110,7 +110,7 @@ src/
 │   ├── ProjectManager.ts    ✅ projects, assets, search
 │   ├── validation.ts        ✅ upload allowlist and sanitising
 │   └── types.ts             ✅ stable ids, origin separation
-├── ui/                      ✅ shell, Helix mark, design tokens
+├── ui/                      ✅ shell, Havoc mark, design tokens
 └── types/                   ✅ shared types
 ```
 
@@ -174,8 +174,8 @@ Consequences carried into the roadmap:
 | 7 | Camera, hand tracking and spatial manipulation | **Complete** |
 | 6 | Web research and coding | Planned |
 | 8 | Image generation | Planned |
-| 9 | Helix 3D and the 3D viewer | Planned |
-| 10 | Helix Earth | Planned |
+| 9 | Havoc 3D and the 3D viewer | Planned |
+| 10 | Havoc Earth | Planned |
 | 11 | StorageManager, portable packaging, Tauri shell | Planned |
 | 12 | Security review, testing, optimisation | Planned |
 

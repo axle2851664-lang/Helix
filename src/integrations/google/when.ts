@@ -1,7 +1,7 @@
 /**
  * Reading a date and time out of ordinary speech.
  *
- * The rule here is stricter than anywhere else in Helix: **guessing is worse
+ * The rule here is stricter than anywhere else in Havoc: **guessing is worse
  * than refusing.** A misread query returns the wrong search results and costs
  * a rephrase. A misread time puts an appointment in somebody's calendar an
  * hour, a day or a month from where they meant it, and they find out by
@@ -127,7 +127,7 @@ export function parseDuration(text: string): number {
 }
 
 /**
- * The whole thing, or null when Helix is not certain enough to book it.
+ * The whole thing, or null when Havoc is not certain enough to book it.
  */
 export function parseWhen(text: string, now: Date): ParsedWhen | null {
   const day = parseDay(text, now);

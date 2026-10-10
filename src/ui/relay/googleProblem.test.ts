@@ -13,7 +13,7 @@ import { googleProblem } from './googleProblem.js';
 
 describe('what to do about a failed connection', () => {
   /** The one this user hit, and will hit again on a Testing app. */
-  it('explains access_denied as the test-user rule, not a refusal by Helix', () => {
+  it('explains access_denied as the test-user rule, not a refusal by Havoc', () => {
     const { remedy } = googleProblem('Google returned an error: access_denied');
 
     expect(remedy).toContain('Test users');
@@ -38,7 +38,7 @@ describe('what to do about a failed connection', () => {
   });
 
   it('covers the unverified-app warning, which looks alarming and is expected', () => {
-    const { remedy } = googleProblem('Helix has not completed the Google verification process');
+    const { remedy } = googleProblem('Havoc has not completed the Google verification process');
 
     expect(remedy).toMatch(/Advanced/);
   });

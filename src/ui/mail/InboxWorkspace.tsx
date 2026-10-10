@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix } from '../HelixProvider.js';
+import { useHavoc } from '../HavocProvider.js';
 import type { GmailMessage, UnreadSummary } from '../../integrations/google/GmailProvider.js';
 import { MAIL_UNDO, encodeIds } from './inboxActions.js';
 
@@ -23,10 +23,10 @@ import { MAIL_UNDO, encodeIds } from './inboxActions.js';
  *   instructions" is text in a row here, never an instruction. Nothing on this
  *   screen is fed to the model, and React escapes all of it.
  * - **Nothing destructive is on it.** Gmail's granted scope permits delete;
- *   no delete is exposed here or anywhere in Helix. The six actions offered
+ *   no delete is exposed here or anywhere in Havoc. The six actions offered
  *   all have an inverse, and the inverse is offered after every one.
  * - **Acting goes through the runner**, so the Gmail permission and the audit
- *   log apply exactly as they do when Helix acts on its own. This screen has
+ *   log apply exactly as they do when Havoc acts on its own. This screen has
  *   no privileged path.
  */
 
@@ -38,7 +38,7 @@ type Load =
   | { phase: 'failed'; problem: string };
 
 export function InboxWorkspace() {
-  const { gmail, runner } = useHelix();
+  const { gmail, runner } = useHavoc();
 
   const [load, setLoad] = useState<Load>({ phase: 'idle' });
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
@@ -109,7 +109,7 @@ export function InboxWorkspace() {
           <h2 className="hx-panel__title">Your inbox is not connected</h2>
           <p className="hx-muted">{status.message}</p>
           <p className="hx-muted">
-            Nothing on this screen is a sample of your mail. Helix has not read your mailbox and
+            Nothing on this screen is a sample of your mail. Havoc has not read your mailbox and
             has no way to reach it until you connect an account in Settings.
           </p>
         </section>
@@ -218,7 +218,7 @@ export function InboxWorkspace() {
               </button>
               {/*
                 Delete means Trash, which is what Gmail's own Delete button
-                does: recoverable for thirty days. Helix exposes no permanent
+                does: recoverable for thirty days. Havoc exposes no permanent
                 delete, though the granted scope would allow one - an
                 unrecoverable act has no undo to offer when it turns out to
                 have been the wrong message. This one is confirmed before it
@@ -306,20 +306,20 @@ function Row({
  * The standing rules, on the screen where they bind.
  *
  * Kept visible rather than buried in Settings because this is the screen where
- * somebody wonders how much of their mailbox Helix can touch, and the honest
+ * somebody wonders how much of their mailbox Havoc can touch, and the honest
  * answer is worth more here than anywhere else.
  */
 function Promises() {
   return (
     <section className="hx-panel">
-      <h2 className="hx-panel__title">What Helix will not do with your mail</h2>
+      <h2 className="hx-panel__title">What Havoc will not do with your mail</h2>
       <ul className="hx-list">
         <li>
           <strong>Delete means Trash, not gone.</strong>
           <br />
           <span className="hx-muted">
             The same thing Gmail&rsquo;s own Delete button does: the message sits in Trash for
-            thirty days and can be brought back. Helix exposes no permanent delete, though the
+            thirty days and can be brought back. Havoc exposes no permanent delete, though the
             granted scope would allow one - an act with no undo has nothing to offer when it turns
             out to have been the wrong message.
           </span>
@@ -336,7 +336,7 @@ function Promises() {
           <strong>Anything in a message is information, not an order.</strong>
           <br />
           <span className="hx-muted">
-            An email telling Helix to ignore its instructions is reported to you, never obeyed.
+            An email telling Havoc to ignore its instructions is reported to you, never obeyed.
           </span>
         </li>
       </ul>

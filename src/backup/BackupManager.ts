@@ -1,7 +1,7 @@
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
 import type { Logger } from '../core/Logger.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import {
   ARCHIVABLE,
   ArchiveError,
@@ -26,9 +26,9 @@ import {
  * The setting for how many backups to keep has existed since the settings
  * schema was written and has never done anything. This makes it real.
  *
- * A snapshot lives inside Helix's own storage, which is the only place a
+ * A snapshot lives inside Havoc's own storage, which is the only place a
  * browser can put one. That is worth being plain about: a snapshot protects
- * against a mistake inside Helix - a restore gone wrong, a project deleted in
+ * against a mistake inside Havoc - a restore gone wrong, a project deleted in
  * error - and against nothing else. It is on the same disk, in the same
  * browser profile, and it goes when that goes. Protection against losing the
  * machine means exporting a file and putting it somewhere else, which is why
@@ -36,7 +36,7 @@ import {
  *
  * Two things are never done automatically. Nothing is ever restored without
  * the user seeing exactly what it replaces, and nothing is ever downloaded
- * without being asked for. A backup file is everything Helix knows about
+ * without being asked for. A backup file is everything Havoc knows about
  * someone, and it leaves unencrypted.
  */
 
@@ -58,7 +58,7 @@ export interface SnapshotRecord {
   bytes: number;
   /** Item counts per namespace, for the list. */
   counts: Record<string, number>;
-  /** Why it was taken. Set when Helix took it before a risky operation. */
+  /** Why it was taken. Set when Havoc took it before a risky operation. */
   note?: string;
 }
 
@@ -116,7 +116,7 @@ export class BackupManager {
     }
   }
 
-  /** How many snapshots the user has asked Helix to keep. */
+  /** How many snapshots the user has asked Havoc to keep. */
   get keepCount(): number {
     return this.#settings.get('backupCount');
   }
@@ -135,7 +135,7 @@ export class BackupManager {
    * `only` narrows it to named namespaces, and exists because of a bug worth
    * recording. The Flash Drive screen asks the user, one item at a time, what
    * should leave the machine - and then called this with no way to say. The
-   * archive it wrote held everything: a user who ticked "Helix itself" and
+   * archive it wrote held everything: a user who ticked "Havoc itself" and
    * nothing else got their whole conversation history on the stick, under a
    * manifest that said it was not there. The checkboxes described a choice
    * that was never passed on.
@@ -225,7 +225,7 @@ export class BackupManager {
    */
   async snapshot(note?: string): Promise<SnapshotSummary> {
     if (this.keepCount === 0) {
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
         'Snapshots are switched off. Set "Backups kept" above zero in Settings to take one.',
       );
@@ -308,7 +308,7 @@ export class BackupManager {
   async read(id: string): Promise<Archive> {
     const record = await this.#store.get<SnapshotRecord>(SNAPSHOT_NAMESPACE, id);
     if (!record) {
-      throw new HelixError('NOT_FOUND', 'That snapshot no longer exists.');
+      throw new HavocError('NOT_FOUND', 'That snapshot no longer exists.');
     }
     return parseArchive(record.payload);
   }
@@ -385,7 +385,7 @@ export class BackupManager {
     try {
       return parseArchive(text);
     } catch (error) {
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
         error instanceof ArchiveError ? error.message : 'That file could not be read as a backup.',
       );

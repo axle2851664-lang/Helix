@@ -1,7 +1,7 @@
 import { keyProblem, hostProblem } from './pairing.js';
 
 /**
- * Whether Helix's side of the phone connection is actually ready (spec 9).
+ * Whether Havoc's side of the phone connection is actually ready (spec 9).
  *
  * This exists because the switch said on, the port was shut, and nothing said
  * why. A listener that refused to start looked exactly like one that was
@@ -42,7 +42,7 @@ export function readinessChecks(input: ReadinessInput): ReadinessCheck[] {
       ? {
           label: 'Running as the desktop app',
           state: 'ok',
-          detail: 'Helix can open a socket for your phone to connect to.',
+          detail: 'Havoc can open a socket for your phone to connect to.',
         }
       : {
           label: 'Running as the desktop app',
@@ -72,7 +72,7 @@ export function readinessChecks(input: ReadinessInput): ReadinessCheck[] {
 
   checks.push(
     input.listenerEnabled
-      ? { label: 'Listening switched on', state: 'ok', detail: 'Helix will accept connections.' }
+      ? { label: 'Listening switched on', state: 'ok', detail: 'Havoc will accept connections.' }
       : {
           label: 'Listening switched on',
           state: 'problem',
@@ -82,7 +82,7 @@ export function readinessChecks(input: ReadinessInput): ReadinessCheck[] {
 
   // Three states, not two. "Not running" and "there is nothing to ask" are
   // different answers, and a check that blurs them reports a working listener
-  // as broken every time Helix runs in a browser.
+  // as broken every time Havoc runs in a browser.
   if (!input.listenerEnabled) {
     checks.push({
       label: 'The listener is running',
@@ -93,7 +93,7 @@ export function readinessChecks(input: ReadinessInput): ReadinessCheck[] {
     checks.push({
       label: 'The listener is running',
       state: 'unknown',
-      detail: 'There is no listener in this version of Helix to ask.',
+      detail: 'There is no listener in this version of Havoc to ask.',
     });
   } else if (input.listenerRunning) {
     checks.push({
@@ -130,7 +130,7 @@ export function readinessSummary(checks: readonly ReadinessCheck[]): string {
     return `${problems} thing${problems === 1 ? '' : 's'} to fix before your phone can connect.`;
   }
   if (!isReady(checks)) {
-    return 'Helix cannot tell whether it is listening. The checks below say what it could not establish.';
+    return 'Havoc cannot tell whether it is listening. The checks below say what it could not establish.';
   }
-  return "Helix's side is ready. This has not tested the network between here and your phone - send something from the phone to prove that.";
+  return "Havoc's side is ready. This has not tested the network between here and your phone - send something from the phone to prove that.";
 }

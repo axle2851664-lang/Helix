@@ -40,7 +40,7 @@ const GOODBYES = [
 ];
 
 /** Politeness and filler that may surround a goodbye without changing it. */
-const TRIM = /\b(?:ok|okay|alright|right|well|so|um|erm|oh|please|thanks|thank you|helix|now|then|cool|great)\b/g;
+const TRIM = /\b(?:ok|okay|alright|right|well|so|um|erm|oh|please|thanks|thank you|havoc|now|then|cool|great)\b/g;
 
 export function endsTheCall(transcript: string): boolean {
   const cleaned = transcript

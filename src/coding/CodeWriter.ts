@@ -1,4 +1,4 @@
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { Logger } from '../core/Logger.js';
 import type { AIRouter, Requirement } from '../ai/AIRouter.js';
 
@@ -127,7 +127,7 @@ export class CodeWriter {
     return {
       available: false,
       reason: anyAtAll
-        ? 'Helix can reach a model, but only a cloud one. Writing code here is local-only, so it will not use it. Install a local model - Ollama with a code model is the usual choice.'
+        ? 'Havoc can reach a model, but only a cloud one. Writing code here is local-only, so it will not use it. Install a local model - Ollama with a code model is the usual choice.'
         : 'No model is configured at all. Writing code needs one, and it has to be a local one.',
     };
   }
@@ -135,13 +135,13 @@ export class CodeWriter {
   async write(request: CodeRequest): Promise<CodeResult> {
     const instruction = request.instruction.trim();
     if (instruction === '') {
-      throw new HelixError('VALIDATION_FAILED', 'Tell me what to write.');
+      throw new HavocError('VALIDATION_FAILED', 'Tell me what to write.');
     }
 
     const candidates = this.#localCandidates();
     const first = candidates[0];
     if (!first) {
-      throw new HelixError(
+      throw new HavocError(
         'PROVIDER_NOT_CONFIGURED',
         this.available().reason ?? 'No local model is available.',
         { remedy: 'settings:providers' },
@@ -184,7 +184,7 @@ export class CodeWriter {
       }
     }
 
-    throw new HelixError('PROVIDER_UNREACHABLE', 'The local model could not write that.', {
+    throw new HavocError('PROVIDER_UNREACHABLE', 'The local model could not write that.', {
       technical: failures.join('; '),
       remedy: 'settings:providers',
     });

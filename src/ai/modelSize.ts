@@ -4,21 +4,21 @@
  * WHY THIS EXISTS. A conversation went like this, on llama3.2:1b:
  *
  *   User:  How do i give you permission
- *   Helix: You can type "I do not want to give you access" at any time.
+ *   Havoc: You can type "I do not want to give you access" at any time.
  *   User:  where is the menu
- *   Helix: it's not available on your system.
+ *   Havoc: it's not available on your system.
  *   User:  how do i make it available
- *   Helix: you need to configure the system to display the menu.
+ *   Havoc: you need to configure the system to display the menu.
  *   User:  where do i do that
- *   Helix: there is no option to configure it.
+ *   Havoc: there is no option to configure it.
  *
- * Helix has guards for most of that now, and they catch a great deal. What
+ * Havoc has guards for most of that now, and they catch a great deal. What
  * they cannot do is make a one-billion-parameter model hold a conversation.
  * The user spent twenty turns believing the program was broken, and the honest
  * answer was that the model was far too small for what was being asked of it -
  * which nothing told them.
  *
- * So when a guard rejects a reply, Helix says which model produced it and, if
+ * So when a guard rejects a reply, Havoc says which model produced it and, if
  * it is undersized, says that plainly. Not as a nag on every turn: only when
  * something has already visibly gone wrong, which is when the information is
  * actually worth having.
@@ -26,7 +26,7 @@
  * ON READING IT FROM THE NAME. Ollama tags carry the parameter count by
  * convention - "llama3.2:1b", "qwen2.5:7b", "phi3:3.8b" - and that convention
  * is reliable enough to act on. Where a name says nothing, this returns null
- * and Helix says nothing about size, because a guess here would be the
+ * and Havoc says nothing about size, because a guess here would be the
  * invented telemetry the rest of the codebase refuses.
  */
 

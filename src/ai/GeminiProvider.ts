@@ -18,14 +18,14 @@ import { MODEL_REGISTRY } from './registry.js';
  *
  * 1. **There is no `system` role.** A system prompt goes in its own
  *    `systemInstruction` field, and putting it in `contents` as a user turn
- *    instead - the obvious shortcut - makes the model treat Helix's persona as
+ *    instead - the obvious shortcut - makes the model treat Havoc's persona as
  *    something the user said, which it then answers rather than adopts.
  *
  * 2. **The assistant role is called `model`.** Sending `assistant` is not
  *    rejected with a clear error; it produces a 400 about an invalid role at
  *    the end of a long request body.
  *
- * 3. **Turns must alternate.** Two user messages in a row are refused. Helix
+ * 3. **Turns must alternate.** Two user messages in a row are refused. Havoc
  *    does send consecutive user turns - the web research tool passes evidence
  *    and then the question - so they are merged here rather than left to fail
  *    at the far end.
@@ -83,7 +83,7 @@ export interface GeminiRequestBody {
 }
 
 /**
- * Turn Helix's messages into Gemini's shape.
+ * Turn Havoc's messages into Gemini's shape.
  *
  * Exported because this is where the three differences above are actually
  * handled, and it is worth testing directly rather than through a request.
@@ -168,7 +168,7 @@ export class GeminiProvider implements InferenceProvider {
       const listed = Array.isArray(body.models) ? body.models : [];
       const usable = listed.filter((model) => {
         const methods = model.supportedGenerationMethods;
-        // A model that cannot generate content is not a model Helix can use;
+        // A model that cannot generate content is not a model Havoc can use;
         // embedding models are returned by the same endpoint.
         return Array.isArray(methods) && methods.includes('generateContent');
       });

@@ -7,7 +7,7 @@ import { tauriInvoke } from '../../platform/TauriPlatform.js';
  * WHY THIS IS A SCREEN AND NOT A FILE. Keys were documented as lines in a
  * `.env`, which asks for a terminal, or an editor that silently appends `.txt`
  * and writes a byte-order mark - and every one of those failures looks
- * identical from inside Helix: a key that does nothing. That is a bad way to
+ * identical from inside Havoc: a key that does nothing. That is a bad way to
  * ask anyone to hold a credential.
  *
  * WHAT HAS NOT CHANGED. The page still never holds a key. It sends one, at the
@@ -25,7 +25,7 @@ interface KeyStatus {
   name: string;
   label: string;
   set: boolean;
-  /** 'saved' here, 'environment' set outside Helix, 'none' absent. */
+  /** 'saved' here, 'environment' set outside Havoc, 'none' absent. */
   source: 'saved' | 'environment' | 'none';
 }
 
@@ -82,7 +82,7 @@ export function KeysPanel() {
       setNote('Forgotten.');
     } catch (error) {
       // Not swallowed: `forget_key` reports when the key is also set in the
-      // machine's own environment, where Helix cannot remove it - and a
+      // machine's own environment, where Havoc cannot remove it - and a
       // "forgotten" that left the key in use would be a false report.
       setNote(messageOf(error));
     } finally {
@@ -121,7 +121,7 @@ export function KeysPanel() {
               {status.source === 'saved'
                 ? 'saved'
                 : status.source === 'environment'
-                  ? 'set outside Helix'
+                  ? 'set outside Havoc'
                   : 'not set'}
             </span>
           </div>

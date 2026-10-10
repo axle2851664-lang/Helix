@@ -1,11 +1,11 @@
-# Helix Providers
+# Havoc Providers
 
 > **Phase 1 status:** `ProviderManager` is **not yet implemented** (phase 3).
 > This document fixes the contract before implementations land.
 
 ## Principle
 
-Helix is not bound to any single vendor. Every external capability sits behind a
+Havoc is not bound to any single vendor. Every external capability sits behind a
 replaceable interface, and each implementation declares whether it is **local**,
 **cloud**, or **hybrid**.
 
@@ -20,7 +20,7 @@ MapProvider              StreetImageryProvider
 
 ## Claude models
 
-Helix selects between three Claude models. The ids below are the exact strings
+Havoc selects between three Claude models. The ids below are the exact strings
 the Anthropic API accepts - they are complete as written. Never append a date
 suffix and never construct an id by pattern.
 
@@ -34,25 +34,25 @@ suffix and never construct an id by pattern.
 "Haiku 5" selects Haiku 4.5 and the reply says so, rather than accepting a
 model id that would 404 the moment a key is connected.
 
-Opus 5 is the default. Helix does not downgrade for cost on the user's behalf -
+Opus 5 is the default. Havoc does not downgrade for cost on the user's behalf -
 that is the user's decision.
 
 Switching is real and persisted: say "switch to Sonnet" on the home screen, or
 use Settings -> AI providers. The choice survives a restart.
 
 **Selecting a model does not connect to it.** No API key is configured and the
-request path is not built, so Helix reports the selected model and states that
+request path is not built, so Havoc reports the selected model and states that
 it still cannot answer. See the note below on why the key cannot live in the
 browser.
 
 ### Why the API key is not in the browser
 
-Helix currently runs as a browser application. Calling the Anthropic API
+Havoc currently runs as a browser application. Calling the Anthropic API
 directly from browser code would ship the API key to the client, where any
 viewer can read it - the official SDK requires an explicit
 `dangerouslyAllowBrowser` flag for exactly this reason.
 
-Helix will not do that. The request path belongs in the Tauri shell, where the
+Havoc will not do that. The request path belongs in the Tauri shell, where the
 key stays in the native process and never reaches frontend code, which is
 consistent with the rule in [SECURITY.md](SECURITY.md) that secrets are never
 exposed to the frontend. Until that shell exists, model selection is stored and
@@ -89,7 +89,7 @@ themselves unavailable rather than fail obscurely mid-generation.
 `getGeneratedModel()` and `cancelGeneration()`. Primary output format is
 GLB/glTF.
 
-**If generation fails, Helix says it failed and preserves the original image.** A
+**If generation fails, Havoc says it failed and preserves the original image.** A
 failed generation is never reported as a model. Polygon counts, file sizes and
 generation statistics are read from the actual artifact or omitted — never
 invented.
@@ -122,15 +122,15 @@ provider can be substituted later.
 
 **Chrome and Edge implement `SpeechRecognition` by streaming microphone audio to
 a Google speech service.** It is not local, despite being a browser API with no
-key. Helix reports this rather than letting the absence of a key imply privacy:
+key. Havoc reports this rather than letting the absence of a key imply privacy:
 
 - the provider declares `processing: 'remote'` and `requiresNetwork: true`;
 - `VoiceManager` refuses to start it in offline mode, or when the browser
   reports no connection, rather than failing mid-utterance;
-- nothing is recorded or stored. Helix keeps the resulting text only, and audio
+- nothing is recorded or stored. Havoc keeps the resulting text only, and audio
   is never buffered, written to disk, or logged.
 
-Firefox does not implement `SpeechRecognition` at all, and Helix says so instead
+Firefox does not implement `SpeechRecognition` at all, and Havoc says so instead
 of appearing broken.
 
 ### Voice selection
@@ -142,10 +142,10 @@ preference over what the machine has, not a guarantee, and
 `describeSelection()` states what was actually chosen.
 
 **On the current development machine no British English voice is installed** -
-only `Microsoft David`, `Mark` and `Zira`, all `en-US`. Helix therefore falls
+only `Microsoft David`, `Mark` and `Zira`, all `en-US`. Havoc therefore falls
 back to a US male voice and says so. On Windows a British voice can be added
 under Settings, Time & Language, Speech, Manage voices, English (United
-Kingdom); Helix will pick it up automatically once installed.
+Kingdom); Havoc will pick it up automatically once installed.
 
 Speech synthesis voices are generally installed with the operating system and
 run locally, but the API does not reliably distinguish local from remote voices,
@@ -154,7 +154,7 @@ so `processing` is reported as `'unknown'` rather than claiming on-device.
 ### On-device speech recognition (default)
 
 Whisper (`whisper-tiny.en`) runs in WebAssembly via transformers.js, with its
-weights served from Helix's own origin. **No audio leaves the machine**, so this
+weights served from Havoc's own origin. **No audio leaves the machine**, so this
 works offline and sends nothing to a third party - the opposite of the browser
 Web Speech API, which remains selectable but is labelled in Settings as sending
 audio to Google.

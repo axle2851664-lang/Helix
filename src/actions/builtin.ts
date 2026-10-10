@@ -1,5 +1,5 @@
 import type { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
 import type { NotepadManager } from '../notepad/NotepadManager.js';
 import type { ImageSearch } from '../images/ImageSearch.js';
@@ -11,7 +11,7 @@ import type { SettingsManager } from '../settings/SettingsManager.js';
 import {
   SETTINGS_KEYS,
   SETTINGS_SCHEMA,
-  type HelixSettings,
+  type HavocSettings,
   type SettingsKey,
 } from '../settings/schema.js';
 import type { ActionDefinition } from './action.js';
@@ -24,7 +24,7 @@ import { optionalNumber, readString, readValue } from './action.js';
 /**
  * The actions that exist today.
  *
- * The specification lists twenty things Helix should eventually be able to do
+ * The specification lists twenty things Havoc should eventually be able to do
  * to its own application. This file holds the ones that are genuinely wired to
  * a working service, and nothing else. An action that returns a plausible
  * result without doing anything is worse than a missing action: the planner
@@ -35,14 +35,14 @@ import { optionalNumber, readString, readValue } from './action.js';
  */
 
 /**
- * Settings Helix will not change on its own.
+ * Settings Havoc will not change on its own.
  *
  * Derived rather than listed, so a new privacy or relay setting is protected
  * the moment it is added and not the moment someone remembers to add it here.
  *
  * The important one is `quickActions`: without this rule, "skip confirmation
  * on destructive actions" would itself be a setting an action could turn on,
- * and every confirmation in Helix would be one action call away from being
+ * and every confirmation in Havoc would be one action call away from being
  * switched off. A permission that can grant itself is not a permission.
  */
 export function isProtectedSetting(key: SettingsKey): boolean {
@@ -63,7 +63,7 @@ export interface BuiltinActionServices {
   memory: MemoryManager;
   /**
    * Absent in tests that do not exercise the Notepad. Where it is absent, the
-   * delete action is not registered at all, so a Helix without a notepad
+   * delete action is not registered at all, so a Havoc without a notepad
    * refuses to delete a note rather than pretending to have deleted one.
    */
   notepad?: NotepadManager;
@@ -80,7 +80,7 @@ function changeSetting(settings: SettingsManager): ActionDefinition {
     id: 'settings.change',
     label: 'Change a setting',
     group: 'settings',
-    summary: 'Change one Helix setting. Privacy, permission and relay settings are not included.',
+    summary: 'Change one Havoc setting. Privacy, permission and relay settings are not included.',
     parameters: {
       key: {
         type: 'string',
@@ -109,7 +109,7 @@ function changeSetting(settings: SettingsManager): ActionDefinition {
       if (isProtectedSetting(key)) {
         // Unreachable through `run`, because the parameter options exclude
         // these. Kept so the rule survives someone widening the options.
-        throw new HelixError('PERMISSION_DENIED', 'That setting can only be changed by you.', {
+        throw new HavocError('PERMISSION_DENIED', 'That setting can only be changed by you.', {
           remedy: 'settings:privacy',
           technical: `Refused a protected setting: ${key}`,
         });
@@ -117,7 +117,7 @@ function changeSetting(settings: SettingsManager): ActionDefinition {
 
       // SettingsManager validates and coerces; the cast is the boundary
       // between a runtime key and the compile-time settings type.
-      const applied = await settings.set(key, readValue(params, 'value') as HelixSettings[typeof key]);
+      const applied = await settings.set(key, readValue(params, 'value') as HavocSettings[typeof key]);
       return {
         message: `"${SETTINGS_SCHEMA[key].label}" is now ${String(applied)}.`,
         data: { key, value: applied },
@@ -131,7 +131,7 @@ function searchFiles(knowledge: KnowledgeIndex): ActionDefinition {
     id: 'knowledge.search',
     label: 'Search files',
     group: 'knowledge',
-    summary: 'Keyword search across the documents Helix has indexed.',
+    summary: 'Keyword search across the documents Havoc has indexed.',
     parameters: {
       query: {
         type: 'string',
@@ -189,7 +189,7 @@ function forgetMemory(memory: MemoryManager): ActionDefinition {
     id: 'memory.forget',
     label: 'Forget',
     group: 'memory',
-    summary: 'Delete one thing Helix remembers about you.',
+    summary: 'Delete one thing Havoc remembers about you.',
     parameters: {
       id: {
         type: 'string',
@@ -214,7 +214,7 @@ function forgetMemory(memory: MemoryManager): ActionDefinition {
       const id = readString(params, 'id');
       const record = await memory.get(id);
       if (!record) {
-        throw new HelixError('NOT_FOUND', 'Helix has no memory like that to forget.', {
+        throw new HavocError('NOT_FOUND', 'Havoc has no memory like that to forget.', {
           technical: `No memory record with id ${id}`,
         });
       }
@@ -261,7 +261,7 @@ function deleteNote(notepad: NotepadManager): ActionDefinition {
       const id = readString(params, 'id');
       const note = await notepad.get(id);
       if (!note) {
-        throw new HelixError('NOT_FOUND', 'There is no note like that to delete.', {
+        throw new HavocError('NOT_FOUND', 'There is no note like that to delete.', {
           technical: `No note with id ${id}`,
         });
       }

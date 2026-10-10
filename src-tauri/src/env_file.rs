@@ -1,6 +1,6 @@
 //! Reading keys out of a `.env` file, once, at startup.
 //!
-//! WHY THIS EXISTS. Every credential Helix uses is read with `std::env::var`
+//! WHY THIS EXISTS. Every credential Havoc uses is read with `std::env::var`
 //! on this side of the boundary - that is the arrangement `inference.rs` and
 //! `web.rs` both describe, and it is a good one. But nothing ever put anything
 //! *into* the environment. `.gitignore` has listed `.env` and `!.env.example`

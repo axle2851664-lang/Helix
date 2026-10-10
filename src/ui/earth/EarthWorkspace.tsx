@@ -18,7 +18,7 @@ import {
 } from '../../earth/geo.js';
 
 /**
- * Helix Earth, as far as it can honestly go today.
+ * Havoc Earth, as far as it can honestly go today.
  *
  * There is no globe here, and there is deliberately no picture of one. Every
  * provider in the chosen stack is a network service, and this build cannot

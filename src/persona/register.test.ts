@@ -4,7 +4,7 @@ import { BANNED_REPLIES, PERSONA_EXAMPLES } from './examples.js';
 
 describe('the measured failure', () => {
   /**
-   * The exact reply qwen2.5:7b gave to "Helix, are you there?" with the full
+   * The exact reply qwen2.5:7b gave to "Havoc, are you there?" with the full
    * persona prompt in front of it. Every rule it broke was already written in
    * that prompt, which is why this module exists.
    */
@@ -57,7 +57,7 @@ describe('terminal register', () => {
 describe('costume-drama register', () => {
   /**
    * This used to substitute "sir" for "my lord", on the reasoning that an
-   * address means something. Helix no longer uses honorifics at all, so
+   * address means something. Havoc no longer uses honorifics at all, so
    * swapping one for another would only launder the fault.
    */
   it('deletes archaic address rather than substituting another', () => {
@@ -88,7 +88,7 @@ describe('honorifics', () => {
     expect(result.findings.map((finding) => finding.fault)).toContain('address-repeat');
   });
 
-  it('catches the forms Helix never used but a model reaches for', () => {
+  it('catches the forms Havoc never used but a model reaches for', () => {
     for (const said of [
       'Right away, chief.',
       'Understood, commander.',
@@ -179,7 +179,7 @@ describe('the address rate across replies', () => {
 
   /**
    * The option survives so a caller can see a reply unrepaired. Nothing in
-   * Helix passes it: `allowAddressInReply()` always answers false.
+   * Havoc passes it: `allowAddressInReply()` always answers false.
    */
   it('leaves the reply alone only when explicitly asked to', () => {
     const allowed = 'I am here, sir. What do you need?';
@@ -300,7 +300,7 @@ describe('the prompt and the checker agree', () => {
   it('every demonstrated reply passes the checker', () => {
     expect(PERSONA_EXAMPLES.length).toBeGreaterThan(4);
     for (const example of PERSONA_EXAMPLES) {
-      expect(inspect(example.helix), `the checker rejects ${example.helix}`).toEqual([]);
+      expect(inspect(example.havoc), `the checker rejects ${example.havoc}`).toEqual([]);
     }
   });
 });

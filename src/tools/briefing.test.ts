@@ -53,7 +53,7 @@ describe('the two halves of a reply', () => {
   });
 
   /**
-   * This asserted the opposite twice over: first that Helix addressed the user
+   * This asserted the opposite twice over: first that Havoc addressed the user
    * in every reply, then - when that read as parody - that it did so in some
    * of them. It now does so in none. An honorific is deference, and the
    * register has none.
@@ -131,15 +131,15 @@ describe('buildBrief', () => {
 
   /**
    * The rule the user set: a derived number never appears without the
-   * qualifier that makes it true. Helix can only observe its own store, so an
-   * age is always "since Helix saw a change", never "since you worked on it".
+   * qualifier that makes it true. Havoc can only observe its own store, so an
+   * age is always "since Havoc saw a change", never "since you worked on it".
    */
   it('qualifies every age with whose observation it is', () => {
     const reply = buildBrief(input({ projects: [project({ id: 'a', updatedAt: NOW - 14 * DAY })] }));
     const meta = reply.card.sections[0]?.items[0]?.meta ?? '';
 
     expect(meta).toContain('14');
-    expect(meta).toContain('Helix');
+    expect(meta).toContain('Havoc');
   });
 
   it('admits it cannot order by money', () => {
@@ -243,7 +243,7 @@ describe('the tools that cannot run', () => {
   });
 
   /**
-   * The permission changed: Helix may send now. What must stay visible is the
+   * The permission changed: Havoc may send now. What must stay visible is the
    * gate that replaced the prohibition, and the fact that spending did not
    * change with it.
    */

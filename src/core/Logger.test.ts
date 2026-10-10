@@ -124,9 +124,9 @@ describe('Logger', () => {
 
   it('tags records with a scope and child scope', () => {
     const sink = new CaptureSink();
-    const log = new Logger('helix', { level: 'DEBUG', sinks: [sink] });
+    const log = new Logger('havoc', { level: 'DEBUG', sinks: [sink] });
     log.child('camera').info('started');
-    expect(sink.records[0]?.scope).toBe('helix:camera');
+    expect(sink.records[0]?.scope).toBe('havoc:camera');
   });
 
   it('a throwing sink cannot break the caller', () => {

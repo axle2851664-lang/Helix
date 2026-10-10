@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { describeBuild } from '../../platform/buildStamp.js';
 import { GuardrailPanel } from '../system/GuardrailPanel.js';
-import { useHelix, useHelixState } from '../HelixProvider.js';
+import { useHavoc, useHavocState } from '../HavocProvider.js';
 import type { HardwareProfile, VolumeStats } from '../../platform/PlatformAdapter.js';
 import type { LogRecord } from '../../core/Logger.js';
-import { HelixMark } from '../components/HelixMark.js';
-import { HELIX_STATES, type HelixStatus } from '../../types/status.js';
+import { HavocMark } from '../components/HavocMark.js';
+import { HAVOC_STATES, type HavocStatus } from '../../types/status.js';
 import { tauriInvoke } from '../../platform/TauriPlatform.js';
+import { describeReasoning, reactorSegments, type ReactorSegment } from '../hero/capabilities.js';
+import { useSettings } from '../HavocProvider.js';
 
 /**
  * What the shell found when it looked for a file of keys.
@@ -43,14 +45,64 @@ function formatBytes(bytes: number | null): string {
 }
 
 export function SystemWorkspace() {
-  const { platform, paths, store, logBuffer } = useHelix();
-  const { warnings } = useHelixState();
+  const { platform, paths, store, logBuffer, voice, projects, memory, knowledge, ai } =
+    useHavoc();
+  const config = useSettings([
+    'languageProvider',
+    'speechToTextProvider',
+    'visionProvider',
+    'gestureProvider',
+    'allowLongTermMemory',
+  ]);
+  const { warnings } = useHavocState();
 
   const [hardware, setHardware] = useState<HardwareProfile | null>(null);
   const [volume, setVolume] = useState<VolumeStats | null>(null);
-  const [helixUsage, setHelixUsage] = useState<number | null>(null);
+  const [havocUsage, setHavocUsage] = useState<number | null>(null);
   const [logs, setLogs] = useState<readonly LogRecord[]>([]);
-  const [previewStatus, setPreviewStatus] = useState<HelixStatus>('IDLE');
+  const [previewStatus, setPreviewStatus] = useState<HavocStatus>('IDLE');
+
+  /**
+   * What each subsystem can actually do, and why.
+   *
+   * This measurement used to light the sphere itself - brighter at the
+   * latitudes whose subsystem worked. That made the core a status display,
+   * which the main screen is not for, so it moved here: the words were always
+   * the useful half, and this is the screen for words about the machine.
+   */
+  const [segments, setSegments] = useState<readonly ReactorSegment[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const measure = () => {
+      void Promise.all([
+        projects.listProjects(),
+        knowledge.list(),
+        memory.count(),
+      ]).then(([list, documents]) => {
+        if (cancelled) return;
+        setSegments(
+          reactorSegments({
+            online: platform.isOnline(),
+            reasoning: describeReasoning(ai),
+            languageProvider: config.languageProvider,
+            hearingBlocker: voice.inputBlocker(),
+            hearingProvider: config.speechToTextProvider,
+            speechBlocker: voice.outputBlocker(),
+            visionProvider: config.visionProvider,
+            gestureProvider: config.gestureProvider,
+            memoryAllowed: config.allowLongTermMemory,
+            durableStorage: (store as { durable?: boolean }).durable ?? false,
+            projectCount: list.length,
+            searchableFiles: documents.filter((document) => document.indexed).length,
+          }),
+        );
+      });
+    };
+    measure();
+    return () => {
+      cancelled = true;
+    };
+  }, [ai, config, knowledge, memory, platform, projects, store, voice]);
   /** Null until the shell answers, and in a browser for ever. */
   const [env, setEnv] = useState<EnvReport | null>(null);
 
@@ -74,7 +126,7 @@ export function SystemWorkspace() {
   useEffect(() => {
     void platform.getHardwareProfile().then(setHardware);
     void platform.getVolumeStats().then(setVolume);
-    void store.estimateSize().then(setHelixUsage);
+    void store.estimateSize().then(setHavocUsage);
 
     // Asked of the shell rather than inferred from a global. Detection is a
     // probe and a probe can be wrong; this is the shell stating its own
@@ -125,7 +177,7 @@ export function SystemWorkspace() {
         />
         {/*
           The row that ends "is this even my code".
-          An installed Helix carries the interface from the day it was built
+          An installed Havoc carries the interface from the day it was built
           and pulling source cannot change it; a dev build is whatever is on
           disk now. On screen the two are identical, which is how six rounds
           went into debugging fixes that were never loaded.
@@ -169,7 +221,7 @@ export function SystemWorkspace() {
 
       <section className="helix-panel">
         <h2 className="helix-panel__title">Storage</h2>
-        <Row label="Used by Helix" value={formatBytes(helixUsage)} />
+        <Row label="Used by Havoc" value={formatBytes(havocUsage)} />
         {volume === null ? (
           <p className="helix-muted">
             This host cannot report storage figures.
@@ -181,7 +233,7 @@ export function SystemWorkspace() {
             <p className="helix-settings__note">
               {volume.source === 'origin-quota'
                 ? 'These are browser origin-quota figures, not disk free space. Real volume statistics need the Tauri shell.'
-                : 'Figures describe the volume holding Helix data.'}
+                : 'Figures describe the volume holding Havoc data.'}
             </p>
           </>
         )}
@@ -210,8 +262,8 @@ export function SystemWorkspace() {
           <>
             {env.loaded.length === 0 ? (
               <p className="helix-settings__note">
-                No <code>.env</code> was found. Put one at the top of the Helix folder, then
-                reopen Helix. These are the places that were looked at:
+                No <code>.env</code> was found. Put one at the top of the Havoc folder, then
+                reopen Havoc. These are the places that were looked at:
               </p>
             ) : (
               <>
@@ -242,6 +294,25 @@ export function SystemWorkspace() {
         )}
       </section>
 
+      {segments.length > 0 && (
+        <section className="helix-panel">
+          <h2 className="helix-panel__title">Subsystems</h2>
+          {segments.map((segment) => (
+            <div className="helix-cap" key={segment.id}>
+              <span
+                className={`helix-cap__dot helix-cap__dot--${
+                  segment.state === 'ready' ? 'yes' : segment.state === 'caveat' ? 'partial' : 'no'
+                }`}
+              />
+              <div className="helix-cap__body">
+                <div className="helix-cap__name">{segment.label.toLowerCase()}</div>
+                <div className="helix-cap__reason">{segment.reason}</div>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
       <section className="helix-panel">
         <h2 className="helix-panel__title">Capabilities</h2>
         {Object.entries(platform.capabilities).map(([key, capability]) => (
@@ -262,13 +333,13 @@ export function SystemWorkspace() {
       <section className="helix-panel">
         <h2 className="helix-panel__title">Status indicator</h2>
         <p className="helix-settings__note">
-          Preview of the six Helix states. These are driven by real subsystem state once voice and
+          Preview of the six Havoc states. These are driven by real subsystem state once voice and
           vision land; this control exists to check the indicator itself.
         </p>
         <div className="helix-state-preview">
-          <HelixMark status={previewStatus} size={84} />
+          <HavocMark status={previewStatus} size={84} />
           <div className="helix-state-row">
-            {HELIX_STATES.map((state) => (
+            {HAVOC_STATES.map((state) => (
               <button
                 key={state}
                 type="button"

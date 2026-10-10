@@ -3,7 +3,7 @@ import { isSensitiveKey, secretValuePatterns } from './secrets.js';
 /**
  * Structured logging with redaction (spec 18, 22).
  *
- * The redaction pass is the point of this module. Helix handles API keys, tokens
+ * The redaction pass is the point of this module. Havoc handles API keys, tokens
  * and file paths, and the specification forbids any of them reaching a log.
  * Redaction happens on the way *in*, so a secret is never written to a sink at
  * all rather than being filtered when the log is read.
@@ -101,7 +101,7 @@ export class Logger {
   readonly #sinks: LogSink[];
   readonly #scope: string;
 
-  constructor(scope = 'helix', options: LoggerOptions = {}) {
+  constructor(scope = 'havoc', options: LoggerOptions = {}) {
     this.#scope = scope;
     this.#level = options.level ?? 'INFO';
     this.#sinks = options.sinks ?? [];

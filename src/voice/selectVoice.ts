@@ -1,7 +1,7 @@
 import type { SpeechVoice } from './types.js';
 
 /**
- * Choosing a voice that matches the Helix character.
+ * Choosing a voice that matches the Havoc character.
  *
  * The target is a composed, articulate British voice - not a theatrical one,
  * and deliberately not an imitation of any particular person. The browser only

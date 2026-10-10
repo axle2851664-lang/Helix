@@ -1,11 +1,11 @@
 /**
- * Helix settings schema (spec 15).
+ * Havoc settings schema (spec 15).
  *
  * Settings are declared as field descriptors rather than a plain interface, so
  * one declaration gives us the TypeScript type, the default value, runtime
  * validation of persisted data, and a place to migrate from older shapes.
  * Persisted settings are untrusted input: they can be stale, hand-edited, or
- * written by an older Helix, so every value is validated on load.
+ * written by an older Havoc, so every value is validated on load.
  *
  * SECRETS ARE NOT SETTINGS. This schema holds provider *selection* and
  * endpoints only. API keys, tokens and passwords are never stored here and must
@@ -83,7 +83,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'number',
     section: 'appearance',
     label: 'Accent intensity',
-    description: 'Strength of the Helix red accent across the interface.',
+    description: 'Strength of the Havoc red accent across the interface.',
     min: 0,
     max: 100,
     step: 5,
@@ -103,7 +103,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'enum',
     section: 'voice',
     label: 'Voice input mode',
-    description: 'How Helix begins listening.',
+    description: 'How Havoc begins listening.',
     options: ['push-to-talk', 'wake-word', 'continuous', 'disabled'],
     optionLabels: {
       'push-to-talk': 'Push to talk',
@@ -118,8 +118,8 @@ export const SETTINGS_SCHEMA = {
     section: 'voice',
     label: 'Wake word',
     maxLength: 32,
-    placeholder: 'Helix',
-    default: 'Helix',
+    placeholder: 'Havoc',
+    default: 'Havoc',
   },
   speechToTextProvider: {
     kind: 'enum',
@@ -130,11 +130,11 @@ export const SETTINGS_SCHEMA = {
      *
      * The chain of providers is built once, when the kernel starts, from
      * whatever this says at that moment - so changing it here has no effect
-     * until Helix is reopened. Nothing mentioned that, which meant choosing
+     * until Havoc is reopened. Nothing mentioned that, which meant choosing
      * ElevenLabs and then watching Whisper fail looked like the new provider
      * being broken.
      */
-    description: 'Provider used to turn speech into text. Takes effect when Helix restarts.',
+    description: 'Provider used to turn speech into text. Takes effect when Havoc restarts.',
     options: ['none', 'local', 'browser', 'elevenlabs'],
     optionLabels: {
       none: 'None',
@@ -151,7 +151,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'enum',
     section: 'voice',
     label: 'Text to speech',
-    description: 'Voice used to speak replies. Takes effect when Helix restarts.',
+    description: 'Voice used to speak replies. Takes effect when Havoc restarts.',
     options: ['none', 'browser', 'local', 'cloud', 'elevenlabs'],
     optionLabels: {
       none: 'None',
@@ -167,7 +167,7 @@ export const SETTINGS_SCHEMA = {
      * opens a microphone; speaking hands text that is already on screen to the
      * operating system's own voices. Nothing is captured and nothing is sent.
      *
-     * It was 'none', and the consequence was that Helix never spoke on a call:
+     * It was 'none', and the consequence was that Havoc never spoke on a call:
      * `outputBlocker()` returned "no text-to-speech provider is configured"
      * and `speak()` returned silently, so a voice call worked in every respect
      * except the one the user was listening for.
@@ -186,7 +186,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'string',
     section: 'voice',
     label: 'Voice',
-    description: 'Empty means the closest match to the Helix character.',
+    description: 'Empty means the closest match to the Havoc character.',
     maxLength: 300,
     default: '',
   },
@@ -202,12 +202,12 @@ export const SETTINGS_SCHEMA = {
   },
 
   /**
-   * Free disk space below which Helix clears its own rebuildable caches.
+   * Free disk space below which Havoc clears its own rebuildable caches.
    *
    * Zero switches it off entirely. The default is five gigabytes rather than
    * the 0.33 originally asked for, and the difference is not a liberty: on a
    * 237 GB drive, 0.33 GB free means Windows is already failing to save, while
-   * the caches Helix can clear are measured in megabytes. Acting there would
+   * the caches Havoc can clear are measured in megabytes. Acting there would
    * be a gesture rather than a rescue. The lower figure is still permitted -
    * it is the user's machine - and `thresholdWarning` says plainly that it is
    * too late to help rather than accepting it in silence.
@@ -216,7 +216,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'number',
     section: 'storage',
     label: 'Clear caches below',
-    description: 'Free disk space at which Helix clears its own caches. 0 turns it off.',
+    description: 'Free disk space at which Havoc clears its own caches. 0 turns it off.',
     min: 0,
     max: 100,
     step: 0.5,
@@ -226,10 +226,10 @@ export const SETTINGS_SCHEMA = {
 
   // --------------------------------------------------------------------- relay
   /**
-   * The phone relay: a mailbox Helix polls for commands.
+   * The phone relay: a mailbox Havoc polls for commands.
    *
    * Off by default, and that is not timidity. Switching it on turns an email
-   * address into a way to make Helix act, and a feature that reaches the
+   * address into a way to make Havoc act, and a feature that reaches the
    * machine from outside should be something the user turned on deliberately
    * rather than something they discovered was already on.
    */
@@ -244,7 +244,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'string',
     section: 'relay',
     label: 'Your address',
-    description: 'The only address Helix will take instructions from.',
+    description: 'The only address Havoc will take instructions from.',
     placeholder: 'you@gmail.com',
     maxLength: 320,
     default: '',
@@ -296,7 +296,7 @@ export const SETTINGS_SCHEMA = {
    * Listen for the phone directly, over Tailscale.
    *
    * Off by default, like the mail relay and for the same reason: this is a way
-   * to make Helix act from outside the machine, and that should be something
+   * to make Havoc act from outside the machine, and that should be something
    * the user switched on rather than discovered was already on.
    *
    * The difference from the relay is what protects it. A mail message has a
@@ -460,7 +460,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'boolean',
     section: 'providers',
     label: 'Image search',
-    description: 'Let Helix search the web for pictures. Off stops it entirely.',
+    description: 'Let Havoc search the web for pictures. Off stops it entirely.',
     default: true,
   },
   imageProvider: {
@@ -468,7 +468,7 @@ export const SETTINGS_SCHEMA = {
     section: 'providers',
     label: 'Preferred image source',
     description:
-      'Tried first. Wikimedia and Openverse need no account; the others need a key. Helix falls back to whatever is ready and always says which one answered.',
+      'Tried first. Wikimedia and Openverse need no account; the others need a key. Havoc falls back to whatever is ready and always says which one answered.',
     options: ['openverse', 'wikimedia', 'google', 'unsplash', 'pexels'],
     optionLabels: {
       openverse: 'Openverse (no account)',
@@ -540,7 +540,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'enum',
     section: 'providers',
     label: 'Fallback provider',
-    description: 'Used when the first choice fails. Helix always says when it falls back.',
+    description: 'Used when the first choice fails. Havoc always says when it falls back.',
     options: ['none', 'local', 'gemini', 'cerebras', 'mistral', 'anthropic'],
     optionLabels: {
       none: 'None',
@@ -570,7 +570,7 @@ export const SETTINGS_SCHEMA = {
     section: 'providers',
     label: 'Run entirely on this machine',
     description:
-      'Never send a conversation to a cloud model, even when one is configured and no local model is running. Helix says it cannot answer rather than answering from somebody else\u2019s computer.',
+      'Never send a conversation to a cloud model, even when one is configured and no local model is running. Havoc says it cannot answer rather than answering from somebody else\u2019s computer.',
     default: true,
   },
   preferLocalInference: {
@@ -595,7 +595,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'number',
     section: 'providers',
     label: 'Maximum output tokens',
-    description: 'The longest reply Helix will ask for.',
+    description: 'The longest reply Havoc will ask for.',
     min: 256,
     max: 128_000,
     step: 256,
@@ -606,7 +606,7 @@ export const SETTINGS_SCHEMA = {
     section: 'providers',
     label: 'Cloud model preference',
     description:
-      'Which cloud model Helix would use if one were connected. It does not choose your local model - Ollama\u2019s installed models are found automatically, and the largest one that fits your machine is used. Ask Helix "what are you running on" for the real answer.',
+      'Which cloud model Havoc would use if one were connected. It does not choose your local model - Ollama\u2019s installed models are found automatically, and the largest one that fits your machine is used. Ask Havoc "what are you running on" for the real answer.',
     options: [
       'claude-opus-5',
       'claude-sonnet-5',
@@ -646,7 +646,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'boolean',
     section: 'storage',
     label: 'Portable mode',
-    description: 'Keep all Helix data beside the application so it travels with the drive.',
+    description: 'Keep all Havoc data beside the application so it travels with the drive.',
     default: true,
   },
   dataDirectory: {
@@ -662,7 +662,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'number',
     section: 'storage',
     label: 'Storage ceiling',
-    description: 'Helix will not exceed this. Actual free space may be lower and always wins.',
+    description: 'Havoc will not exceed this. Actual free space may be lower and always wins.',
     min: 1,
     max: 500,
     step: 1,
@@ -691,7 +691,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'boolean',
     section: 'privacy',
     label: 'Allow long-term memory',
-    description: 'Helix only saves what you explicitly ask it to remember.',
+    description: 'Havoc only saves what you explicitly ask it to remember.',
     default: true,
   },
   quickActions: {
@@ -706,7 +706,7 @@ export const SETTINGS_SCHEMA = {
     kind: 'boolean',
     section: 'privacy',
     label: 'Allow computer control',
-    description: 'Lets Helix act on your computer. Destructive actions always require confirmation.',
+    description: 'Lets Havoc act on your computer. Destructive actions always require confirmation.',
     default: false,
   },
 
@@ -743,18 +743,18 @@ type FieldValue<F> = F extends { kind: 'boolean' }
         ? string
         : never;
 
-export type HelixSettings = {
+export type HavocSettings = {
   -readonly [K in SettingsKey]: FieldValue<SettingsSchema[K]>;
 };
 
 export const SETTINGS_KEYS = Object.keys(SETTINGS_SCHEMA) as SettingsKey[];
 
-export function getDefaultSettings(): HelixSettings {
+export function getDefaultSettings(): HavocSettings {
   const out = {} as Record<string, unknown>;
   for (const key of SETTINGS_KEYS) {
     out[key] = SETTINGS_SCHEMA[key].default;
   }
-  return out as HelixSettings;
+  return out as HavocSettings;
 }
 
 /**
@@ -765,14 +765,14 @@ export function getDefaultSettings(): HelixSettings {
 export function coerceSetting<K extends SettingsKey>(
   key: K,
   value: unknown,
-): { value: HelixSettings[K]; valid: boolean } {
+): { value: HavocSettings[K]; valid: boolean } {
   const field = SETTINGS_SCHEMA[key] as SettingsField;
-  const fallback = field.default as HelixSettings[K];
+  const fallback = field.default as HavocSettings[K];
 
   switch (field.kind) {
     case 'boolean':
       return typeof value === 'boolean'
-        ? { value: value as HelixSettings[K], valid: true }
+        ? { value: value as HavocSettings[K], valid: true }
         : { value: fallback, valid: false };
 
     case 'number': {
@@ -782,20 +782,20 @@ export function coerceSetting<K extends SettingsKey>(
       // Out-of-range values clamp rather than reset: a user who stored 900 GB
       // means "as much as possible", not "back to default".
       const clamped = Math.min(field.max, Math.max(field.min, value));
-      return { value: clamped as HelixSettings[K], valid: clamped === value };
+      return { value: clamped as HavocSettings[K], valid: clamped === value };
     }
 
     case 'enum':
       return typeof value === 'string' && (field.options as readonly string[]).includes(value)
-        ? { value: value as HelixSettings[K], valid: true }
+        ? { value: value as HavocSettings[K], valid: true }
         : { value: fallback, valid: false };
 
     case 'string': {
       if (typeof value !== 'string') return { value: fallback, valid: false };
       if (value.length > field.maxLength) {
-        return { value: value.slice(0, field.maxLength) as HelixSettings[K], valid: false };
+        return { value: value.slice(0, field.maxLength) as HavocSettings[K], valid: false };
       }
-      return { value: value as HelixSettings[K], valid: true };
+      return { value: value as HavocSettings[K], valid: true };
     }
 
     default: {
@@ -808,7 +808,7 @@ export function coerceSetting<K extends SettingsKey>(
 }
 
 export interface ValidationReport {
-  settings: HelixSettings;
+  settings: HavocSettings;
   /** Keys whose stored value was missing, invalid, clamped or truncated. */
   repaired: SettingsKey[];
   /** Keys present in stored data that the schema no longer defines. */
@@ -838,5 +838,5 @@ export function validateSettings(input: unknown): ValidationReport {
   const known = new Set<string>(SETTINGS_KEYS);
   const unknown = Object.keys(source).filter((key) => !known.has(key));
 
-  return { settings: settings as HelixSettings, repaired, unknown };
+  return { settings: settings as HavocSettings, repaired, unknown };
 }

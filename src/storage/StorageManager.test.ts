@@ -31,7 +31,7 @@ async function makeContext(volume: VolumeStats | null = null, maxFileBytes = 8 *
   const settings = new SettingsManager({ store, logger });
   await settings.load();
 
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store, logger, paths, maxFileBytes });
   const memory = new MemoryManager({ store, settings, logger });
   const knowledge = new KnowledgeIndex({ store, projects, logger });
@@ -178,7 +178,7 @@ describe('StorageManager: the ceiling', () => {
     const tight = await makeContext({
       freeBytes: 1024,
       totalBytes: 4096,
-      usedByHelixBytes: 3072,
+      usedByHavocBytes: 3072,
       source: 'origin-quota',
     });
     const project = await tight.projects.createProject('Northgate');

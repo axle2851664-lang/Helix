@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { HavocOrchestrator } from './HavocOrchestrator.js';
 import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
@@ -16,7 +16,7 @@ import type { CalendarProvider } from '../integrations/google/CalendarProvider.j
  * The inbox and the calendar, wired.
  *
  * These exist because of a specific fault: both providers were built and
- * handed only to the action registry, so Helix answered "read my inbox" with
+ * handed only to the action registry, so Havoc answered "read my inbox" with
  * a card saying no mail provider existed - while one sat a call away. A
  * stale denial is as wrong as an optimistic claim; it just fails in the
  * direction nobody checks. So the assertions here are about wiring, and the
@@ -34,12 +34,12 @@ async function makeContext(
   await settings.load();
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
 
-  const orchestrator = new HelixOrchestrator({
+  const orchestrator = new HavocOrchestrator({
     settings,
     conversations,
     activity: new ActivityManager(),
@@ -168,7 +168,7 @@ describe('reading the calendar', () => {
 /**
  * The invention, and why it cannot happen again.
  *
- * Asked "whats unread on my gmail right mow", Helix answered "I'm checking
+ * Asked "whats unread on my gmail right mow", Havoc answered "I'm checking
  * your Gmail inbox. As of now, you have several unread messages" - having
  * touched nothing. The phrase missed the inbox matcher, fell through to the
  * language model, and the model wrote a plausible sentence about a mailbox it

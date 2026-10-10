@@ -95,7 +95,7 @@ describe('listVoices', () => {
   it('maps the account voices and never invents a language', async () => {
     const invoke = (async () => ({
       voices: [
-        { voice_id: 'abc123', name: 'Helix', labels: { language: 'en' } },
+        { voice_id: 'abc123', name: 'Havoc', labels: { language: 'en' } },
         { voice_id: 'def456' },
         // No id: unusable, so it is dropped rather than given a blank one.
         { name: 'broken' },
@@ -104,7 +104,7 @@ describe('listVoices', () => {
 
     const voices = await new ElevenLabsTextToSpeech({ invoke }).listVoices();
     expect(voices).toEqual([
-      { id: 'abc123', name: 'Helix', lang: 'en' },
+      { id: 'abc123', name: 'Havoc', lang: 'en' },
       { id: 'def456', name: 'def456', lang: '' },
     ]);
   });
@@ -176,7 +176,7 @@ describe('speak', () => {
 
   /**
    * Synthesis takes a network round trip, and the user can interrupt during
-   * it. Playing the reply afterwards would mean Helix talking over whatever
+   * it. Playing the reply afterwards would mean Havoc talking over whatever
    * interrupted it - the one thing `cancel` exists to prevent.
    */
   it('does not play a reply that was cancelled while it was being synthesised', async () => {

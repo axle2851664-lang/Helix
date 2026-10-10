@@ -15,7 +15,7 @@ const shellTransport = (handler: (path: string, body: unknown) => unknown): Infe
   request: async ({ path, body }) => handler(path, body),
 });
 
-describe('the scopes Helix asks for', () => {
+describe('the scopes Havoc asks for', () => {
   /**
    * The line this file exists to hold. `https://mail.google.com/` is one entry
    * that makes everything work and grants permanent unrestricted access to
@@ -30,7 +30,7 @@ describe('the scopes Helix asks for', () => {
 
   /**
    * This test used to read "does not ask to send mail, because nothing sends
-   * mail yet", and that was the right rule while it held. Helix answering the
+   * mail yet", and that was the right rule while it held. Havoc answering the
    * phone is the feature that needed it, so the scope went in - along with the
    * restriction that keeps it from being a general licence, which is asserted
    * in `refuses to reply to anyone but the owner` below.
@@ -58,7 +58,7 @@ describe('the scopes Helix asks for', () => {
   });
 
   // A scope is a ceiling, not a plan; where the two differ, say so.
-  it('admits where a scope permits more than Helix will do', () => {
+  it('admits where a scope permits more than Havoc will do', () => {
     const modify = REQUESTED_SCOPES.find((scope) => scope.url.includes('gmail.modify'));
     expect(modify?.alsoPermits).toContain('Deleting');
   });
@@ -191,7 +191,7 @@ describe('GmailProvider once connected', () => {
       provider.sendReply({
         to: 'someone-else@example.com',
         ownerAddress: 'owner@gmail.com',
-        subject: 'Helix',
+        subject: 'Havoc',
         body: 'hello',
       }),
     ).rejects.toThrow(/only replies to your own address/);
@@ -212,7 +212,7 @@ describe('GmailProvider once connected', () => {
     await provider.sendReply({
       to: 'Owner@Gmail.com',
       ownerAddress: 'owner@gmail.com',
-      subject: 'Helix',
+      subject: 'Havoc',
       body: 'Canberra.',
     });
 

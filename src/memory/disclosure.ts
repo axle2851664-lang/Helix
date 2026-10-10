@@ -1,20 +1,20 @@
 /**
- * Recognising when someone tells Helix something about themselves.
+ * Recognising when someone tells Havoc something about themselves.
  *
  * WHY THIS EXISTS. Long-term memory was reachable only through an explicit
- * "remember that ...", which is a rule with a good reason behind it - Helix
+ * "remember that ...", which is a rule with a good reason behind it - Havoc
  * does not keep a journal of what you said - and a bad consequence nobody had
  * noticed:
  *
  *   User: Ok my name is Michael
- *   Helix: I am here.
+ *   Havoc: I am here.
  *   User: So what is my name
- *   Helix: I am Helix.
+ *   Havoc: I am Havoc.
  *
  * Nothing was stored, because "my name is Michael" starts with neither
  * "remember" nor "note that", and nothing was recalled, because "what is my
- * name" was not a phrasing the recall path knew. The user had told Helix their
- * name three times and Helix had discarded it three times.
+ * name" was not a phrasing the recall path knew. The user had told Havoc their
+ * name three times and Havoc had discarded it three times.
  *
  * WHERE THE LINE IS NOW. Telling an assistant your name *is* asking it to know
  * your name. That is the whole of the change: a small, closed set of
@@ -25,9 +25,9 @@
  * WHAT HAS NOT CHANGED, and must not:
  *
  *   - Nothing else is stored. There is still no path from a conversation to a
- *     memory. Helix does not keep what you asked it, what it answered, or
+ *     memory. Havoc does not keep what you asked it, what it answered, or
  *     anything you said that was not about you.
- *   - Storing is visible. Helix says what it kept, in the reply, every time.
+ *   - Storing is visible. Havoc says what it kept, in the reply, every time.
  *     A memory the user did not notice being made is a memory they cannot
  *     choose to delete.
  *   - The off switch still governs. With long-term memory disabled nothing
@@ -41,7 +41,7 @@ export type FactKind = 'name' | 'location' | 'birthday' | 'work' | 'contact' | '
 
 export interface PersonalFact {
   kind: FactKind;
-  /** The fact as Helix will hold it: a sentence, in the second person. */
+  /** The fact as Havoc will hold it: a sentence, in the second person. */
   content: string;
   /** The part the user supplied, for the confirmation. */
   value: string;
@@ -51,7 +51,7 @@ export interface PersonalFact {
 function normalise(said: string): string {
   return said
     .trim()
-    .replace(/^(?:hey\s+|ok(?:ay)?\s+|so\s+|and\s+)?helix[,:]?\s*/i, '')
+    .replace(/^(?:hey\s+|ok(?:ay)?\s+|so\s+|and\s+)?havoc[,:]?\s*/i, '')
     .replace(/^(?:ok(?:ay)?|so|well|right|hey)[,\s]+/i, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -78,7 +78,7 @@ function tidy(value: string): string {
 interface Rule {
   pattern: RegExp;
   kind: FactKind;
-  /** Builds the sentence Helix will hold, from the captured value. */
+  /** Builds the sentence Havoc will hold, from the captured value. */
   say: (value: string) => string;
 }
 
@@ -241,7 +241,7 @@ export function personalQuestion(said: string): PersonalQuestion | null {
  *
  * Facts are held in the third person because that is how they read in a
  * model's context - "Their name is Michael" alongside other notes about the
- * user. Said back to that same user they have to be second person, or Helix
+ * user. Said back to that same user they have to be second person, or Havoc
  * answers "what is my name" with "Their name is Michael", which sounds like it
  * is talking about somebody else.
  */

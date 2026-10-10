@@ -74,7 +74,7 @@ describe('planning a copy', () => {
 
   /**
    * Refused before anything is written. A copy that fills the disk and stops
-   * halfway leaves a portable Helix that looks complete and is not.
+   * halfway leaves a portable Havoc that looks complete and is not.
    */
   it('refuses a copy that would not fit, before writing anything', () => {
     const plan = planPortable({

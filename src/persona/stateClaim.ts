@@ -1,16 +1,16 @@
 /**
- * Catching a model that reports a state Helix is not in.
+ * Catching a model that reports a state Havoc is not in.
  *
  * Measured, in a real conversation on a local model:
  *
  *   User: hello
- *   Helix: You've sent a greeting.
+ *   Havoc: You've sent a greeting.
  *   User: I supposed so brp
- *   Helix: I'm still waiting for permission to proceed.
+ *   Havoc: I'm still waiting for permission to proceed.
  *   User: proceed doing what?
- *   Helix: I can't run a tool now.
+ *   Havoc: I can't run a tool now.
  *   User: Which tool
- *   Helix: I'm not sure.
+ *   Havoc: I'm not sure.
  *
  * Nothing was waiting for permission. No tool existed to run. The model was
  * reading its own prompt back in paraphrase: an earlier version listed six
@@ -23,17 +23,17 @@
  * matched the request, the orchestrator would have executed it and never
  * reached a model. So on this path there is provably no tool running and
  * nothing outstanding for the user to approve, and any reply asserting
- * otherwise is false about Helix's own state.
+ * otherwise is false about Havoc's own state.
  *
  * That makes this a stricter relative of the rule the whole codebase is built
  * on. Inventing a fact about the world is bad; inventing a fact about what
- * Helix is currently doing is worse, because the user cannot check it and it
+ * Havoc is currently doing is worse, because the user cannot check it and it
  * sends them round in circles - "proceed doing what?" - chasing a task that
  * does not exist.
  *
  * WHAT IT MUST NOT CATCH is a statement about capability. "I'd need permission
  * to read your mail" describes what would be required and claims nothing about
- * now; "Helix can do that once you allow it in Settings" is an instruction to
+ * now; "Havoc can do that once you allow it in Settings" is an instruction to
  * the user. Only present-tense claims about being in a state are matched.
  */
 
@@ -66,7 +66,7 @@ const PROBES: readonly Probe[] = [
   /**
    * The sanctioned refusal, which is sanctioned everywhere except here.
    *
-   * `echo.ts` deliberately lets this through, because the prompt tells Helix
+   * `echo.ts` deliberately lets this through, because the prompt tells Havoc
    * to say it when it is true. On the conversational path it cannot be true:
    * there is nothing to get permission for.
    */
@@ -98,7 +98,7 @@ const PROBES: readonly Probe[] = [
  * Statements about what would be required, which are not claims about now.
  *
  * Checked first, because several of them contain the same words as a probe
- * and every one of them is a reply Helix should be free to give.
+ * and every one of them is a reply Havoc should be free to give.
  */
 const CONDITIONAL: readonly RegExp[] = [
   /\bi(?:'d| would)\s+need\b/i,
@@ -108,7 +108,7 @@ const CONDITIONAL: readonly RegExp[] = [
   /\bin settings\b/i,
 ];
 
-/** Does this reply claim Helix is in a state it is provably not in? */
+/** Does this reply claim Havoc is in a state it is provably not in? */
 export function claimsPhantomState(reply: string): PhantomVerdict {
   const trimmed = reply.trim();
   if (trimmed === '') return { claimed: false };

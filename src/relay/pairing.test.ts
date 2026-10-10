@@ -62,12 +62,12 @@ describe('the address', () => {
   });
 
   it('accepts the shapes a VPN actually hands out', () => {
-    for (const host of ['helix-desktop', 'helix.tail1234.ts.net', '100.101.102.103', 'fd7a:115c::1']) {
+    for (const host of ['helix-desktop', 'havoc.tail1234.ts.net', '100.101.102.103', 'fd7a:115c::1']) {
       expect(hostProblem(host)).toBeNull();
     }
   });
 
-  it('refuses a port that needs privileges Helix does not ask for', () => {
+  it('refuses a port that needs privileges Havoc does not ask for', () => {
     expect(portProblem(80)).toContain('between 1024 and 65535');
     expect(portProblem(70000)).toContain('between 1024 and 65535');
     expect(portProblem(8765.5)).toBe('The port must be a whole number.');

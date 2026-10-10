@@ -4,7 +4,7 @@ import { mailIntent } from './mailIntent.js';
 /**
  * The phrasings that must never reach the language model.
  *
- * The first entry below is the one that failed in front of the user: Helix
+ * The first entry below is the one that failed in front of the user: Havoc
  * answered "I'm checking your Gmail inbox. As of now, you have several unread
  * messages" without touching the mailbox, because the phrase missed the
  * matcher and fell through to a model that cannot see mail and answered

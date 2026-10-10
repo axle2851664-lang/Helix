@@ -17,7 +17,7 @@ describe('schema validation', () => {
     expect(defaults.theme).toBe('dark');
     expect(defaults.portableMode).toBe(true);
     expect(defaults.storageLimitGb).toBe(500);
-    // Providers default to none: Helix must never imply a working provider.
+    // Providers default to none: Havoc must never imply a working provider.
     expect(defaults.languageProvider).toBe('none');
     expect(defaults.visionProvider).toBe('none');
     expect(defaults.allowComputerControl).toBe(false);
@@ -249,7 +249,7 @@ describe('SettingsManager', () => {
       expect(manager.get('backupCount')).toBe(3);
     });
 
-    it('handles a record written by a newer Helix', async () => {
+    it('handles a record written by a newer Havoc', async () => {
       await store.set('settings', 'current', {
         version: 99,
         values: { theme: 'midnight', futureOption: true },

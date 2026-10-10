@@ -1,7 +1,7 @@
 /**
- * The Helix platform boundary.
+ * The Havoc platform boundary.
  *
- * Helix is being developed browser-first and will later be wrapped in a Tauri
+ * Havoc is being developed browser-first and will later be wrapped in a Tauri
  * shell (see docs/ARCHITECTURE.md, "Shell strategy"). Every capability that
  * differs between those two hosts is declared here, so feature code depends on
  * this interface and never on `window.__TAURI__` or on a browser global
@@ -30,13 +30,13 @@ export interface CapabilityStatus {
 export interface PlatformCapabilities {
   /** Real filesystem paths and arbitrary read/write. Browser: no. Tauri: yes. */
   filesystem: CapabilityStatus;
-  /** True free-space figures for the volume Helix lives on. Browser: no. */
+  /** True free-space figures for the volume Havoc lives on. Browser: no. */
   diskStats: CapabilityStatus;
   /** Camera capture via getUserMedia. */
   camera: CapabilityStatus;
   /** Microphone capture via getUserMedia. */
   microphone: CapabilityStatus;
-  /** WebGL2, required by the 3D viewer, Spatial Mode and Helix Earth. */
+  /** WebGL2, required by the 3D viewer, Spatial Mode and Havoc Earth. */
   webgl2: CapabilityStatus;
   /** Spawning external processes, e.g. a local inference server. Browser: no. */
   processSpawn: CapabilityStatus;
@@ -70,12 +70,12 @@ export interface HardwareProfile {
 }
 
 export interface VolumeStats {
-  /** Bytes free on the volume holding Helix data. */
+  /** Bytes free on the volume holding Havoc data. */
   freeBytes: number;
   /** Total size of that volume. */
   totalBytes: number;
-  /** Bytes currently consumed by Helix itself. */
-  usedByHelixBytes: number;
+  /** Bytes currently consumed by Havoc itself. */
+  usedByHavocBytes: number;
   /**
    * Whether these figures describe the real volume or a sandbox quota.
    * A browser reports its origin quota, which is NOT the disk. StorageManager
@@ -109,7 +109,7 @@ export interface PlatformAdapter {
   getHardwareProfile(): Promise<HardwareProfile>;
 
   /**
-   * Volume statistics for the Helix data location.
+   * Volume statistics for the Havoc data location.
    * Returns null when the host cannot determine them at all.
    */
   getVolumeStats(): Promise<VolumeStats | null>;
@@ -117,7 +117,7 @@ export interface PlatformAdapter {
   /**
    * Every indexable note under `roots`.
    *
-   * The one filesystem capability Helix offers, and read-only by
+   * The one filesystem capability Havoc offers, and read-only by
    * construction: there is no counterpart that writes. A host that cannot
    * reach a filesystem returns an empty array rather than throwing, so a
    * caller can ask without first checking which host it is on.

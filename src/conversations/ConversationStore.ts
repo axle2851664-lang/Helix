@@ -1,5 +1,5 @@
 import type { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { Logger } from '../core/Logger.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
@@ -17,7 +17,7 @@ import type { ToolCard } from '../tools/cards.js';
  * never promoted into anything permanent without an explicit user action.
  */
 
-export type MessageRole = 'user' | 'helix' | 'system';
+export type MessageRole = 'user' | 'havoc' | 'system';
 
 export interface ConversationMessage {
   id: string;
@@ -25,7 +25,7 @@ export interface ConversationMessage {
   text: string;
   createdAt: number;
   /**
-   * Set when Helix could not do what was asked. Kept so the transcript records
+   * Set when Havoc could not do what was asked. Kept so the transcript records
    * the failure rather than showing an answer that never happened.
    */
   failure?: string;
@@ -145,7 +145,7 @@ export class ConversationStore {
   ): Promise<ConversationMessage> {
     const conversation = await this.get(conversationId);
     if (!conversation) {
-      throw new HelixError('NOT_FOUND', 'That conversation no longer exists.', {
+      throw new HavocError('NOT_FOUND', 'That conversation no longer exists.', {
         technical: `appendMessage: unknown conversation ${conversationId}`,
       });
     }

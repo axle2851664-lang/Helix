@@ -5,8 +5,8 @@
  * correction as a brand-new request makes them start over:
  *
  *   User:  Open my Blender notes.
- *   Helix: Opening them.
- *   User:  No, I meant the Helix notes.
+ *   Havoc: Opening them.
+ *   User:  No, I meant the Havoc notes.
  *
  * Read as a fresh request that second line is fine - it names a subject. But
  *
@@ -20,7 +20,7 @@
  * WHAT EACH ONE MEANS TO THE LAYER ABOVE:
  *
  *   REPLACE  the target was wrong, the verb stands. Redo with the new target.
- *   CANCEL   drop it. Nothing further happens, and Helix says so plainly
+ *   CANCEL   drop it. Nothing further happens, and Havoc says so plainly
  *            rather than silently doing nothing.
  *   REPEAT   do the last action again.
  *   REVISE   same object, changed instruction - "make it simpler".
@@ -61,7 +61,7 @@ const REPEAT = [
 
 /**
  * A redirection. The marker is stripped and what is left is the new request,
- * which may be a bare target ("the Helix notes") rather than a full sentence.
+ * which may be a bare target ("the Havoc notes") rather than a full sentence.
  */
 const REPLACE = [
   /^(?:no,?\s*)?i\s+meant\s+/i,
@@ -86,7 +86,7 @@ const REVISE = [
  * "No, it's yes" was being read as a redirection: the "no" matched, and what
  * was left - "it's yes" - named nothing, so the layer helpfully carried the
  * previous action forward and opened Files again. The user was correcting
- * Helix's English, not asking for anything.
+ * Havoc's English, not asking for anything.
  *
  * A redirection has to redirect *to* something. When everything after the
  * marker is noise, there is no correction here at all.
@@ -172,7 +172,7 @@ export function findCorrection(text: string): Correction | null {
 
   /**
    * A softener with something after it and no other marker is a redirection:
-   * "actually, the Helix notes" changes the target and nothing else.
+   * "actually, the Havoc notes" changes the target and nothing else.
    */
   if (softener && !isNoise(trimmed)) {
     return { kind: 'replace', remainder: trimmed, marker: softener[0].trim() };

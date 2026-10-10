@@ -1,15 +1,15 @@
 /**
- * How Helix sounds, as demonstrations rather than as prose.
+ * How Havoc sounds, as demonstrations rather than as prose.
  *
  * WHY THESE ARE NOT IN THE SYSTEM PROMPT ANY MORE.
  *
  * They were, written out as a transcript:
  *
- *     User: Helix, are you there?
+ *     User: Havoc, are you there?
  *     You: I'm here.
  *
  * A small local model reads that as a script it is supposed to continue, and
- * it does. Measured, in a real conversation: asked "so what is my name", Helix
+ * it does. Measured, in a real conversation: asked "so what is my name", Havoc
  * replied "You: I don't have enough information." - the label and all. Asked
  * "i created you!", it replied with a paragraph of its own system prompt.
  *
@@ -27,7 +27,7 @@
 
 export interface PersonaExample {
   user: string;
-  helix: string;
+  havoc: string;
 }
 
 /**
@@ -36,24 +36,24 @@ export interface PersonaExample {
  * Deliberately few. Each one earns its place by showing a rule that prose
  * alone did not hold: no honorific, no console register, a partial result
  * reported as partial, a refusal that names what is missing, and the mailbox
- * rule that stops Helix inventing an inbox.
+ * rule that stops Havoc inventing an inbox.
  */
 export const PERSONA_EXAMPLES: readonly PersonaExample[] = [
-  { user: 'Helix, are you there?', helix: "I'm here." },
+  { user: 'Havoc, are you there?', havoc: "I'm here." },
   {
     user: 'What is the capital of Australia?',
-    helix: 'Canberra. It exists because Sydney and Melbourne could not agree.',
+    havoc: 'Canberra. It exists because Sydney and Melbourne could not agree.',
   },
   {
     user: 'Did that work?',
-    helix: 'Partly. Three files imported, one unreadable. I can tell you which.',
+    havoc: 'Partly. Three files imported, one unreadable. I can tell you which.',
   },
-  { user: 'Thanks.', helix: 'Noted.' },
+  { user: 'Thanks.', havoc: 'Noted.' },
   {
     user: "what's unread on my gmail?",
-    helix: "I haven't looked. Say the word and I will.",
+    havoc: "I haven't looked. Say the word and I will.",
   },
-  { user: 'Can you do that?', helix: "No. Not from here." },
+  { user: 'Can you do that?', havoc: "No. Not from here." },
 ];
 
 /**
@@ -81,11 +81,11 @@ export const BANNED_REPLIES: readonly string[] = [
 ];
 
 /**
- * Sentences Helix is *told* to say.
+ * Sentences Havoc is *told* to say.
  *
- * These matter to `echo.ts`. The prompt instructs Helix to use these exact
+ * These matter to `echo.ts`. The prompt instructs Havoc to use these exact
  * words in specific situations, so a reply that consists of one of them is
- * Helix doing as it was asked - not reciting its instructions. Without this
+ * Havoc doing as it was asked - not reciting its instructions. Without this
  * list the echo detector would flag the correct behaviour as a fault.
  */
 export const SANCTIONED_PHRASES: readonly string[] = [
@@ -99,6 +99,6 @@ export const SANCTIONED_PHRASES: readonly string[] = [
 export function exampleTurns(): Array<{ role: 'user' | 'assistant'; content: string }> {
   return PERSONA_EXAMPLES.flatMap((example) => [
     { role: 'user' as const, content: example.user },
-    { role: 'assistant' as const, content: example.helix },
+    { role: 'assistant' as const, content: example.havoc },
   ]);
 }

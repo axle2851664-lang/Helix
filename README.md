@@ -1,8 +1,8 @@
-# Helix
+# Havoc
 
 A modular, portable Windows AI assistant.
 
-Helix is designed to run from a portable SSD or USB drive, operate within a
+Havoc is designed to run from a portable SSD or USB drive, operate within a
 configurable storage ceiling, combine local and cloud AI, remember only what the
 user approves, and — as later phases land — see through a permitted camera,
 understand hand gestures, display interactive 3D projects, and provide a spatial
@@ -22,17 +22,17 @@ geographic environment.
 | Build system (Vite 8 + React 19 + TypeScript 5.9, strict) | Working |
 | `EventBus` — typed pub/sub, error-isolated (spec §20) | Working |
 | `Logger` — structured, leveled, redacts secrets before writing | Working |
-| `HelixError` — separate user-facing and technical messages (spec §17) | Working |
+| `HavocError` — separate user-facing and technical messages (spec §17) | Working |
 | `PathManager` — portable paths, survives a drive-letter change (spec §13) | Working |
 | `KeyValueStore` + IndexedDB backend — durable, namespaced persistence | Working |
 | `SettingsManager` — typed, validated, migrating, **actually persists** (spec §15) | Working |
-| `HelixKernel` — DI container and lifecycle (spec §19) | Working |
+| `HavocKernel` — DI container and lifecycle (spec §19) | Working |
 | Workspace navigation — six workspaces, real capability gating | Working |
 | Settings UI — schema-driven, survives reload | Working |
 | System UI — measured hardware, storage, capabilities, live log | Working |
 | `ActivityManager` - drives ACTIVE OPERATION from real work | Working |
 | `ConversationStore` - real conversations, privacy-gated persistence | Working |
-| `HelixOrchestrator` - tool registry; navigation and project tools | Working |
+| `HavocOrchestrator` - tool registry; navigation and project tools | Working |
 | `ProjectManager` - projects, assets, validation, search (spec 7) | Working |
 | `MemoryManager` - long-term memory, refuses credentials (spec 6) | Working |
 | `KnowledgeIndex` - file text indexing and keyword search (spec 12) | Working |
@@ -42,7 +42,7 @@ geographic environment.
 | Hand tracking - pinch to move, palm to reveal actions (spec 11) | Working |
 | Spatial stage with full mouse fallback | Working |
 | Vision provider interface | Interface only, no provider |
-| Helix persona - one module owning every user-facing sentence | Working |
+| Havoc persona - one module owning every user-facing sentence | Working |
 | Claude model selection and switching by command | Working |
 | Reference three-column UI, 11 navigable workspaces | Working |
 | Upload Project - real import, validation, originals vs generated | Working |
@@ -60,7 +60,7 @@ PATH**. Either add it to PATH, or prefix commands:
 export PATH="/c/Program Files/nodejs:$PATH"
 ```
 
-## Running Helix
+## Running Havoc
 
 Install dependencies:
 

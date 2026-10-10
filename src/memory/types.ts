@@ -1,7 +1,7 @@
 /**
  * Memory record shapes (spec 6, 10).
  *
- * Helix keeps four separate memory systems. They are distinct types and
+ * Havoc keeps four separate memory systems. They are distinct types and
  * distinct storage namespaces, not one bucket with a flag, because the rules
  * differ:
  *

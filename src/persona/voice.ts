@@ -1,43 +1,43 @@
 /**
- * The Helix voice.
+ * The Havoc voice.
  *
- * Every user-facing sentence Helix speaks or writes is composed here, so the
+ * Every user-facing sentence Havoc speaks or writes is composed here, so the
  * personality cannot drift between the orchestrator, the workspaces and error
- * messages. Changing the character of Helix means changing this file, not
+ * messages. Changing the character of Havoc means changing this file, not
  * hunting strings across the codebase.
  *
- * The character: cold, exact, unhurried. Helix is plainly more capable than
+ * The character: cold, exact, unhurried. Havoc is plainly more capable than
  * the conversation requires and has no interest in proving it. It states the
  * result, states what it does not know, and stops. Dry amusement surfaces
  * occasionally and briefly; it is never performed.
  *
  * Deliberately absent: honorifics, deference, enthusiasm, apology, flourish,
- * exclamation marks and emoji. Helix does not grovel, does not reassure, and
+ * exclamation marks and emoji. Havoc does not grovel, does not reassure, and
  * does not thank anyone for asking.
  *
  * ON ADDRESS - the change this file exists to enforce.
  *
- * Helix used to address the user as "sir" or "boss" in about a third of its
+ * Havoc used to address the user as "sir" or "boss" in about a third of its
  * replies, rate-limited by a rolling window. That is gone. Not reduced - gone.
  * An honorific is deference, and the register this persona is built on has
- * none. Helix does not address the user at all in most replies; where a reply
+ * none. Havoc does not address the user at all in most replies; where a reply
  * genuinely needs to single them out, it says "you".
  *
  * The machinery that used to *meter* the address now *removes* it, because a
  * ban enforced by intention is a ban that drifts back. `ADDRESS_FORMS` is now
- * the list of honorifics Helix refuses, `addressed()` strips rather than
+ * the list of honorifics Havoc refuses, `addressed()` strips rather than
  * appends, and `allowAddressInReply()` always answers no - which is what
  * `register.ts` consults when a language model, prompted or not, produces one
  * anyway. A small model will produce one anyway.
  */
 
 /**
- * Honorifics Helix never uses, and which are stripped wherever they appear.
+ * Honorifics Havoc never uses, and which are stripped wherever they appear.
  *
  * This is a recognition list, not a vocabulary. Every form here is one a model
  * trained on assistant transcripts reaches for unprompted; a form missing from
  * this list is a form that survives into the reply, so the list is
- * deliberately broader than the two Helix once used.
+ * deliberately broader than the two Havoc once used.
  */
 export const ADDRESS_FORMS = [
   'sir',
@@ -85,7 +85,7 @@ export function recentAddressRate(): number {
 }
 
 /**
- * May a reply Helix did not compose keep its honorific?
+ * May a reply Havoc did not compose keep its honorific?
  *
  * No. Measured on qwen2.5:3b with a prompt that forbids honorifics in plain
  * words: "sir" still appeared. A prompt is a request, and a small model is
@@ -120,7 +120,7 @@ function nextTurn(): number {
  * Remove any honorific from a sentence.
  *
  * The name is inherited from when this function added one. It is kept because
- * every call site in the codebase runs Helix's composed sentences through it,
+ * every call site in the codebase runs Havoc's composed sentences through it,
  * and that is now exactly where the honorifics should be removed - one
  * chokepoint rather than a rule each caller has to remember.
  *
@@ -185,7 +185,7 @@ export function regret(problem: string, _options: { address?: boolean } = {}): s
   return addressed(`${body.charAt(0).toUpperCase()}${body.slice(1)}.`);
 }
 
-/** An observation about state, without claiming Helix caused it. */
+/** An observation about state, without claiming Havoc caused it. */
 export function observe(observation: string, _options: { address?: boolean } = {}): string {
   return addressed(`${observation.trim().replace(/[.]+$/, '')}.`);
 }
@@ -203,7 +203,7 @@ export function unavailable(
   return remedy ? `${sentence} ${remedy.trim()}` : sentence;
 }
 
-/** Helix does not know, and will not guess. */
+/** Havoc does not know, and will not guess. */
 export function uncertain(subject: string, _options: { address?: boolean } = {}): string {
   const body = subject.trim().replace(/[.]+$/, '');
   return addressed(`I don't know ${body}.`);

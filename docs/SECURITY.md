@@ -1,4 +1,4 @@
-# Helix Security
+# Havoc Security
 
 > **Phase 1 status:** the secrets baseline and CSP are in place. `PermissionManager`,
 > `ToolRegistry` validation and sensor indicators arrive in phases 3 and 5.
@@ -16,8 +16,8 @@
   `MemoryManager` refuses to store them at all. Both consumers share the list so
   they cannot drift apart.
 
-`C:\Users\selam\.claude\.credentials.json` belongs to Claude Code, not Helix. It
-is not a Helix credential source and must not be read or copied into this project.
+`C:\Users\selam\.claude\.credentials.json` belongs to Claude Code, not Havoc. It
+is not a Havoc credential source and must not be read or copied into this project.
 
 ## Content Security Policy
 
@@ -27,7 +27,7 @@ must be added explicitly and individually — never by widening to `*`.
 
 ## Filesystem
 
-The AI gets **no unrestricted filesystem access**. Helix operates inside a
+The AI gets **no unrestricted filesystem access**. Havoc operates inside a
 controlled workspace: its own data directories plus files the user has
 explicitly authorised. Uploaded files are never executed. File type and size are
 validated on upload.
@@ -41,7 +41,7 @@ require confirmation.
 
 ## Sensors
 
-Camera and microphone are the highest-sensitivity surfaces in Helix:
+Camera and microphone are the highest-sensitivity surfaces in Havoc:
 
 - Access is **always explicit** and never silent.
 - A visible active indicator is mandatory whenever a device is live.
@@ -78,7 +78,7 @@ follow the device, never the UI's belief about the device.
 - **`CAMERA_STARTED` is emitted only once a live `MediaStream` exists**, so the
   indicator cannot appear before capture begins. A test asserts nothing is
   emitted when the device fails to open.
-- **The indicator follows the device out of Helix's hands.** A track ending
+- **The indicator follows the device out of Havoc's hands.** A track ending
   outside the application - an unplugged webcam, a privacy shutter, another
   application taking the device - runs the same teardown path, so the indicator
   cannot keep claiming the camera is live after it has stopped.

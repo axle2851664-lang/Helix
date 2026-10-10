@@ -12,7 +12,7 @@ import { canExtract, extractText, extractionBlocker, isPdf } from './extract.js'
  * body is the commonest way a hand-written PDF fails to open.
  */
 function buildPdf(options: { text?: string; pages?: number } = {}): ArrayBuffer {
-  const text = options.text ?? 'Hello Helix';
+  const text = options.text ?? 'Hello Havoc';
   const pageCount = options.pages ?? 1;
 
   const objects: string[] = [];
@@ -73,7 +73,7 @@ describe('routing PDFs to the parser', () => {
     expect(extractionBlocker('invoice.pdf', 'document')).toBeNull();
   });
 
-  // The old message promised a parser Helix did not have. It must be gone,
+  // The old message promised a parser Havoc did not have. It must be gone,
   // not merely unreachable.
   it('no longer claims a parser is missing', () => {
     const blockers = ['glb', 'obj', 'stl'].map((extension) =>

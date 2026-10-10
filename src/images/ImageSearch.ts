@@ -93,7 +93,7 @@ export class ImageSearch {
       if (named && known) {
         failures.push({ provider: known.name, reason: known.ready().reason ?? 'Not available.' });
       } else if (named) {
-        failures.push({ provider: named, reason: `Helix has no image provider called "${named}".` });
+        failures.push({ provider: named, reason: `Havoc has no image provider called "${named}".` });
       }
       return { results: [], failures, answered, query };
     }
@@ -142,7 +142,7 @@ export function dedupe(results: readonly ImageResult[]): ImageResult[] {
 }
 
 /**
- * One sentence describing what happened, for Helix to say out loud.
+ * One sentence describing what happened, for Havoc to say out loud.
  *
  * Names the provider that actually answered. "I found twelve" is useless if
  * the user asked for Google and got Openverse.

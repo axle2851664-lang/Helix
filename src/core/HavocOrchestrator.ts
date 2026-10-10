@@ -1,6 +1,6 @@
 import type { ActivityManager } from './ActivityManager.js';
 import type { EventBus } from './EventBus.js';
-import { HelixError } from './HelixError.js';
+import { HavocError } from './HavocError.js';
 import type { Logger } from './Logger.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import type { ConversationStore } from '../conversations/ConversationStore.js';
@@ -89,7 +89,7 @@ import { calendarIntent } from '../integrations/google/calendarIntent.js';
 import { repair } from '../persona/register.js';
 
 /**
- * The Helix orchestration seam (spec: UI -> ORCHESTRATOR -> TOOLS).
+ * The Havoc orchestration seam (spec: UI -> ORCHESTRATOR -> TOOLS).
  *
  * What this genuinely does today:
  *   1. Receives an instruction.
@@ -118,7 +118,7 @@ import { repair } from '../persona/register.js';
 
 export type IntentKind = 'navigate' | 'converse' | 'unknown';
 
-export interface HelixRequest {
+export interface HavocRequest {
   text: string;
   conversationId: string;
 }
@@ -143,7 +143,7 @@ const HANDLED: ReadonlySet<string> = new Set([
   'stopwatch',
 ]);
 
-export interface HelixResponse {
+export interface HavocResponse {
   /** Text to show the user. Always truthful about what happened. */
   text: string;
   /** True only when a tool actually ran to completion. */
@@ -170,7 +170,7 @@ export interface HelixResponse {
     overlay?: 'time' | null;
   };
   /**
-   * The structured half of a two-part reply. The text above is what Helix says
+   * The structured half of a two-part reply. The text above is what Havoc says
    * out loud; this is what it puts on screen. They are never the same content -
    * reading a card aloud is not conversation.
    */
@@ -178,13 +178,13 @@ export interface HelixResponse {
 }
 
 /** A capability the orchestrator can route to. */
-export interface HelixTool {
+export interface HavocTool {
   name: string;
   description: string;
   /** Higher runs first. */
   priority: number;
   /** Can this tool handle the request? */
-  matches(request: HelixRequest): boolean;
+  matches(request: HavocRequest): boolean;
   /**
    * Why the tool cannot run right now, or null when it can. Checked before
    * execution so the user is told what is missing rather than seeing a failure.
@@ -196,7 +196,7 @@ export interface HelixTool {
    * really its own by doing async work: "open settings" and "open my Iron Man
    * project" are the same shape, and only a project lookup can separate them.
    */
-  execute(request: HelixRequest): Promise<HelixResponse | null>;
+  execute(request: HavocRequest): Promise<HavocResponse | null>;
 }
 
 export interface OrchestratorOptions {
@@ -205,7 +205,7 @@ export interface OrchestratorOptions {
   activity: ActivityManager;
   projects: ProjectManager;
   memory: MemoryManager;
-  /** Helix's own notes. Absent in tests that do not exercise the Notepad. */
+  /** Havoc's own notes. Absent in tests that do not exercise the Notepad. */
   notepad?: NotepadManager;
   /**
    * Timers, alarms and stopwatches. Absent means those requests say so
@@ -214,7 +214,7 @@ export interface OrchestratorOptions {
    */
   timekeeper?: TimeKeeper;
   /**
-   * Read, never written. It is here so Helix can answer "what are you allowed
+   * Read, never written. It is here so Havoc can answer "what are you allowed
    * to do" from the real record instead of letting a model guess at it.
    */
   permissions?: PermissionManager;
@@ -238,7 +238,7 @@ export interface OrchestratorOptions {
   calendar?: CalendarProvider;
 }
 
-export class HelixOrchestrator {
+export class HavocOrchestrator {
   readonly #settings: SettingsManager;
   readonly #conversations: ConversationStore;
   readonly #activity: ActivityManager;
@@ -271,7 +271,7 @@ export class HelixOrchestrator {
    * happened.
    */
   #listedMail: Array<{ id: string; from: string; subject: string }> = [];
-  readonly #tools: HelixTool[] = [];
+  readonly #tools: HavocTool[] = [];
 
   constructor(options: OrchestratorOptions) {
     this.#settings = options.settings;
@@ -294,8 +294,8 @@ export class HelixOrchestrator {
 
     // File search sits just below memory: "search my files for X" is explicit.
     this.registerTool(this.#fileSearchTool());
-    // Questions about Helix itself are answered from Helix's own registries,
-    // above everything else - a model asked how Helix works will invent an
+    // Questions about Havoc itself are answered from Havoc's own registries,
+    // above everything else - a model asked how Havoc works will invent an
     // answer, and the user has no way to check it.
     this.registerTool(this.#selfKnowledgeTool());
     // The understanding layer runs before every keyword matcher and declines
@@ -332,13 +332,13 @@ export class HelixOrchestrator {
     this.registerTool(this.#navigationTool());
   }
 
-  registerTool(tool: HelixTool): void {
+  registerTool(tool: HavocTool): void {
     this.#tools.push(tool);
     this.#tools.sort((a, b) => b.priority - a.priority);
     this.#logger.debug('Tool registered.', { name: tool.name });
   }
 
-  get tools(): readonly HelixTool[] {
+  get tools(): readonly HavocTool[] {
     return this.#tools;
   }
 
@@ -346,7 +346,7 @@ export class HelixOrchestrator {
    * Handle one instruction end to end, recording both sides in the
    * conversation so the transcript reflects what actually happened.
    */
-  async submit(request: HelixRequest): Promise<HelixResponse> {
+  async submit(request: HavocRequest): Promise<HavocResponse> {
     const text = request.text.trim();
     if (text === '') {
       return { text: '', handled: false, failure: 'EMPTY' };
@@ -361,7 +361,7 @@ export class HelixOrchestrator {
     const response = await this.#route({ ...request, text });
 
     await this.#conversations.appendMessage(request.conversationId, {
-      role: 'helix',
+      role: 'havoc',
       text: response.text,
       ...(response.failure !== undefined ? { failure: response.failure } : {}),
       ...(response.card !== undefined ? { card: response.card } : {}),
@@ -370,7 +370,7 @@ export class HelixOrchestrator {
     return response;
   }
 
-  async #route(request: HelixRequest): Promise<HelixResponse> {
+  async #route(request: HavocRequest): Promise<HavocResponse> {
     for (const tool of this.#tools) {
       if (!tool.matches(request)) continue;
 
@@ -390,12 +390,12 @@ export class HelixOrchestrator {
         if (response === null) continue;
         return response;
       } catch (error) {
-        const helix = HelixError.from(
+        const havoc = HavocError.from(
           error,
           regret('that request could not be completed'),
         );
         this.#logger.error('Tool execution failed.', { tool: tool.name, error });
-        return { text: helix.userMessage, handled: false, failure: helix.code };
+        return { text: havoc.userMessage, handled: false, failure: havoc.code };
       }
     }
 
@@ -415,7 +415,7 @@ export class HelixOrchestrator {
    * worst failure this file could have, and it would be indistinguishable from
    * a real one.
    */
-  async #converse(request: HelixRequest): Promise<HelixResponse> {
+  async #converse(request: HavocRequest): Promise<HavocResponse> {
     if (!this.#ai) return this.#unhandled();
 
     const requirement = classify(request.text);
@@ -433,10 +433,10 @@ export class HelixOrchestrator {
 
       const conversation = await this.#conversations.get(request.conversationId);
       const history = (conversation?.messages ?? [])
-        .filter((message) => message.role === 'user' || message.role === 'helix')
+        .filter((message) => message.role === 'user' || message.role === 'havoc')
         .slice(local ? -6 : -12)
         .map((message) => ({
-          role: message.role === 'helix' ? ('assistant' as const) : ('user' as const),
+          role: message.role === 'havoc' ? ('assistant' as const) : ('user' as const),
           content: message.text,
         }));
 
@@ -458,17 +458,17 @@ export class HelixOrchestrator {
        * enforced after the fact by `register.ts`, which repairs mechanically
        * rather than asking, and recitation is caught by `echo.ts`. What it
        * gains is a shorter prompt on the machine with the least to spare, and
-       * a message list containing nothing Helix did not actually say.
+       * a message list containing nothing Havoc did not actually say.
        */
       const demonstrations = local ? [] : exampleTurns();
 
       /**
-       * What Helix has been asked to remember, in front of the model.
+       * What Havoc has been asked to remember, in front of the model.
        *
        * This was missing entirely. The prompt said memories would be supplied
        * and the comment above said a local model got "a shorter memory", and
        * neither was true - the message list was the prompt and the history and
-       * nothing else. So even a name Helix had correctly stored could not
+       * nothing else. So even a name Havoc had correctly stored could not
        * reach the reply, and asking for it back got a guess or a refusal.
        *
        * Capped, and tightest on a local model, for the same reason the history
@@ -482,10 +482,10 @@ export class HelixOrchestrator {
        * It used to be everything, pasted in on every turn including a
        * greeting, and it produced this:
        *
-       *   User:  hello helix
-       *   Helix: 1937 Riddell RD
+       *   User:  hello havoc
+       *   Havoc: 1937 Riddell RD
        *
-       * The user asked Helix to know private things about them, and Helix
+       * The user asked Havoc to know private things about them, and Havoc
        * does. But knowing has to mean "can tell you when you ask", not "has it
        * loaded into a text generator where it can fall out at any moment".
        * `promptableMemories` holds back an address or a contact detail
@@ -537,11 +537,11 @@ export class HelixOrchestrator {
           })`
         : '';
 
-      // The persona prompt asks for Helix's register; this is what checks it
+      // The persona prompt asks for Havoc's register; this is what checks it
       // arrived. A small local model answers "Affirmative, sir" however plainly
       // the prompt forbids it, and `repair` removes that phrasing without ever
       // writing a sentence of its own - so what the model actually said still
-      // reaches the user, in Helix's voice rather than a console's.
+      // reaches the user, in Havoc's voice rather than a console's.
       const raw = result.text.trim();
 
       /**
@@ -568,7 +568,7 @@ export class HelixOrchestrator {
           reply: raw,
         });
         return {
-          text: HelixOrchestrator.#rejected(
+          text: HavocOrchestrator.#rejected(
             'That reply was the model repeating its own instructions, so I have not shown it',
             result.model,
           ),
@@ -578,21 +578,21 @@ export class HelixOrchestrator {
       }
 
       /**
-       * A reply that reports a state Helix is not in.
+       * A reply that reports a state Havoc is not in.
        *
        * Provable here rather than guessed at: if a tool had matched this
        * request the orchestrator would have run it and never reached a model,
        * so on this path there is no tool running and nothing outstanding for
        * the user to approve. A model claiming either is inventing a fact about
-       * Helix itself, which is worse than inventing one about the world - the
+       * Havoc itself, which is worse than inventing one about the world - the
        * user cannot check it, and it sends them round in circles chasing a
        * task that does not exist. Which is exactly what it did:
        *
-       *   Helix: I'm still waiting for permission to proceed.
+       *   Havoc: I'm still waiting for permission to proceed.
        *   User:  proceed doing what?
-       *   Helix: I can't run a tool now.
+       *   Havoc: I can't run a tool now.
        *   User:  Which tool
-       *   Helix: I'm not sure.
+       *   Havoc: I'm not sure.
        */
       /**
        * Something private, said to someone who did not ask.
@@ -614,7 +614,7 @@ export class HelixOrchestrator {
           model: result.model,
         });
         return {
-          text: HelixOrchestrator.#rejected(
+          text: HavocOrchestrator.#rejected(
             'That reply started reading your own details back at you unprompted, so I have not shown it',
             result.model,
           ),
@@ -625,14 +625,14 @@ export class HelixOrchestrator {
 
       const phantom = claimsPhantomState(raw);
       if (phantom.claimed) {
-        this.#logger.warn('A model reported a state Helix is not in.', {
+        this.#logger.warn('A model reported a state Havoc is not in.', {
           model: result.model,
           kind: phantom.kind,
           found: phantom.found,
           reply: raw,
         });
         return {
-          text: HelixOrchestrator.#rejected(
+          text: HavocOrchestrator.#rejected(
             "That reply claimed something was running or waiting on you, and nothing is, so I have not shown it",
             result.model,
           ),
@@ -667,14 +667,14 @@ export class HelixOrchestrator {
     }
   }
 
-  #unhandled(): HelixResponse {
+  #unhandled(): HavocResponse {
     const provider = this.#settings.get('languageProvider');
 
     if (provider === 'none') {
       return {
         text: unavailable(
           'no language provider is configured, so I am unable to answer that yet',
-          'You may select one in Settings under AI providers. In the meantime I can open any Helix workspace you name.',
+          'You may select one in Settings under AI providers. In the meantime I can open any Havoc workspace you name.',
         ),
         handled: false,
         failure: 'PROVIDER_NOT_CONFIGURED',
@@ -696,10 +696,10 @@ export class HelixOrchestrator {
    * Searching indexed file contents (spec 12).
    *
    * Deliberately distinct from memory: this reads what is in the user's files,
-   * never what Helix has been told to remember. Keyword search, no model, so it
+   * never what Havoc has been told to remember. Keyword search, no model, so it
    * works offline and with no provider configured.
    */
-  #fileSearchTool(): HelixTool {
+  #fileSearchTool(): HavocTool {
     const phrases = [
       'search my files',
       'search files',
@@ -709,8 +709,8 @@ export class HelixOrchestrator {
       'search my documents',
       'look in my files',
       // 'search my notes' was here, and it was right when the only notes
-      // Helix had were markdown files in a vault. It is wrong now: the
-      // Notepad is Helix's own notes, in Helix's own storage, and a search
+      // Havoc had were markdown files in a vault. It is wrong now: the
+      // Notepad is Havoc's own notes, in Havoc's own storage, and a search
       // for them was being answered out of the file index - which reported
       // "no files are indexed yet" to someone who had just written three
       // notes. The Notepad tool owns that phrasing; see #notepadTool.
@@ -843,7 +843,7 @@ ${lines}${notice}`,
    * literal, no model involved.
    */
   /**
-   * Questions about Helix, answered by Helix.
+   * Questions about Havoc, answered by Havoc.
    *
    * A 1B model, asked how to grant file permission, replied "You can type 'I
    * want to give you permission to access my files' at any time." There is no
@@ -858,10 +858,10 @@ ${lines}${notice}`,
    * permission registry, the capability registry and the model router, all of
    * which know the truth.
    */
-  #selfKnowledgeTool(): HelixTool {
+  #selfKnowledgeTool(): HavocTool {
     return {
-      name: 'about-helix',
-      description: 'Answer questions about what Helix is, can do, and is allowed to do.',
+      name: 'about-havoc',
+      description: 'Answer questions about what Havoc is, can do, and is allowed to do.',
       // Above everything, including the understanding layer: "how do I give
       // you permission to access my files" names a capability and is not a
       // request to open it.
@@ -871,7 +871,7 @@ ${lines}${notice}`,
       execute: async (request) => {
         const question = selfQuestion(request.text);
         if (!question) {
-          return { text: observe('That was not about Helix'), handled: false, failure: 'NOT_APPLICABLE' };
+          return { text: observe('That was not about Havoc'), handled: false, failure: 'NOT_APPLICABLE' };
         }
 
         const permissions = this.#permissions?.list() ?? [];
@@ -911,7 +911,7 @@ ${lines}${notice}`,
    *     becoming the next one's context;
    *   - a question instead of a guess when the target is unclear.
    */
-  #understandingTool(notepad: NotepadManager): HelixTool {
+  #understandingTool(notepad: NotepadManager): HavocTool {
     return {
       name: 'understanding',
       description: 'Work out what was meant, and act on it.',
@@ -940,7 +940,7 @@ ${lines}${notice}`,
          */
         const clauses = segment(request.text);
         const replies: string[] = [];
-        let last: HelixResponse | null = null;
+        let last: HavocResponse | null = null;
 
         for (const clause of clauses) {
           const step = understandClause(clause, state);
@@ -989,7 +989,7 @@ ${lines}${notice}`,
    * leads with what happened to them, and only then names the model.
    *
    * The size note is the part that was missing entirely. A user spent twenty
-   * turns believing Helix was broken when the real answer was that their
+   * turns believing Havoc was broken when the real answer was that their
    * model was a tenth of the size needed to hold a conversation, and nothing
    * ever told them. It appears only here - when something has already visibly
    * gone wrong - rather than as a nag on every turn.
@@ -1023,7 +1023,7 @@ ${lines}${notice}`,
   static #contentOf(text: string): string {
     return text
       .trim()
-      .replace(/^(?:hey\s+|ok(?:ay)?\s+)?helix[,:]?\s*/i, '')
+      .replace(/^(?:hey\s+|ok(?:ay)?\s+)?havoc[,:]?\s*/i, '')
       .replace(/^(?:please|could you|can you|would you|i need to|i want to|i'?d like to)\s+/i, '')
       .replace(
         /^(?:write|note|jot|get|put|add|save|store|keep|make|take|create)\s+(?:a\s+note\s+(?:of\s+|that\s+|saying\s+)?|something\s+|anything\s+|this\s+|that\s+|it\s+)?(?:down\s*)?/i,
@@ -1056,8 +1056,8 @@ ${lines}${notice}`,
     step: Understanding,
     state: ConversationState,
     notepad: NotepadManager,
-    request: HelixRequest,
-  ): Promise<HelixResponse> {
+    request: HavocRequest,
+  ): Promise<HavocResponse> {
     if (step.outcome === 'clarify') {
       const question = step.question ?? 'Which one do you mean?';
       state.ask({
@@ -1066,7 +1066,7 @@ ${lines}${notice}`,
         asked: question,
         options: step.options ?? [],
       });
-      // A question is a completed turn, not a failure: Helix did exactly what
+      // A question is a completed turn, not a failure: Havoc did exactly what
       // the situation called for.
       return { text: enquire(question.replace(/\?+$/, '')), handled: true };
     }
@@ -1152,9 +1152,9 @@ ${lines}${notice}`,
    * ON NAVIGATION, which most of these verbs no longer do.
    *
    * Everything used to navigate to the Notepad. That killed the conversation:
-   * the composer lives on the home screen, so the moment Helix opened the
+   * the composer lives on the home screen, so the moment Havoc opened the
    * Notepad there was nowhere left to type, and "add the login issue" could
-   * never be said. It also contradicts the interface Helix is supposed to be -
+   * never be said. It also contradicts the interface Havoc is supposed to be -
    * information revealed when it is needed, not a screen thrown up for every
    * sentence.
    *
@@ -1181,8 +1181,8 @@ ${lines}${notice}`,
   #runTimeStep(
     match: Match,
     state: ConversationState,
-    request: HelixRequest,
-  ): HelixResponse {
+    request: HavocRequest,
+  ): HavocResponse {
     const kind = match.capability.id as 'timer' | 'alarm' | 'stopwatch';
     const keeper = this.#timekeeper;
 
@@ -1261,7 +1261,7 @@ ${lines}${notice}`,
          * The warning is said now or it is useless.
          *
          * There is no operating-system scheduling behind this: the alarm
-         * sounds only while Helix is running. Someone setting one for the
+         * sounds only while Havoc is running. Someone setting one for the
          * morning needs to know that before they close the app and go to
          * bed, not afterwards - and a missed one is reported as missed
          * rather than rung hours late as though it had worked.
@@ -1409,8 +1409,8 @@ ${lines}${notice}`,
     match: Match,
     state: ConversationState,
     notepad: NotepadManager,
-    request: HelixRequest,
-  ): Promise<HelixResponse> {
+    request: HavocRequest,
+  ): Promise<HavocResponse> {
     const done = (verb: string, succeeded: boolean, object?: FocusedObject) => {
       // What the conversation is about, so a later clause with no subject of
       // its own - "find the one about the website" - still lands here.
@@ -1515,7 +1515,7 @@ ${lines}${notice}`,
       }
 
       case 'create': {
-        const content = HelixOrchestrator.#contentOf(request.text) || match.target;
+        const content = HavocOrchestrator.#contentOf(request.text) || match.target;
         if (content === '') {
           return {
             text: enquire('What should I write down'),
@@ -1525,7 +1525,7 @@ ${lines}${notice}`,
         }
 
         try {
-          const title = HelixOrchestrator.#namedTitle(request.text);
+          const title = HavocOrchestrator.#namedTitle(request.text);
           const note = await notepad.save({
             content,
             ...(title !== null ? { title } : {}),
@@ -1554,7 +1554,7 @@ ${lines}${notice}`,
       case 'save': {
         /**
          * The note to add to: the one referred to, the one in focus, or the
-         * one named. Nothing is guessed - with none of those, Helix asks,
+         * one named. Nothing is guessed - with none of those, Havoc asks,
          * because appending to the wrong note is invisible until much later.
          */
         const resolved =
@@ -1572,7 +1572,7 @@ ${lines}${notice}`,
           return { text: enquire('Which note should I add that to'), handled: true };
         }
 
-        const addition = HelixOrchestrator.#contentOf(request.text);
+        const addition = HavocOrchestrator.#contentOf(request.text);
         if (addition === '') {
           return {
             text: observe(`"${resolved.label}" is the one. Say what to add`),
@@ -1661,7 +1661,7 @@ ${lines}${notice}`,
     }
   }
 
-  #memoryTool(): HelixTool {
+  #memoryTool(): HavocTool {
     const savePrefixes = [
       'remember that ',
       'remember this: ',
@@ -1695,10 +1695,10 @@ ${lines}${notice}`,
           // Explicitly marked facts, and corrections to them.
           truthStatement(request.text) !== null ||
           truthEdit(request.text) !== null ||
-          // Telling Helix your name is asking Helix to know your name, and
+          // Telling Havoc your name is asking Havoc to know your name, and
           // asking for it back is a recall. Neither used to reach here: the
-          // user said "my name is Michael" three times and Helix discarded it
-          // three times, then answered "what is my name" with "I am Helix."
+          // user said "my name is Michael" three times and Havoc discarded it
+          // three times, then answered "what is my name" with "I am Havoc."
           personalFact(request.text) !== null ||
           personalQuestion(request.text) !== null
         );
@@ -1733,7 +1733,7 @@ ${lines}${notice}`,
 
           if (edit.claim === '') {
             // Changing a stored fact to nothing in particular is worse than
-            // changing nothing, so Helix asks rather than guessing.
+            // changing nothing, so Havoc asks rather than guessing.
             return { text: enquire('What should it say instead'), handled: true };
           }
 
@@ -1800,7 +1800,7 @@ ${lines}${notice}`,
           return { text: observe(toSecondPerson(best.memory.content)), handled: true };
         }
 
-        /* --- the user telling Helix something about themselves --- */
+        /* --- the user telling Havoc something about themselves --- */
         const fact = personalFact(text);
         if (fact !== null && !savePrefixes.some((prefix) => lower.startsWith(prefix.trim()))) {
           if (!this.#memory.enabled) {
@@ -1816,7 +1816,7 @@ ${lines}${notice}`,
 
           try {
             // Replaces rather than accumulates. Someone who corrects their own
-            // name should not leave Helix holding both.
+            // name should not leave Havoc holding both.
             const existing = await this.#memory.search(fact.kind, { limit: 1 });
             const stale = existing[0];
             if (stale && stale.memory.tags?.includes(fact.kind) === true) {
@@ -1926,7 +1926,7 @@ ${lines}${notice}`,
             }
             const preview = all
               .slice(0, 5)
-              .map((record) => `- ${HelixOrchestrator.#readBack(record)}`)
+              .map((record) => `- ${HavocOrchestrator.#readBack(record)}`)
               .join('\n');
             const more = all.length > 5 ? `\n...and ${all.length - 5} more.` : '';
             return {
@@ -1970,8 +1970,8 @@ ${lines}`,
         try {
           const record = await this.#memory.save({ content });
           // Quoted on its own line: echoing the content inline would put the
-          // user's first person into Helix's mouth ("I've noted that I take my
-          // coffee black" reads as Helix taking coffee black).
+          // user's first person into Havoc's mouth ("I've noted that I take my
+          // coffee black" reads as Havoc taking coffee black).
           return {
             text: confirm("I've made a note of that") + `
 "${record.content}"`,
@@ -1980,8 +1980,8 @@ ${lines}`,
         } catch (error) {
           // Refusals (credentials, memory disabled) are the user's answer, not
           // an internal failure - surface the reason verbatim.
-          const helix = HelixError.from(error, 'I could not store that.');
-          return { text: helix.userMessage, handled: false, failure: helix.code };
+          const havoc = HavocError.from(error, 'I could not store that.');
+          return { text: havoc.userMessage, handled: false, failure: havoc.code };
         }
       },
     };
@@ -1994,7 +1994,7 @@ ${lines}`,
    * reliable knowledge of which weights are executing it - a 3B local model
    * asked this will happily say it is Opus or GPT-4, because that is what the
    * assistant transcripts it was trained on say. So the one question where a
-   * confident wrong answer does real harm is the one question Helix never
+   * confident wrong answer does real harm is the one question Havoc never
    * asks a model to answer.
    */
   #describeRunningModel(): string {
@@ -2025,13 +2025,13 @@ ${lines}`,
    * Reporting which model is actually answering, and switching between them.
    *
    * The reporting half used to read `settings.languageModel`, whose default
-   * was `claude-opus-5` from an early design in which Helix called a cloud
+   * was `claude-opus-5` from an early design in which Havoc called a cloud
    * API. So "what model are you" answered "Opus 5" while qwen2.5 on the
    * user's own machine wrote the sentence - and this tool sits at priority
    * 300, so it beat the conversation that would have known better.
    *
    * That is the worst instance of this codebase's one cardinal fault, not a
-   * cosmetic slip. Someone who has switched Helix to local-only precisely so
+   * cosmetic slip. Someone who has switched Havoc to local-only precisely so
    * nothing leaves the machine asks this question to check, and was told a
    * cloud model was answering. Being wrong in that direction destroys the
    * only thing the answer is for.
@@ -2040,7 +2040,7 @@ ${lines}`,
    * fits in this machine's memory, and what actually ran. A setting records a
    * wish; only the router has a fact.
    */
-  #modelTool(): HelixTool {
+  #modelTool(): HavocTool {
     const switchVerbs = ['switch to', 'use ', 'change to', 'set model', 'switch model'];
     const askPhrases = [
       'which model',
@@ -2115,7 +2115,7 @@ ${lines}`,
    * match when one is confident enough; an ambiguous or absent match says so
    * rather than opening the wrong project.
    */
-  #projectTool(): HelixTool {
+  #projectTool(): HavocTool {
     const verbs = ['open', 'show', 'bring up', 'load', 'go to', 'take me to', 'display', 'launch'];
     /** Below this the match is too weak to act on without confirmation. */
     const CONFIDENT = 0.6;
@@ -2126,7 +2126,7 @@ ${lines}`,
       priority: 200,
       matches: (request) => {
         // "Why is it open" is not a request to open anything. It contained
-        // "open", which was enough to send Helix looking for a project called
+        // "open", which was enough to send Havoc looking for a project called
         // "why" and answering "You have no projects as yet".
         if (isQuestion(request.text)) return false;
         const lower = request.text.toLowerCase();
@@ -2226,7 +2226,7 @@ ${lines}`,
    * of the knowledge index: how many files it has a record for, and how many
    * of those records actually produced text. A scanned PDF is indexed and
    * unsearchable at the same time, and collapsing those into one number would
-   * have Helix tell a user to index a file that is already indexed.
+   * have Havoc tell a user to index a file that is already indexed.
    */
   async #briefingInput(): Promise<BriefingInput> {
     const [summaries, documents, memoryCount] = await Promise.all([
@@ -2269,13 +2269,13 @@ ${lines}`,
   /**
    * "Brief me".
    *
-   * Reads only what Helix itself holds. It deliberately does not reach for the
+   * Reads only what Havoc itself holds. It deliberately does not reach for the
    * demo vault, which is invented fixtures - a briefing that mixed real
    * projects with fictional clients would be indistinguishable from one that
    * made them all up, and the entire value of a briefing is that you can act
    * on it without checking it first.
    */
-  #briefingTool(): HelixTool {
+  #briefingTool(): HavocTool {
     const phrases = [
       'brief me',
       'briefing',
@@ -2287,7 +2287,7 @@ ${lines}`,
 
     return {
       name: 'briefMe',
-      description: 'Summarise what Helix holds, most-neglected first.',
+      description: 'Summarise what Havoc holds, most-neglected first.',
       priority: 250,
       matches: (request) => {
         const lower = request.text.toLowerCase();
@@ -2302,7 +2302,7 @@ ${lines}`,
   }
 
   /** "Plan my day": the same state, as things that can actually be done. */
-  #planTool(): HelixTool {
+  #planTool(): HavocTool {
     const phrases = [
       'plan my day',
       'plan the day',
@@ -2315,7 +2315,7 @@ ${lines}`,
 
     return {
       name: 'planDay',
-      description: 'Turn what Helix holds into an ordered, actionable list.',
+      description: 'Turn what Havoc holds into an ordered, actionable list.',
       priority: 250,
       matches: (request) => {
         const lower = request.text.toLowerCase();
@@ -2330,12 +2330,12 @@ ${lines}`,
   }
 
   /**
-   * Indexing, so that the plan's "I can do this" is a promise Helix can keep.
+   * Indexing, so that the plan's "I can do this" is a promise Havoc can keep.
    *
-   * A plan line claiming Helix can act, with no way to ask it to, is a lie
+   * A plan line claiming Havoc can act, with no way to ask it to, is a lie
    * with a pleasant tone of voice.
    */
-  #indexTool(): HelixTool {
+  #indexTool(): HavocTool {
     const phrases = ['index my files', 'index my projects', 'index everything', 'index the files'];
 
     return {
@@ -2417,7 +2417,7 @@ ${lines}`,
    * Inbox screen does it. Conversation gets no privileged path to somebody's
    * mailbox.
    */
-  async #actOnMail(intent: MailIntent, gmail: GmailProvider): Promise<HelixResponse | null> {
+  async #actOnMail(intent: MailIntent, gmail: GmailProvider): Promise<HavocResponse | null> {
     if (intent.kind === 'unread') return null;
 
     const targets = this.#resolveMail(intent.which);
@@ -2490,7 +2490,7 @@ ${full.text.slice(0, 4000)}`);
     };
   }
 
-  #inboxTool(): HelixTool {
+  #inboxTool(): HavocTool {
     return {
       name: 'readInbox',
       description: 'Read, archive, star or bin mail, once Gmail is connected.',
@@ -2507,7 +2507,7 @@ ${full.text.slice(0, 4000)}`);
         const intent = mailIntent(request.text, this.#listedMail.length > 0);
         if (intent === null) return null;
         // The requirement card was the honest answer when no mail provider
-        // existed. One does now, so returning it unconditionally had Helix
+        // existed. One does now, so returning it unconditionally had Havoc
         // telling the user a capability was "not written" while the code to
         // do it sat one call away - a stale claim, which is the same fault as
         // an optimistic one and fails in the direction nobody checks.
@@ -2589,7 +2589,7 @@ ${lines}${more}`,
    * Returns null when this is not an email request after all, so the caller
    * falls through to the card it would otherwise have shown.
    */
-  async #draftEmail(text: string): Promise<HelixResponse | null> {
+  async #draftEmail(text: string): Promise<HavocResponse | null> {
     const parsed = emailIntent(text);
     if (parsed === null) return null;
 
@@ -2667,13 +2667,13 @@ ${lines}${more}`,
   /**
    * "Email Marlow", "text her", "call the supplier".
    *
-   * Helix is permitted to do all three now and can do none of them, so the
+   * Havoc is permitted to do all three now and can do none of them, so the
    * reply says what it would take and what it would cost. The cost half is the
    * point: a message can be genuinely free and a telephone call cannot, and
    * someone deciding what to set up needs that difference stated rather than
    * discovered on a bill.
    */
-  #sendingTool(): HelixTool {
+  #sendingTool(): HavocTool {
     /**
      * Anchored at the start, on whole words.
      *
@@ -2682,7 +2682,7 @@ ${lines}${more}`,
      * that began with "bring". The verb has to be the first thing asked for,
      * after any politeness.
      */
-    const LEAD_IN = /^(?:can you |could you |would you |please |helix,? )+/;
+    const LEAD_IN = /^(?:can you |could you |would you |please |havoc,? )+/;
 
     const patterns: ReadonlyArray<{ kind: OutboundKind; pattern: RegExp }> = [
       { kind: 'call', pattern: /^(?:call|ring|phone)\b/ },
@@ -2738,10 +2738,10 @@ ${lines}${more}`,
    * Reading goes straight to the provider - it changes nothing and needs no
    * confirmation. Creating goes through `calendar.create`, so it inherits the
    * write permission and the always-confirm rule rather than re-deciding
-   * them here; an event lands at a specific time in a place Helix does not
+   * them here; an event lands at a specific time in a place Havoc does not
    * control, and the confirmation is where a misread day gets caught.
    */
-  #calendarTool(): HelixTool {
+  #calendarTool(): HavocTool {
     return {
       name: 'calendar',
       description: 'Read what is on the calendar, and add an event once confirmed.',
@@ -2842,7 +2842,7 @@ ${lines}${more}`,
    * the difference between agreeing to this document and agreeing to the idea
    * of a document.
    */
-  #docsTool(): HelixTool {
+  #docsTool(): HavocTool {
     return {
       name: 'googleDocs',
       description: 'Draft and format a document in Google Docs.',
@@ -2925,7 +2925,7 @@ ${lines}${more}`,
    * The search itself goes through the action runner, so it inherits the web
    * permission and the off switch without this tool knowing about either.
    */
-  #imageTool(): HelixTool {
+  #imageTool(): HavocTool {
     return {
       name: 'imageSearch',
       description: 'Search the web for pictures.',
@@ -2938,7 +2938,7 @@ ${lines}${more}`,
 
         if (intent.referencesSelection && intent.query === '') {
           // "Find images of this" needs a this. Reverse image search would be
-          // a different provider Helix does not have, and guessing a query
+          // a different provider Havoc does not have, and guessing a query
           // from the conversation would search for something nobody asked for.
           return {
             text: unavailable(
@@ -2993,19 +2993,19 @@ ${lines}${more}`,
    *
    * The matcher does the important work, in `slangRequest`: almost every
    * sentence containing the word is about slang rather than a request for it,
-   * so the rule is that a request must name the act. Helix never volunteers
+   * so the rule is that a request must name the act. Havoc never volunteers
    * slang, and nothing else in the orchestrator produces it.
    *
    * Two things are refused rather than guessed:
    *
    * - **"Say that in slang" with nothing said yet.** The subject is whatever
-   *   Helix last replied, and if there is no such reply the honest answer is
+   *   Havoc last replied, and if there is no such reply the honest answer is
    *   to ask, not to translate the request itself.
    * - **No model.** Slang is a rewrite, which needs one. Inventing a rewrite
    *   from a table of substitutions would be a worse answer wearing the same
    *   clothes.
    */
-  #slangTool(): HelixTool {
+  #slangTool(): HavocTool {
     return {
       name: 'slang',
       description: 'Rewrite something in slang, when asked to.',
@@ -3019,11 +3019,11 @@ ${lines}${more}`,
         let subject = asked.subject;
 
         if (subject === null) {
-          // Points at something already said: Helix's own last reply.
+          // Points at something already said: Havoc's own last reply.
           const conversation = await this.#conversations.get(request.conversationId);
           const previous = [...(conversation?.messages ?? [])]
             .reverse()
-            .find((message) => message.role === 'helix' && message.text.trim() !== '');
+            .find((message) => message.role === 'havoc' && message.text.trim() !== '');
 
           if (!previous) {
             return {
@@ -3068,7 +3068,7 @@ ${lines}${more}`,
           };
         }
 
-        // Deliberately not run through `repair`. That enforces Helix's own
+        // Deliberately not run through `repair`. That enforces Havoc's own
         // register, which is the opposite of what was asked for here - it
         // would put the slang back into plain English.
         return { text: rewritten, handled: true };
@@ -3077,7 +3077,7 @@ ${lines}${more}`,
   }
 
   /** "Look this up": the same shape, the same wall, with the query echoed back. */
-  #researchTool(): HelixTool {
+  #researchTool(): HavocTool {
     const prefixes = [
       'research ',
       'look up ',
@@ -3123,12 +3123,12 @@ ${lines}${more}`,
    * Search, then answer from what was found and from nothing else.
    *
    * The order matters and so does the failure handling. If the search finds
-   * nothing, Helix says so - it does not fall through to answering from the
+   * nothing, Havoc says so - it does not fall through to answering from the
    * model's own memory, because an answer that arrives after "searching the
    * web" carries the authority of a search whether or not one succeeded. That
    * is the specific dishonesty this method is arranged to prevent.
    */
-  async #searchAndAnswer(query: string): Promise<HelixResponse> {
+  async #searchAndAnswer(query: string): Promise<HavocResponse> {
     const research = this.#research as WebResearch;
 
     const finding = await this.#activity.track(
@@ -3184,12 +3184,12 @@ ${lines}${more}`,
    * alias and tells the UI to switch. No model is involved, so it works offline
    * and with no provider configured.
    */
-  #navigationTool(): HelixTool {
+  #navigationTool(): HavocTool {
     const verbs = ['open', 'show', 'go to', 'take me to', 'bring up', 'switch to', 'launch'];
 
     return {
       name: 'navigate',
-      description: 'Open a Helix workspace by name.',
+      description: 'Open a Havoc workspace by name.',
       priority: 100,
       matches: (request) => {
         const lower = request.text.toLowerCase();

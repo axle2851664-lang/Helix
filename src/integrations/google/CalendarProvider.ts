@@ -9,7 +9,7 @@ import type { InferenceTransport } from '../../ai/types.js';
  * One capability is deliberately absent. **Events are created without
  * attendees.** Adding one sends an invitation, which is mail to another
  * person, and the standing rule is that nothing reaches anybody else without
- * the user seeing the exact thing and agreeing to that specific one. Helix has
+ * the user seeing the exact thing and agreeing to that specific one. Havoc has
  * that flow for outbound drafts; wiring invitations into it is a separate
  * piece of work, and shipping a half-tested version that emails your
  * colleagues is the wrong way round. So this puts things on your own calendar

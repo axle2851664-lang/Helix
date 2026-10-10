@@ -3,7 +3,7 @@
  *
  * The return leg works because iOS Shortcuts has an Email automation trigger:
  * an automation can watch for mail from a given sender with a given subject
- * and run without being touched. So Helix replies, the phone wakes, and a
+ * and run without being touched. So Havoc replies, the phone wakes, and a
  * Shortcut reads a directive line and acts on it.
  *
  * That is a remote-control channel into a phone, which makes the design of
@@ -19,10 +19,10 @@
  * exact structural match. The model's prose is carried alongside, never parsed.
  *
  * **And the model's prose is scrubbed before it goes.** A reply that happens to
- * contain a line starting `helix-do:` - because the user asked Helix to explain
+ * contain a line starting `helix-do:` - because the user asked Havoc to explain
  * how directives work, or because a mail it summarised contained one - would be
  * executed by the phone. `stripDirectives` removes any such line from text
- * Helix did not generate as a directive, and the real one is appended
+ * Havoc did not generate as a directive, and the real one is appended
  * afterwards by code. Without that step this file would be an injection
  * vector with a friendly interface.
  *
@@ -116,7 +116,7 @@ export interface Directive {
 }
 
 /** Politeness that precedes an instruction without changing it. */
-const LEAD_IN = /^(?:(?:hey\s+)?helix[,.]?|please|could you|can you|would you|will you)\s+/;
+const LEAD_IN = /^(?:(?:hey\s+)?havoc[,.]?|please|could you|can you|would you|will you)\s+/;
 
 /** Longest trigger first, so "set the brightness to" beats "brightness". */
 const ORDERED = [...PHONE_ACTIONS]
@@ -160,7 +160,7 @@ function readOnOff(rest: string, whole: string): string | null {
 export function matchPhoneAction(instruction: string, answer = ''): Directive | null {
   let cleaned = instruction.trim().toLowerCase();
 
-  // Looped, because lead-ins chain. "Helix, could you set brightness to 25"
+  // Looped, because lead-ins chain. "Havoc, could you set brightness to 25"
   // carries two, and a single pass left the second in place and failed to
   // match a perfectly ordinary sentence.
   for (;;) {
@@ -189,7 +189,7 @@ export function matchPhoneAction(instruction: string, answer = ''): Directive | 
         return value === null ? null : { action: action.name, argument: value };
       }
       case 'text': {
-        // The thing to speak is Helix's own answer, not the instruction.
+        // The thing to speak is Havoc's own answer, not the instruction.
         const spoken = answer.trim();
         return spoken === '' ? null : { action: action.name, argument: oneLine(spoken) };
       }
@@ -205,13 +205,13 @@ function oneLine(text: string): string {
 }
 
 /**
- * Remove anything that looks like a directive from text Helix did not author
+ * Remove anything that looks like a directive from text Havoc did not author
  * as one.
  *
  * The step without which this whole file is an injection vector. Model prose
  * reaches the phone, and a line beginning `helix-do:` in that prose would be
- * executed - whether it got there because the user asked Helix to explain the
- * directive format, or because Helix summarised an email that contained one.
+ * executed - whether it got there because the user asked Havoc to explain the
+ * directive format, or because Havoc summarised an email that contained one.
  */
 export function stripDirectives(text: string): string {
   return text

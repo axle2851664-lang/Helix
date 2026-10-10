@@ -1,6 +1,6 @@
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
 import type { Logger } from '../core/Logger.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import {
   BILLABLE_KINDS,
   OutboundError,
@@ -16,7 +16,7 @@ import {
 /**
  * The outbox, and the transports it does not yet have.
  *
- * Helix may now send and call. It still cannot, because nothing is connected -
+ * Havoc may now send and call. It still cannot, because nothing is connected -
  * a browser with `connect-src 'self'` cannot reach a mail server or a
  * telephony provider, and neither exists in this build regardless. So every
  * draft made here sits in the outbox, confirmed or not, waiting for a
@@ -86,7 +86,7 @@ export class OutboundManager {
   transportBlocker(kind: OutboundKind): string | null {
     const transport = this.#transports.find((candidate) => candidate.kind === kind);
     if (!transport) {
-      return `Nothing in Helix can ${kind === 'call' ? 'place a call' : `send ${kind}`} yet. No provider is connected, and this build cannot reach one.`;
+      return `Nothing in Havoc can ${kind === 'call' ? 'place a call' : `send ${kind}`} yet. No provider is connected, and this build cannot reach one.`;
     }
     return transport.unavailableReason();
   }
@@ -118,7 +118,7 @@ export class OutboundManager {
 
   async #require(id: string): Promise<OutboundDraft> {
     const item = await this.get(id);
-    if (!item) throw new HelixError('NOT_FOUND', 'That draft no longer exists.');
+    if (!item) throw new HavocError('NOT_FOUND', 'That draft no longer exists.');
     return item;
   }
 
@@ -130,7 +130,7 @@ export class OutboundManager {
     try {
       confirmed = confirm(item, now);
     } catch (error) {
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
         error instanceof OutboundError ? error.message : 'That could not be confirmed.',
       );
@@ -166,19 +166,19 @@ export class OutboundManager {
 
     const blocked = blockedReason(item, now);
     if (blocked !== null) {
-      throw new HelixError('VALIDATION_FAILED', blocked);
+      throw new HavocError('VALIDATION_FAILED', blocked);
     }
 
     const transportProblem = this.transportBlocker(item.kind);
     if (transportProblem !== null) {
       // Not a failure of the draft: it stays confirmed and waiting, because
       // the draft is fine and the world is not.
-      throw new HelixError('PROVIDER_NOT_CONFIGURED', transportProblem);
+      throw new HavocError('PROVIDER_NOT_CONFIGURED', transportProblem);
     }
 
     const transport = this.#transports.find((candidate) => candidate.kind === item.kind);
     if (!transport) {
-      throw new HelixError('PROVIDER_NOT_CONFIGURED', this.transportBlocker(item.kind) ?? '');
+      throw new HavocError('PROVIDER_NOT_CONFIGURED', this.transportBlocker(item.kind) ?? '');
     }
 
     try {
@@ -194,7 +194,7 @@ export class OutboundManager {
       this.#logger.error('Send failed.', { id, error });
       this.#notify();
 
-      throw new HelixError('INTERNAL', `That could not be sent: ${failed.reason}`);
+      throw new HavocError('INTERNAL', `That could not be sent: ${failed.reason}`);
     }
 
     const sent: OutboundDraft = { ...item, state: 'sent', settledAt: now };

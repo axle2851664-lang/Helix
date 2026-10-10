@@ -1,5 +1,5 @@
 /**
- * The Helix Earth stack, as a decision record.
+ * The Havoc Earth stack, as a decision record.
  *
  * These providers were chosen by the user. This file records what each one is
  * for, what it will need before it can be wired, and - separately, and just as
@@ -83,7 +83,7 @@ export const EARTH_PROVIDERS: readonly EarthProvider[] = [
       'Its own assets - workers, shaders, web workers - are served as static files and would need to sit alongside the MediaPipe and ONNX assets already vendored.',
     ],
     toConfirm: [
-      'Current package size and whether the asset payload can be trimmed to what Helix uses.',
+      'Current package size and whether the asset payload can be trimmed to what Havoc uses.',
       'Whether the intended imagery and terrain come from Cesium ion, which needs a token, or from the other providers below, which do not.',
     ],
   },
@@ -105,7 +105,7 @@ export const EARTH_PROVIDERS: readonly EarthProvider[] = [
     ],
     toConfirm: [
       'The current free allowance and the rate at which it bills beyond it. I do not know these to current accuracy and will not guess at them.',
-      'Whether a token scoped to Helix can be restricted by referrer or by scope, and whether that is enough to hold it in a browser at all.',
+      'Whether a token scoped to Havoc can be restricted by referrer or by scope, and whether that is enough to hold it in a browser at all.',
       'The exact attribution wording their present terms require.',
     ],
   },
@@ -127,7 +127,7 @@ export const EARTH_PROVIDERS: readonly EarthProvider[] = [
       SHELL_BLOCKER,
     ],
     toConfirm: [
-      'Whether the GIBS tile endpoints Helix would use are open without an Earthdata login, and which products are not.',
+      'Whether the GIBS tile endpoints Havoc would use are open without an Earthdata login, and which products are not.',
       'The current tile matrix sets and layer identifiers, which change as layers are added and retired.',
       'The attribution wording their present terms ask for.',
     ],
@@ -144,12 +144,12 @@ export const EARTH_PROVIDERS: readonly EarthProvider[] = [
     licence: 'ODbL. Attribution is required, and derived data carries the share-alike terms.',
     blockers: [
       CSP_BLOCKER,
-      "The public tile server has a usage policy that forbids heavy or bulk use by applications. Helix must either use a permitted tile host or serve its own, and must not point at openstreetmap.org's tiles by default.",
+      "The public tile server has a usage policy that forbids heavy or bulk use by applications. Havoc must either use a permitted tile host or serve its own, and must not point at openstreetmap.org's tiles by default.",
       SHELL_BLOCKER,
     ],
     toConfirm: [
-      'Which tile host Helix should use. This is a real decision, not a detail: the free community servers are not for application traffic.',
-      'Whether Helix needs the raw data or only rendered tiles - the share-alike terms bite very differently on each.',
+      'Which tile host Havoc should use. This is a real decision, not a detail: the free community servers are not for application traffic.',
+      'Whether Havoc needs the raw data or only rendered tiles - the share-alike terms bite very differently on each.',
     ],
   },
   {
@@ -173,7 +173,7 @@ export const EARTH_PROVIDERS: readonly EarthProvider[] = [
       'The licence, and whether attribution is required.',
       'Whether it needs an account or a token.',
       'Its tile format, and whether CesiumJS can consume it without a translation layer.',
-      'Whether it is maintained and hosted at a scale Helix can rely on.',
+      'Whether it is maintained and hosted at a scale Havoc can rely on.',
     ],
   },
   {
@@ -209,7 +209,7 @@ export const EARTH_PROVIDERS: readonly EarthProvider[] = [
       SHELL_BLOCKER,
     ],
     toConfirm: [
-      'Which access route Helix would use, and whether it needs registration.',
+      'Which access route Havoc would use, and whether it needs registration.',
       'The current attribution wording.',
     ],
   },
@@ -235,7 +235,7 @@ export function providersByRole(role: ProviderRole): EarthProvider[] {
 }
 
 /**
- * Every attribution the stack obliges Helix to display.
+ * Every attribution the stack obliges Havoc to display.
  *
  * Collected in one place because attribution is a licence term, not a
  * courtesy: OpenStreetMap and Mapbox both require it, and a globe that renders

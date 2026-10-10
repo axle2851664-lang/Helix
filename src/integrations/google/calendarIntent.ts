@@ -9,7 +9,7 @@
  *
  * Two intents, kept apart because they carry different risk. Reading is
  * harmless and needs no confirmation. Creating changes something outside
- * Helix, so it goes through `calendar.create`, whose confirmation is where a
+ * Havoc, so it goes through `calendar.create`, whose confirmation is where a
  * misread day gets caught. The `when` text is passed through untouched - this
  * parser deliberately does not try to understand it, because the strict
  * parser behind the action is the one place that should decide whether a

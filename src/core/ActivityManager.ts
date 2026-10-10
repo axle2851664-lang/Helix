@@ -1,7 +1,7 @@
 import type { EventBus } from './EventBus.js';
 
 /**
- * Tracks what Helix is actually doing, for the ACTIVE OPERATION panel.
+ * Tracks what Havoc is actually doing, for the ACTIVE OPERATION panel.
  *
  * The whole value of this module is that it cannot be faked. Activities are
  * started and ended by the code that performs the work, using a token, so the

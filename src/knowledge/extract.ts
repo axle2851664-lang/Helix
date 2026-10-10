@@ -4,7 +4,7 @@ import { MAX_PAGES, PdfExtractionError, extractPdfText } from './pdf.js';
 /**
  * Text extraction from stored assets (spec 12: indexing, search, previews).
  *
- * Helix indexes what it can genuinely read, and says so for the rest. A
+ * Havoc indexes what it can genuinely read, and says so for the rest. A
  * photograph is stored perfectly well but cannot be turned into text without
  * OCR - reporting that is the whole point of `ExtractionResult.reason`,
  * rather than indexing an empty string and leaving the user to wonder why
@@ -25,7 +25,7 @@ export interface ExtractionResult {
   reason?: string;
 }
 
-/** Extensions Helix can read as plain text with no additional dependency. */
+/** Extensions Havoc can read as plain text with no additional dependency. */
 const TEXT_EXTENSIONS = new Set([
   'txt', 'md', 'markdown', 'csv', 'tsv', 'json', 'yaml', 'yml', 'xml', 'rtf',
 ]);
@@ -71,7 +71,7 @@ export function extractionBlocker(fileName: string, kind: AssetKind): string | n
   const extension = extensionOf(fileName);
   return (
     KNOWN_UNSUPPORTED[extension] ??
-    `Helix cannot read .${extension || 'unknown'} files as text yet.`
+    `Havoc cannot read .${extension || 'unknown'} files as text yet.`
   );
 }
 

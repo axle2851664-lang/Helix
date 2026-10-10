@@ -3,10 +3,10 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
 
 /**
- * Helix build configuration.
+ * Havoc build configuration.
  *
- * `base: './'` is deliberate and load-bearing: Helix must run from a portable
- * drive whose letter can change (E:\Helix -> F:\Helix) and, in a later phase,
+ * `base: './'` is deliberate and load-bearing: Havoc must run from a portable
+ * drive whose letter can change (E:\Havoc -> F:\Havoc) and, in a later phase,
  * from inside a Tauri WebView. Absolute asset paths would break both.
  * See docs/PORTABLE.md.
  */
@@ -15,7 +15,7 @@ export default defineConfig({
   /**
    * When this interface was built, frozen into the bundle.
    *
-   * An installed Helix carries the frontend from the day it was built and
+   * An installed Havoc carries the frontend from the day it was built and
    * cannot be changed by pulling source; a dev build is whatever is on disk
    * now. Those two look identical on screen, and telling them apart cost six
    * rounds of debugging: fixes were pulled, rebuilt and verified while an
@@ -24,7 +24,7 @@ export default defineConfig({
    * even my code" is answered by looking rather than by guessing.
    */
   define: {
-    __HELIX_BUILT_AT__: JSON.stringify(new Date().toISOString()),
+    __HAVOC_BUILT_AT__: JSON.stringify(new Date().toISOString()),
   },
   plugins: [react()],
   resolve: {

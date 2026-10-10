@@ -8,10 +8,10 @@
  * words.
  *
  * ON TYPOS, WHICH ARE MOSTLY NOT TYPOS. Dictation is the main way anyone talks
- * to Helix, and a speech recogniser does two things reliably: it splits
+ * to Havoc, and a speech recogniser does two things reliably: it splits
  * compound words ("notepad" becomes "note pad", then "not pad"), and it
  * produces a near-miss on an uncommon one ("noats", "helux"). Neither is the
- * user making a mistake, so failing on them is Helix's fault rather than
+ * user making a mistake, so failing on them is Havoc's fault rather than
  * theirs. Both are repaired here, before anything tries to match.
  *
  * The repair is deliberately conservative. A correction is only made towards a
@@ -38,7 +38,7 @@ const SPLIT_COMPOUNDS: ReadonlyArray<readonly [RegExp, string]> = [
 
 /** Filler that carries no meaning and only confuses a matcher. */
 const FILLER: readonly RegExp[] = [
-  /^(?:hey\s+|ok(?:ay)?\s+|so\s+|um+\s+|uh+\s+|well\s+|right\s+)?helix[,:]?\s*/i,
+  /^(?:hey\s+|ok(?:ay)?\s+|so\s+|um+\s+|uh+\s+|well\s+|right\s+)?havoc[,:]?\s*/i,
   /^(?:please|could you|can you|would you|will you|i want you to|i'?d like you to|i need you to)\s+/i,
   /^(?:um+|uh+|er+|so|well|ok(?:ay)?|right|yeah|hey)[,\s]+/i,
   /\s+(?:please|thanks|thank you|mate|pal)\s*$/i,
@@ -195,7 +195,7 @@ export function normalise(input: string, vocabulary: readonly string[] = []): No
   let text = input.trim();
   for (const [pattern, word] of SPLIT_COMPOUNDS) text = text.replace(pattern, word);
 
-  // Filler is stripped repeatedly: "ok helix, could you ..." has three layers.
+  // Filler is stripped repeatedly: "ok havoc, could you ..." has three layers.
   let previous = '';
   while (previous !== text) {
     previous = text;

@@ -13,7 +13,7 @@ import type { KeyValueStore } from '../storage/KeyValueStore.js';
  * ring still happens at the right time or immediately on waking.
  *
  * ON WHAT THIS CANNOT DO, STATED RATHER THAN IMPLIED. An alarm here rings only
- * while Helix is running. There is no operating-system scheduling behind it,
+ * while Havoc is running. There is no operating-system scheduling behind it,
  * so closing the app means the alarm does not sound - and a missed one is
  * reported as missed, with the time it was due, rather than being quietly
  * dropped or rung late as though nothing happened. `wouldSleepThrough` exists
@@ -55,7 +55,7 @@ export interface AlarmRecord extends Base {
   at: number;
   ringing: boolean;
   /**
-   * True when its moment passed while Helix was not running.
+   * True when its moment passed while Havoc was not running.
    *
    * Reported, not hidden. An alarm that did not sound is a failure the user
    * needs to know about, and silently ringing it hours late is worse.
@@ -129,7 +129,7 @@ export class TimeKeeper {
   /**
    * Read what was running before.
    *
-   * Timers whose moment passed while Helix was closed come back ringing, and
+   * Timers whose moment passed while Havoc was closed come back ringing, and
    * alarms come back marked missed if their moment is well past. Both are
    * surfaced rather than cleaned up: the user asked for something to happen at
    * a time, and whether it did is information they are owed.
@@ -142,7 +142,7 @@ export class TimeKeeper {
      * A broken store costs the timers, not the session.
      *
      * This threw, and the kernel awaits it during startup - so a storage
-     * failure took Helix down at boot instead of costing it the one feature
+     * failure took Havoc down at boot instead of costing it the one feature
      * that needs storage. Nothing here is important enough to refuse to
      * start over: an empty list is the honest state when nothing can be
      * read, and `#announce` already swallows the matching write failure.

@@ -1,4 +1,4 @@
-# Helix Storage
+# Havoc Storage
 
 > **Phase 1 status:** `StorageManager` is **not yet implemented** (phase 2). This
 > document records the design and, importantly, the measured constraints it must
@@ -6,7 +6,7 @@
 
 ## The ceiling, and what it really means here
 
-The specification sets an absolute limit of **500 GB**, with a preferred Helix
+The specification sets an absolute limit of **500 GB**, with a preferred Havoc
 Core footprint under 150 GB.
 
 **No volume on the development machine can approach that figure.**
@@ -75,7 +75,7 @@ events rather than polling.
 ## FAT32 caution
 
 `G:` reports as FAT32, which imposes a **4 GB maximum file size**. Most GGUF
-model files exceed that, and SQLite behaves poorly there. Helix must detect the
+model files exceed that, and SQLite behaves poorly there. Havoc must detect the
 filesystem of its data volume and refuse to install oversized models onto FAT32
 with a clear explanation, rather than failing mid-write. Portable deployments
 should use NTFS or exFAT.

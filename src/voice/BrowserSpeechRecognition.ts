@@ -11,11 +11,11 @@ import type {
  * Chrome and Edge implement `SpeechRecognition` by streaming microphone audio
  * to a Google speech service. It is NOT on-device, despite being a browser API
  * with no key. `processing` is therefore 'remote' and `requiresNetwork` is
- * true, and VoiceManager refuses to start it while Helix is in offline mode.
+ * true, and VoiceManager refuses to start it while Havoc is in offline mode.
  * A user who believes their voice stays on the machine must be told otherwise
  * (spec 9: microphone access must always be clearly indicated).
  *
- * Nothing is recorded or stored. Audio is streamed by the browser and Helix
+ * Nothing is recorded or stored. Audio is streamed by the browser and Havoc
  * keeps only the resulting text, which the log redactor never sees.
  */
 

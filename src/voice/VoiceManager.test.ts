@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VoiceManager } from './VoiceManager.js';
 import { ActivityManager } from '../core/ActivityManager.js';
 import { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import { Logger } from '../core/Logger.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
@@ -238,7 +238,7 @@ describe('VoiceManager: listening', () => {
     stt.failOnStart = 'Microphone access was denied.';
     const { voice } = await makeVoice({ stt, bus });
 
-    await expect(voice.listen()).rejects.toThrow(HelixError);
+    await expect(voice.listen()).rejects.toThrow(HavocError);
     expect(started).not.toHaveBeenCalled();
     expect(voice.snapshot.micLive).toBe(false);
   });
@@ -397,7 +397,7 @@ describe('VoiceManager: speaking and interruption', () => {
     expect(description).toContain('Microsoft David');
   });
 
-  // Spec 9: the user must be able to interrupt Helix.
+  // Spec 9: the user must be able to interrupt Havoc.
   it('stopSpeaking cancels synthesis', async () => {
     const { voice, tts } = await makeVoice();
     voice.stopSpeaking();

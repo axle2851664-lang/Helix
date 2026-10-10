@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NotepadManager, deriveTitle } from './NotepadManager.js';
 import { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import { Logger } from '../core/Logger.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
 
@@ -35,7 +35,7 @@ describe('writing a note', () => {
 
   /**
    * Derived, never invented: every character comes from what the user wrote.
-   * A title Helix made up would be Helix's words in a list of the user's.
+   * A title Havoc made up would be Havoc's words in a list of the user's.
    */
   it('derives a title from the first line when none is given', async () => {
     const { notepad } = makeNotepad();
@@ -59,7 +59,7 @@ describe('writing a note', () => {
 
   it('refuses an empty note rather than storing a blank one', async () => {
     const { notepad } = makeNotepad();
-    await expect(notepad.save({ content: '   ' })).rejects.toBeInstanceOf(HelixError);
+    await expect(notepad.save({ content: '   ' })).rejects.toBeInstanceOf(HavocError);
     expect(await notepad.count()).toBe(0);
   });
 
@@ -67,7 +67,7 @@ describe('writing a note', () => {
     const { notepad } = makeNotepad();
     // Silently keeping the first hundred thousand characters would be the
     // worst outcome available: it looks saved and it is not.
-    await expect(notepad.save({ content: 'x'.repeat(100_001) })).rejects.toBeInstanceOf(HelixError);
+    await expect(notepad.save({ content: 'x'.repeat(100_001) })).rejects.toBeInstanceOf(HavocError);
     expect(await notepad.count()).toBe(0);
   });
 
@@ -99,14 +99,14 @@ describe('credentials', () => {
     const { notepad } = makeNotepad();
     await expect(
       notepad.save({ content: 'sk-ant-api03-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' }),
-    ).rejects.toBeInstanceOf(HelixError);
+    ).rejects.toBeInstanceOf(HavocError);
     expect(await notepad.count()).toBe(0);
   });
 
   it('refuses a labelled password', async () => {
     const { notepad } = makeNotepad();
     await expect(notepad.save({ content: 'password: hunter2isnotsecure' })).rejects.toBeInstanceOf(
-      HelixError,
+      HavocError,
     );
   });
 
@@ -115,9 +115,9 @@ describe('credentials', () => {
     const error = await notepad
       .save({ content: 'password: hunter2isnotsecure' })
       .then(() => null)
-      .catch((caught: unknown) => caught as HelixError);
+      .catch((caught: unknown) => caught as HavocError);
 
-    expect(error).toBeInstanceOf(HelixError);
+    expect(error).toBeInstanceOf(HavocError);
     expect(error?.message).toMatch(/credential|password|key/i);
     // The rejected content is never repeated back, here or in the log.
     expect(error?.message).not.toContain('hunter2');
@@ -133,7 +133,7 @@ describe('credentials', () => {
 
     await expect(
       notepad.update(note.id, { content: 'password: hunter2isnotsecure' }),
-    ).rejects.toBeInstanceOf(HelixError);
+    ).rejects.toBeInstanceOf(HavocError);
 
     expect((await notepad.get(note.id))?.content).toBe('Nothing sensitive here.');
   });
@@ -144,7 +144,7 @@ describe('credentials', () => {
 
     await expect(
       notepad.append(note.id, 'password: hunter2isnotsecure'),
-    ).rejects.toBeInstanceOf(HelixError);
+    ).rejects.toBeInstanceOf(HavocError);
   });
 });
 
@@ -160,7 +160,7 @@ describe('changing a note', () => {
   });
 
   /**
-   * A title the user chose is theirs. A title Helix derived should follow the
+   * A title the user chose is theirs. A title Havoc derived should follow the
    * text it was derived from, or a note whose first line has been rewritten
    * keeps a title that no longer appears anywhere in it.
    */
@@ -190,8 +190,8 @@ describe('changing a note', () => {
 
   it('says so when the note is not there', async () => {
     const { notepad } = makeNotepad();
-    await expect(notepad.update('note_nothing', { content: 'x' })).rejects.toBeInstanceOf(HelixError);
-    await expect(notepad.append('note_nothing', 'x')).rejects.toBeInstanceOf(HelixError);
+    await expect(notepad.update('note_nothing', { content: 'x' })).rejects.toBeInstanceOf(HavocError);
+    await expect(notepad.append('note_nothing', 'x')).rejects.toBeInstanceOf(HavocError);
   });
 });
 
@@ -269,7 +269,7 @@ describe('finding a note again', () => {
 
   /**
    * The excerpt exists so the user can see why a note came back. It has to be
-   * their words: a summary would be Helix's words presented as theirs.
+   * their words: a summary would be Havoc's words presented as theirs.
    */
   it('quotes the line it matched rather than summarising it', async () => {
     const { notepad } = makeNotepad();

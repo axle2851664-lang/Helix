@@ -46,7 +46,7 @@ export function generateKey(): string {
   const source = globalThis.crypto;
   if (!source?.getRandomValues) {
     throw new Error(
-      'This browser has no cryptographic random generator, so Helix cannot make a key you could rely on.',
+      'This browser has no cryptographic random generator, so Havoc cannot make a key you could rely on.',
     );
   }
 
@@ -80,7 +80,7 @@ export function normaliseHost(input: string): string {
 /** The reason this address cannot be used, or null when it can. */
 export function hostProblem(input: string): string | null {
   const host = normaliseHost(input);
-  if (host === '') return 'Helix needs the address your phone will use to reach this machine.';
+  if (host === '') return 'Havoc needs the address your phone will use to reach this machine.';
   if (/\s/.test(host)) return 'An address cannot contain spaces.';
   // Deliberately permissive beyond that: Tailscale names, plain hostnames,
   // IPv4 and IPv6 all look different, and refusing an unfamiliar shape would
@@ -93,7 +93,7 @@ export function hostProblem(input: string): string | null {
 
 export function portProblem(port: number): string | null {
   if (!Number.isInteger(port)) return 'The port must be a whole number.';
-  // Below 1024 needs privileges Helix does not ask for.
+  // Below 1024 needs privileges Havoc does not ask for.
   if (port < 1024 || port > 65535) return 'The port must be between 1024 and 65535.';
   return null;
 }
@@ -123,7 +123,7 @@ export function endpointUrl(details: Pick<PairingDetails, 'host' | 'port'>): str
  * A code that decodes to an unlabelled blob makes them guess which is which.
  */
 export function pairingText(details: PairingDetails): string {
-  return ['Helix', `URL: ${endpointUrl(details)}`, `Key: ${details.key.trim()}`].join('\n');
+  return ['Havoc', `URL: ${endpointUrl(details)}`, `Key: ${details.key.trim()}`].join('\n');
 }
 
 /**

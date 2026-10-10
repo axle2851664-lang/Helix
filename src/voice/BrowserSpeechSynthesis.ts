@@ -17,7 +17,7 @@ export class BrowserSpeechSynthesis implements TextToSpeechProvider {
   readonly id = 'browser';
   readonly name = 'Browser speech synthesis';
   // Most voices are local, but the API does not distinguish reliably, and
-  // guessing 'on-device' would be a privacy claim Helix cannot support.
+  // guessing 'on-device' would be a privacy claim Havoc cannot support.
   readonly processing = 'unknown' as const;
 
   get speaking(): boolean {

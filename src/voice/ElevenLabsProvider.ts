@@ -81,7 +81,7 @@ function fromBase64(encoded: string): ArrayBuffer {
 function shellMissing(): ProviderAvailability {
   return {
     available: false,
-    reason: 'ElevenLabs needs the Helix desktop app, which is where the key is held.',
+    reason: 'ElevenLabs needs the Havoc desktop app, which is where the key is held.',
   };
 }
 
@@ -399,7 +399,7 @@ export class ElevenLabsTextToSpeech implements TextToSpeechProvider {
 
     const encoded = await invoke<string>('elevenlabs_speak', { text: spoken, voiceId });
     // Cancelled while the audio was being synthesised. Playing it now would
-    // mean Helix talking over the thing that interrupted it.
+    // mean Havoc talking over the thing that interrupted it.
     if (generation !== this.#generation) return;
 
     // A blob URL, not a data: URL. The content policy allows `media-src

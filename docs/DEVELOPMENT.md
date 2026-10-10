@@ -1,4 +1,4 @@
-# Helix Development
+# Havoc Development
 
 ## Environment
 
@@ -49,7 +49,7 @@ That is typecheck → tests → production build. All three must pass.
 
 ## Conventions
 
-- **Small modules with clear interfaces.** HelixCore in particular must never
+- **Small modules with clear interfaces.** HavocCore in particular must never
   become one large file.
 - **Depend on interfaces, not hosts.** Never reference `window.__TAURI__` or a
   browser-only global outside `src/platform/`.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { HavocOrchestrator } from './HavocOrchestrator.js';
 import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
@@ -31,7 +31,7 @@ async function talk(confirms: boolean | null = true) {
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
   const activity = new ActivityManager();
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const notepad = new NotepadManager({ store: kv, logger });
@@ -49,7 +49,7 @@ async function talk(confirms: boolean | null = true) {
           confirmer: async () => confirms,
         });
 
-  const orchestrator = new HelixOrchestrator({
+  const orchestrator = new HavocOrchestrator({
     settings,
     conversations,
     activity,
@@ -72,7 +72,7 @@ describe('the first conversation in the brief', () => {
 
     expect((await say('Open Notepad.')).navigateTo).toBe('notepad');
 
-    const created = await say('Create a note called Helix Ideas.');
+    const created = await say('Create a note called Havoc Ideas.');
     expect(created.handled).toBe(true);
 
     const added = await say('Add the new aura design to it.');
@@ -139,10 +139,10 @@ describe('corrections', () => {
   it('redirects to the other note instead of starting again', async () => {
     const { say, notepad } = await talk();
     await notepad.save({ content: 'Blender\n\nModelling notes.' });
-    await notepad.save({ content: 'Helix\n\nAssistant notes.' });
+    await notepad.save({ content: 'Havoc\n\nAssistant notes.' });
 
     await say('Open my Blender notes.');
-    const redirected = await say('No, I meant the Helix notes.');
+    const redirected = await say('No, I meant the Havoc notes.');
 
     expect(redirected.handled).toBe(true);
     expect(redirected.navigateTo).toBe('notepad');
@@ -225,7 +225,7 @@ describe('what it must not take over', () => {
   });
 });
 
-describe('questions about Helix itself', () => {
+describe('questions about Havoc itself', () => {
   /**
    * A 1B model told the user they could grant file access by typing a magic
    * phrase. They typed it, and the understanding layer opened the Files
@@ -263,8 +263,8 @@ describe('questions about Helix itself', () => {
 
 describe('chat that is not an instruction', () => {
   /**
-   * Every one of these was acted on. The user was correcting Helix's English,
-   * thanking it, or asking it to explain itself, and Helix went looking
+   * Every one of these was acted on. The user was correcting Havoc's English,
+   * thanking it, or asking it to explain itself, and Havoc went looking
    * through their files.
    */
   it('falls through to conversation instead of acting', async () => {
@@ -345,7 +345,7 @@ describe('the clock', () => {
 
   /**
    * The contextual case from the brief. "That" has to resolve to the thing
-   * Helix just put on screen, not to whichever note was last touched.
+   * Havoc just put on screen, not to whichever note was last touched.
    */
   it('understands "close that" as the clock it just opened', async () => {
     for (const said of ['Close that.', 'Go back.', "That's enough."]) {
@@ -369,11 +369,11 @@ describe('the clock', () => {
 describe('facts the user marks as true', () => {
   it('stores a marked fact in long-term memory', async () => {
     const { say, memory } = await talk();
-    const response = await say('The truth is that my project is called Helix.');
+    const response = await say('The truth is that my project is called Havoc.');
 
     expect(await memory.count()).toBe(1);
     const stored = (await memory.list())[0];
-    expect(stored?.content).toContain('my project is called Helix');
+    expect(stored?.content).toContain('my project is called Havoc');
     expect(stored?.tags).toContain('truth');
     expect(stored?.tags).toContain('user-stated');
     expect(response.text).toContain('You told me');
@@ -403,7 +403,7 @@ describe('facts the user marks as true', () => {
 
   /**
    * Being told something does not make it so. A stored claim is read back as
-   * something the user said, never as something Helix knows.
+   * something the user said, never as something Havoc knows.
    */
   it('never reads a stored claim back as verified fact', async () => {
     const { say } = await talk();

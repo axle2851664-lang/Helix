@@ -17,7 +17,7 @@ import type { ConversationState, FocusedObject } from './state.js';
  *     -> reference?       does "it" or "the second one" name the target
  *     -> decide           act, ask, or say what is unclear
  *
- * THE DECISION IS THE POINT. Every earlier matcher in Helix answered a
+ * THE DECISION IS THE POINT. Every earlier matcher in Havoc answered a
  * boolean, so there were only ever two outcomes: run the tool, or fall through
  * to a model that had no idea a tool existed. There was no way to express "I
  * am fairly sure you mean the Notepad but not sure enough to delete
@@ -126,7 +126,7 @@ function opensWithAQuestion(normalised: Normalised): boolean {
  * Exported because the older keyword matchers need the same distinction and
  * should not each invent their own. "Why is it open" contains "open", which
  * was enough for the project tool to go looking for a project called "why" and
- * answer "You have no projects as yet" - to a user who was asking why Helix
+ * answer "You have no projects as yet" - to a user who was asking why Havoc
  * had just opened something.
  *
  * Polite requests are not questions by the time this sees them: `normalise`
@@ -156,8 +156,8 @@ export function understandClause(text: string, state: ConversationState): Unders
 
   /**
    * A correction is about the last action, so the sentence to understand is
-   * what is left after the marker - "no, I meant the Helix notes" is
-   * understood as "the Helix notes", carrying the verb forward from before.
+   * what is left after the marker - "no, I meant the Havoc notes" is
+   * understood as "the Havoc notes", carrying the verb forward from before.
    */
   const effective = correction?.kind === 'replace' ? correction.remainder : text;
   const normalised = normalise(effective, vocabulary());
@@ -172,7 +172,7 @@ export function understandClause(text: string, state: ConversationState): Unders
     /**
      * "Stop it" means stop the thing, when there is a thing.
      *
-     * A bare abort normally cancels the request Helix is working on, which is
+     * A bare abort normally cancels the request Havoc is working on, which is
      * right for "never mind" and for "stop" said over an answer. But with a
      * timer or a stopwatch in focus, "stop it" and "cancel that" are plainly
      * about that - and it is the most natural thing anyone says to a timer
@@ -213,12 +213,12 @@ export function understandClause(text: string, state: ConversationState): Unders
   if (resolved) because.push(`${resolved.how} is ${resolved.object.label}`);
 
   /**
-   * A question about what Helix just did is not an instruction to do it again.
+   * A question about what Havoc just did is not an instruction to do it again.
    *
    * "Which file", "why did you open the files", "why is it open" were all
    * being claimed - "which" and "what" are search words, "file" is a subject,
-   * and the score came out at 0.9. The user was asking Helix to explain
-   * itself and Helix went looking through their files.
+   * and the score came out at 0.9. The user was asking Havoc to explain
+   * itself and Havoc went looking through their files.
    *
    * A clause that opens with a question word is therefore only an instruction
    * when a phrase in the registry says so - "what did I write about X" is a
@@ -252,7 +252,7 @@ export function understandClause(text: string, state: ConversationState): Unders
   /**
    * An instruction with no subject, while something is open.
    *
-   *   Helix: "Website redesign" open.
+   *   Havoc: "Website redesign" open.
    *   User:  Add the login issue.
    *
    * Names no capability and contains no pronoun either - there is nothing to
@@ -377,7 +377,7 @@ export function understandClause(text: string, state: ConversationState): Unders
    *
    * This is where "delete that" with three candidates becomes a question
    * rather than a deletion. An unresolved reference lands here too: the user
-   * clearly meant something, and Helix clearly does not know what.
+   * clearly meant something, and Havoc clearly does not know what.
    */
   const hasTarget = best.target !== '' || object !== undefined;
   if (best.needsTarget && !hasTarget) {

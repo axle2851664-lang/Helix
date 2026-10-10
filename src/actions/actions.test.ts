@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import { Logger } from '../core/Logger.js';
 import { PermissionManager, type PermissionPrompter } from '../security/PermissionManager.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
@@ -152,7 +152,7 @@ describe('running an action', () => {
       status: 'refused',
       action: 'files.deleteEverything',
       reason: 'unknown-action',
-      message: 'Helix has no action called "files.deleteEverything".',
+      message: 'Havoc has no action called "files.deleteEverything".',
     });
   });
 
@@ -160,13 +160,13 @@ describe('running an action', () => {
     const { runner } = makeRunner(
       makeAction({
         run: async () => {
-          throw new HelixError('PROVIDER_UNREACHABLE', 'Helix could not reach the thing.');
+          throw new HavocError('PROVIDER_UNREACHABLE', 'Havoc could not reach the thing.');
         },
       }),
     );
     const result = await runner.run('test.act');
     expect(result.status).toBe('failed');
-    expect(result.status === 'failed' && result.message).toBe('Helix could not reach the thing.');
+    expect(result.status === 'failed' && result.message).toBe('Havoc could not reach the thing.');
   });
 
   it('does not put an unexpected error in front of the user', async () => {
@@ -341,7 +341,7 @@ describe('confirmation', () => {
   });
 });
 
-describe('what the rest of Helix is told', () => {
+describe('what the rest of Havoc is told', () => {
   it('announces every run, refusals included', async () => {
     const bus = new EventBus();
     const seen: string[] = [];

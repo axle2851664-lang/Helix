@@ -1,9 +1,9 @@
-import type { HelixEventMap, HelixEventName } from './events.js';
+import type { HavocEventMap, HavocEventName } from './events.js';
 
 export type Unsubscribe = () => void;
 
-export type HelixEventHandler<K extends HelixEventName> = (
-  payload: HelixEventMap[K],
+export type HavocEventHandler<K extends HavocEventName> = (
+  payload: HavocEventMap[K],
 ) => void;
 
 /** Injected so the bus never reaches for a global logger (spec 22/33). */
@@ -36,7 +36,7 @@ const DEFAULT_MAX_LISTENERS = 64;
  *   themselves; the bus stays predictable and easy to test.
  */
 export class EventBus {
-  readonly #handlers = new Map<HelixEventName, Set<(payload: never) => void>>();
+  readonly #handlers = new Map<HavocEventName, Set<(payload: never) => void>>();
   readonly #logger: EventBusLogger | undefined;
   readonly #maxListeners: number;
 
@@ -45,7 +45,7 @@ export class EventBus {
     this.#maxListeners = options.maxListenersPerEvent ?? DEFAULT_MAX_LISTENERS;
   }
 
-  on<K extends HelixEventName>(event: K, handler: HelixEventHandler<K>): Unsubscribe {
+  on<K extends HavocEventName>(event: K, handler: HavocEventHandler<K>): Unsubscribe {
     let set = this.#handlers.get(event);
     if (!set) {
       set = new Set();
@@ -68,7 +68,7 @@ export class EventBus {
   }
 
   /** Subscribe for exactly one dispatch, then auto-unsubscribe. */
-  once<K extends HelixEventName>(event: K, handler: HelixEventHandler<K>): Unsubscribe {
+  once<K extends HavocEventName>(event: K, handler: HavocEventHandler<K>): Unsubscribe {
     const unsubscribe = this.on(event, (payload) => {
       unsubscribe();
       handler(payload);
@@ -76,32 +76,32 @@ export class EventBus {
     return unsubscribe;
   }
 
-  off<K extends HelixEventName>(event: K, handler: HelixEventHandler<K>): void {
+  off<K extends HavocEventName>(event: K, handler: HavocEventHandler<K>): void {
     const set = this.#handlers.get(event);
     if (!set) return;
     set.delete(handler as (payload: never) => void);
     if (set.size === 0) this.#handlers.delete(event);
   }
 
-  emit<K extends HelixEventName>(event: K, payload: HelixEventMap[K]): void {
+  emit<K extends HavocEventName>(event: K, payload: HavocEventMap[K]): void {
     const set = this.#handlers.get(event);
     if (!set || set.size === 0) return;
 
     for (const handler of [...set]) {
       try {
-        (handler as HelixEventHandler<K>)(payload);
+        (handler as HavocEventHandler<K>)(payload);
       } catch (error) {
         this.#logger?.error(`EventBus: handler for "${event}" threw.`, error);
       }
     }
   }
 
-  listenerCount(event: HelixEventName): number {
+  listenerCount(event: HavocEventName): number {
     return this.#handlers.get(event)?.size ?? 0;
   }
 
   /** Drop subscribers for one event, or all of them when called bare. */
-  removeAll(event?: HelixEventName): void {
+  removeAll(event?: HavocEventName): void {
     if (event === undefined) this.#handlers.clear();
     else this.#handlers.delete(event);
   }

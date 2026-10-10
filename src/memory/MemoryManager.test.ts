@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryManager } from './MemoryManager.js';
 import { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import { Logger } from '../core/Logger.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
@@ -117,7 +117,7 @@ describe('MemoryManager: credential refusal', () => {
     it(`refuses to store a ${label}`, async () => {
       const { memory } = await makeMemory();
 
-      await expect(memory.save({ content })).rejects.toThrow(HelixError);
+      await expect(memory.save({ content })).rejects.toThrow(HavocError);
       expect(await memory.count(), 'nothing may be written').toBe(0);
     });
   }
@@ -130,7 +130,7 @@ describe('MemoryManager: credential refusal', () => {
       'the api key is abc123def',
       'passphrase: correct-horse-battery',
     ]) {
-      await expect(memory.save({ content }), content).rejects.toThrow(HelixError);
+      await expect(memory.save({ content }), content).rejects.toThrow(HavocError);
     }
     expect(await memory.count()).toBe(0);
   });
@@ -141,9 +141,9 @@ describe('MemoryManager: credential refusal', () => {
       await memory.save({ content: 'sk-ant-abcdefghijklmnopqrstuvwx' });
       expect.unreachable('should have refused');
     } catch (error) {
-      const helix = error as HelixError;
-      expect(helix.userMessage).toContain('credential');
-      expect(helix.userMessage).not.toContain('sk-ant-abcdef');
+      const havoc = error as HavocError;
+      expect(havoc.userMessage).toContain('credential');
+      expect(havoc.userMessage).not.toContain('sk-ant-abcdef');
     }
   });
 
@@ -160,7 +160,7 @@ describe('MemoryManager: credential refusal', () => {
 
     await expect(
       memory.update(record.id, { content: 'sk-ant-abcdefghijklmnopqrstuvwx' }),
-    ).rejects.toThrow(HelixError);
+    ).rejects.toThrow(HavocError);
 
     expect((await memory.get(record.id))?.content).toBe('harmless note');
   });

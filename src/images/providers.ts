@@ -36,14 +36,14 @@ import type {
  * - **Pinterest.** Its API covers business accounts, ads and publishing. There
  *   is no public endpoint for searching Pinterest's images by arbitrary query,
  *   and obtaining them any other way means scraping a site whose terms forbid
- *   it. So Helix says it cannot, rather than doing it badly and illegally.
+ *   it. So Havoc says it cannot, rather than doing it badly and illegally.
  *
  * On parsing: every reader below tolerates a missing field rather than
  * assuming one. A provider that changes its shape should produce fewer results
  * or a stated failure, never a result with invented contents.
  */
 
-const USER_AGENT_NOTE = 'Helix personal assistant';
+const USER_AGENT_NOTE = 'Havoc personal assistant';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -153,7 +153,7 @@ abstract class BaseProvider implements ImageSearchProvider {
     if (this.hasKeyFor(this.host)) return { ready: true, reason: null, needsCredential: false };
     return {
       ready: false,
-      reason: `${this.name} needs a key. Add it to the desktop app's environment and restart Helix.`,
+      reason: `${this.name} needs a key. Add it to the desktop app's environment and restart Havoc.`,
       needsCredential: true,
     };
   }
@@ -167,7 +167,7 @@ abstract class BaseProvider implements ImageSearchProvider {
       throw new Error(`${this.name} refused the request. The key may be missing or wrong.`);
     }
     if (response.status === 429) {
-      throw new Error(`${this.name} is rate limiting Helix. Try again shortly.`);
+      throw new Error(`${this.name} is rate limiting Havoc. Try again shortly.`);
     }
     if (response.status < 200 || response.status >= 300) {
       throw new Error(`${this.name} answered with status ${response.status}.`);

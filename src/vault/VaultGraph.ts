@@ -6,16 +6,16 @@ import { linkTargets, normalizeTarget, titleFromContent } from './wikilinks.js';
  * ON THE WORD "NOTE", WHICH USED TO BE ALL OVER THIS FILE.
  *
  * Every node here is a file on the user's disk - a markdown or text file in a
- * vault folder, which Helix reads and never wrote. Calling those "notes" was
- * natural when they were the only note-like thing Helix knew about. It is
- * wrong now: Helix has a Notepad, and a note there is a different thing with
- * different rules - Helix's own storage, written only when asked, deleted
+ * vault folder, which Havoc reads and never wrote. Calling those "notes" was
+ * natural when they were the only note-like thing Havoc knew about. It is
+ * wrong now: Havoc has a Notepad, and a note there is a different thing with
+ * different rules - Havoc's own storage, written only when asked, deleted
  * outright, and never on the disk at all.
  *
  * Two things that are not the same must not share a word, because the user
- * cannot see which one they have got. So in Helix a *note* is a Notepad note,
+ * cannot see which one they have got. So in Havoc a *note* is a Notepad note,
  * and everything in this file is a *document*: a file the user wrote
- * elsewhere and Helix is reading.
+ * elsewhere and Havoc is reading.
  *
  * Two decisions worth stating:
  *

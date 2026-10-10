@@ -1,11 +1,11 @@
 /**
  * Taking things in from anywhere (your standing instruction).
  *
- * The request was to send things to Helix from TikTok, YouTube, Facebook,
+ * The request was to send things to Havoc from TikTok, YouTube, Facebook,
  * Google, Chrome, ChatGPT and so on. Worth being exact about what that can and
  * cannot mean, because the two are easy to blur:
  *
- * Helix cannot sign in to those accounts and fetch your things. Some have no
+ * Havoc cannot sign in to those accounts and fetch your things. Some have no
  * API for it, some forbid it, and all of them would need a credential this
  * project has no business holding. Anything claiming otherwise would be a
  * scraper wearing a friendly name, and it would break the first time one of
@@ -17,7 +17,7 @@
  * one intake that accepts whatever arrives and never asks where it came from.
  * This module is that intake's rules.
  *
- * Deliberately pure: given what a drop or a paste carried, it says what Helix
+ * Deliberately pure: given what a drop or a paste carried, it says what Havoc
  * received. No DOM and no storage, so the awkward cases are decided somewhere
  * they can be tested.
  */
@@ -163,7 +163,7 @@ export function readIntake(carried: Carried): IntakeItem[] {
 /**
  * The note written for a link or a piece of text.
  *
- * A link is kept as a link. Helix does not fetch it here: that would be a
+ * A link is kept as a link. Havoc does not fetch it here: that would be a
  * network request nobody asked for, to a page that may be private to you, at
  * the moment of a drag. Fetching is a separate thing to ask for, with its own
  * permission.
@@ -174,7 +174,7 @@ export function noteFor(item: IntakeItem, now: Date): string {
   return [`# ${item.name}`, '', body, '', `Saved ${stamp}`, ''].join('\n');
 }
 
-/** A filename for a note, safe on every filesystem Helix runs on. */
+/** A filename for a note, safe on every filesystem Havoc runs on. */
 export function fileNameFor(item: IntakeItem, now: Date): string {
   const slug = item.name
     .toLowerCase()

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator, type HelixTool } from './HelixOrchestrator.js';
+import { HavocOrchestrator, type HavocTool } from './HavocOrchestrator.js';
 import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
@@ -18,11 +18,11 @@ async function makeOrchestrator() {
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
   const activity = new ActivityManager();
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
-  const orchestrator = new HelixOrchestrator({
+  const orchestrator = new HavocOrchestrator({
     settings,
     conversations,
     activity,
@@ -36,7 +36,7 @@ async function makeOrchestrator() {
   return { orchestrator, conversations, settings, activity, projects, conversation };
 }
 
-describe('HelixOrchestrator', () => {
+describe('HavocOrchestrator', () => {
   let context: Awaited<ReturnType<typeof makeOrchestrator>>;
 
   beforeEach(async () => {
@@ -59,7 +59,7 @@ describe('HelixOrchestrator', () => {
     });
 
     const loaded = await context.conversations.get(context.conversation.id);
-    expect(loaded?.messages.map((m) => m.role)).toEqual(['user', 'helix']);
+    expect(loaded?.messages.map((m) => m.role)).toEqual(['user', 'havoc']);
   });
 
   describe('navigation tool', () => {
@@ -145,7 +145,7 @@ describe('HelixOrchestrator', () => {
   });
 
   describe('tool registry', () => {
-    const stubTool = (overrides: Partial<HelixTool> = {}): HelixTool => ({
+    const stubTool = (overrides: Partial<HavocTool> = {}): HavocTool => ({
       name: 'stub',
       description: 'test tool',
       priority: 500,

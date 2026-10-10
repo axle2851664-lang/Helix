@@ -109,7 +109,7 @@ export interface LocalAIStatus {
   installedModels: number;
   /** Null when nothing is selected or nothing is installed. */
   activeModel: string | null;
-  /** One sentence, in Helix's voice, safe to show the user. */
+  /** One sentence, in Havoc's voice, safe to show the user. */
   message: string;
 }
 
@@ -288,7 +288,7 @@ export class OllamaProvider implements InferenceProvider {
       return await this.#probe();
     } catch (error) {
       this.#lastProbeFailed = true;
-      // Which host Helix is in is the piece that was missing. A desktop
+      // Which host Havoc is in is the piece that was missing. A desktop
       // build with Ollama stopped and a browser tab that cannot reach
       // localhost are different problems with different fixes, and the
       // sentence now says which one this is.
@@ -417,7 +417,7 @@ export class OllamaProvider implements InferenceProvider {
    * Deliberately not faked. Emitting the finished text word by word on a timer
    * would look like streaming and would be a lie about when the answer
    * arrived - and the brief is explicit that no artificial thinking delay
-   * should be added to make Helix appear to be working.
+   * should be added to make Havoc appear to be working.
    */
   async stream(
     request: GenerateRequest,

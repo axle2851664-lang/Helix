@@ -1,6 +1,6 @@
 /* ===============================================================
-   Helix reference interface - three-column application shell.
-   Design tokens live in helix.css; this file owns layout and the
+   Havoc reference interface - three-column application shell.
+   Design tokens live in havoc.css; this file owns layout and the
    components introduced with the reference design.
    =============================================================== */
 
@@ -1810,8 +1810,8 @@
   color: var(--hx-text-faint);
 }
 
-/* The excerpt is the user's own file, quoted. Set apart from Helix's own
-   voice so there is no chance of reading it as something Helix said. */
+/* The excerpt is the user's own file, quoted. Set apart from Havoc's own
+   voice so there is no chance of reading it as something Havoc said. */
 .hx-findings__excerpt {
   margin: 3px 0;
   padding: 7px 10px;
@@ -2012,7 +2012,7 @@
   color: var(--hx-text-dim);
 }
 
-/* =========================== helix earth ======================= */
+/* =========================== havoc earth ======================= */
 .hx-earth__field {
   display: flex;
   flex-direction: column;
@@ -2258,7 +2258,7 @@
 }
 
 /* ------------------------------ consent ------------------------------
-   The dialog Helix asks through. Deliberately plain and deliberately in
+   The dialog Havoc asks through. Deliberately plain and deliberately in
    the way: a permission prompt that can be missed is a permission prompt
    that gets clicked through. */
 .hx-consent {
@@ -3396,7 +3396,7 @@ body {
    The drawing is all in the canvas. These rules carry the button that
    wraps it, the room around it, and nothing else: anything that pulsed
    or glowed in CSS would be a second animation loop disagreeing with
-   the first about what Helix is doing. */
+   the first about what Havoc is doing. */
 
 .hx-core {
   display: block;
@@ -3716,11 +3716,11 @@ body {
 }
 
 /* ======================= the time ====================================
-   A system display Helix brings up, not a card on a dashboard. It is
+   A system display Havoc brings up, not a card on a dashboard. It is
    the same language as the core: black, one source of warmth, no
    borders, no panel. The digits are the whole screen.
 
-   The entrance is deliberately short. It should read as Helix deciding
+   The entrance is deliberately short. It should read as Havoc deciding
    to show you something, which is one movement - not a sequence of
    things sliding in. */
 
@@ -3760,7 +3760,7 @@ body {
   cursor: default;
   /* Dimmed, not erased. This was very nearly opaque, which hid the core
      and its aura completely and made the clock read as a window that had
-     opened over Helix rather than as Helix having become a clock. The
+     opened over Havoc rather than as Havoc having become a clock. The
      centre is the lightest part, so the core still shows through beneath
      the digits; the edges go to black so nothing at the margins competes.
 
@@ -4017,7 +4017,7 @@ body {
 }
 
 /* The honest part. There is no operating-system scheduling behind an
-   alarm, so it sounds only while Helix is running - said next to the
+   alarm, so it sounds only while Havoc is running - said next to the
    alarm, which is the one place the fact is any use. */
 .hx-time__alarm-note {
   font-size: 0.82em;
@@ -4190,7 +4190,7 @@ body {
   color: #ddd6cc;
 }
 
-/* Whether the key is there, and where from. "set outside Helix" is a
+/* Whether the key is there, and where from. "set outside Havoc" is a
    different fact from "saved" - one can be changed here and one cannot,
    and conflating them would promise something this screen cannot do. */
 .helix-keys__state {
@@ -4220,7 +4220,7 @@ body {
 
 /* Styled here rather than on `.hx-input`, which this reuses for the sake of
    consistency but which has no rule of its own anywhere - so adding one
-   globally would restyle every other field in Helix as a side effect of
+   globally would restyle every other field in Havoc as a side effect of
    adding a keys panel. */
 .helix-keys__input {
   flex: 1 1 220px;
@@ -4266,4 +4266,11 @@ body {
   font-size: 12px;
   line-height: 1.5;
   color: #d8cfc2;
+}
+
+/* A subsystem that works with a caveat. Between the yes and no dots,
+   because "partly" is a real answer and showing it as either of the other
+   two would be a false one. */
+.helix-cap__dot--partial {
+  background: #c9a24a;
 }

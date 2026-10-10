@@ -36,7 +36,7 @@ export function assessInstalledModels(
     // Only a permanent refusal takes a model out of service.
     //
     // `not-right-now` deliberately does not: free memory is a reading taken at
-    // one instant, and a spike at the wrong second would otherwise leave Helix
+    // one instant, and a spike at the wrong second would otherwise leave Havoc
     // mute for the whole session with two serviceable models on the disk. The
     // note says the memory is short; the model stays available and the runtime
     // is left to do what it does when memory is tight. Unknown is not a

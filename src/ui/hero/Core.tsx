@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import type { ReactorSegment, SegmentState } from './capabilities.js';
 
 /**
  * The core: the only thing on the home screen.
@@ -11,7 +10,7 @@ import type { ReactorSegment, SegmentState } from './capabilities.js';
  * every one of them is on a circular orbit and it is only the spread of radii,
  * inclinations and speeds that makes it look like turbulence.
  *
- * ON THE COLOUR. The rest of Helix is monochrome, deliberately: the status
+ * ON THE COLOUR. The rest of Havoc is monochrome, deliberately: the status
  * dots were turned to brightness so that no hue anywhere carries meaning on
  * its own. The core is now the single exception and the only coloured thing on
  * the screen, which is what makes it the focal point rather than merely the
@@ -40,7 +39,7 @@ import type { ReactorSegment, SegmentState } from './capabilities.js';
  * MEANWHILE THE SPHERE STILL REPORTS. Every point on the surface belongs to
  * one capability band, bright when that subsystem genuinely works and nearly
  * dark when it does not, exactly as it did when there was a ring of arcs
- * around it. A dim core inside a bright field still means Helix can do little.
+ * around it. A dim core inside a bright field still means Havoc can do little.
  *
  * ON COST. This machine has no usable GPU, so: the frame rate is capped at 24,
  * every orbit is precomputed into an orthonormal basis so a position is six
@@ -51,7 +50,7 @@ import type { ReactorSegment, SegmentState } from './capabilities.js';
  * brightness near the core for free rather than being shaded to.
  */
 
-/** What Helix is doing, which is the only state the field encodes. */
+/** What Havoc is doing, which is the only state the field encodes. */
 export type CoreState =
   | 'idle'
   | 'listening'
@@ -96,7 +95,7 @@ const TURN_MS = 48_000;
  * Small, and smaller than it was, because the canvas is now mostly field: the
  * particles reach out to 2.3 times this and have to fit, and the swell has to
  * have somewhere to go. An earlier version rested at 0.37 with nothing around
- * it, and the swell clipped flat against the edge - Helix speaking produced no
+ * it, and the swell clipped flat against the edge - Havoc speaking produced no
  * visible change at all.
  */
 const REST_RADIUS = 0.19;
@@ -144,12 +143,6 @@ export function coreGeometry(
     aura: field * FIELD_REACH * 2,
   };
 }
-
-const BRIGHTNESS: Readonly<Record<SegmentState, number>> = {
-  ready: 1,
-  caveat: 0.52,
-  unavailable: 0.16,
-};
 
 export interface StateMotion {
   /** Resting brightness of the whole field. */
@@ -395,8 +388,6 @@ function makeSpirals(count: number, random: () => number): Spiral[] {
 
 interface Point {
   x: number; y: number; z: number;
-  /** Index of the capability band this point belongs to. */
-  band: number;
   /** Fixed per-point jitter, so the surface reads as texture not as a grid. */
   grain: number;
 }
@@ -407,7 +398,7 @@ interface Point {
  * Random points clump and a latitude/longitude grid crowds at the poles.
  * Neither looks like a surface.
  */
-function lattice(count: number, bands: number): Point[] {
+function lattice(count: number): Point[] {
   const golden = Math.PI * (3 - Math.sqrt(5));
   const points: Point[] = [];
 
@@ -416,15 +407,10 @@ function lattice(count: number, bands: number): Point[] {
     const radius = Math.sqrt(Math.max(0, 1 - y * y));
     const theta = golden * index;
 
-    // Bands run pole to pole, so each subsystem owns a horizontal slice and
-    // the sphere reads top to bottom as the capability list does.
-    const band = Math.min(bands - 1, Math.floor(((1 - y) / 2) * bands));
-
     points.push({
       x: Math.cos(theta) * radius,
       y,
       z: Math.sin(theta) * radius,
-      band,
       grain: 0.55 + (((Math.sin(index * 12.9898) * 43758.5453) % 1) + 1) / 2 * 0.45,
     });
   }
@@ -458,7 +444,6 @@ function glowSprite(diameter: number, colour: [number, number, number]): HTMLCan
 /* ------------------------------------------------------------------ */
 
 export interface CoreProps {
-  segments: readonly ReactorSegment[];
   state: CoreState;
   /**
    * 0..1, measured. The microphone while listening, word onsets while
@@ -474,7 +459,6 @@ export interface CoreProps {
 }
 
 export function Core({
-  segments,
   state,
   level,
   reduceMotion,
@@ -486,8 +470,8 @@ export function Core({
 
   // Live values read inside the animation loop, so changing them does not tear
   // down and rebuild the loop on every render.
-  const live = useRef({ segments, state, level, reduceMotion });
-  live.current = { segments, state, level, reduceMotion };
+  const live = useRef({ state, level, reduceMotion });
+  live.current = { state, level, reduceMotion };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -508,7 +492,7 @@ export function Core({
 
     const centre = size / 2;
     const random = seeded(0x9e3779b9);
-    const points = lattice(POINTS, Math.max(1, live.current.segments.length));
+    const points = lattice(POINTS);
     const particles = makeParticles(PARTICLES, random);
     const arcs = makeArcs(ARCS, random);
     const spirals = makeSpirals(SPIRALS, random);
@@ -541,7 +525,7 @@ export function Core({
       const elapsed = last === 0 ? FRAME_MS : Math.min(120, now - last);
       last = now;
 
-      const { segments: current, state: phase, level: measured, reduceMotion: still } = live.current;
+      const { state: phase, level: measured, reduceMotion: still } = live.current;
       const motion = MOTION[phase];
 
       /**
@@ -756,8 +740,14 @@ export function Core({
           const y = point.y * ct - z * stl;
           const depth = point.y * stl + z * ct;
 
-          const segment = current[point.band];
-          const lit = (segment ? BRIGHTNESS[segment.state] : BRIGHTNESS.unavailable) * motion.lit;
+          /**
+           * Uniform. The sphere used to be brighter at the latitudes whose
+           * subsystem worked and nearly dark at the ones that did not - a
+           * capability readout wearing the core's clothes. It is gone: the
+           * core is a presence, not a status display, and what it has to
+           * say about itself it says through `state` below.
+           */
+          const lit = motion.lit;
 
           // Points on the far side stay, faintly. A sphere with a hollow back
           // reads as a bowl.

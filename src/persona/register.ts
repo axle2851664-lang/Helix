@@ -1,10 +1,10 @@
 /**
  * Keeping the voice, when the words come from a model.
  *
- * `voice.ts` composes Helix's own scripted sentences, so those cannot drift.
+ * `voice.ts` composes Havoc's own scripted sentences, so those cannot drift.
  * A language model's sentences can, and on a small local model they do. The
  * measured case that produced this file: qwen2.5:7b, given the full persona
- * prompt, answered "Helix, are you there?" with
+ * prompt, answered "Havoc, are you there?" with
  *
  *     Affirmative, sir. Ready to assist.
  *
@@ -17,7 +17,7 @@
  * The line this file does not cross: it deletes and substitutes from a fixed,
  * closed set of phrases, and it never adds a claim, a fact, a number or a
  * sentence of its own. Removing "Affirmative," from the front of a reply
- * changes how Helix sounds. Writing a new sentence would change what Helix
+ * changes how Havoc sounds. Writing a new sentence would change what Havoc
  * said, and that is the one thing a personality layer must never do.
  *
  * When a repair would leave nothing behind, the original is kept. A reply
@@ -53,7 +53,7 @@ export interface RepairedReply {
 }
 
 /**
- * Openers that make Helix sound like a console rather than a person.
+ * Openers that make Havoc sound like a console rather than a person.
  *
  * Only stripped at the very start of a reply. "Executing" in the middle of a
  * sentence about a program is an ordinary English word, and a matcher that
@@ -82,7 +82,7 @@ const TERMINAL_OPENERS = [
  * Costume-drama address.
  *
  * These used to be substituted with "sir", on the reasoning that an address
- * means something and deleting it loses it. Helix no longer uses honorifics at
+ * means something and deleting it loses it. Havoc no longer uses honorifics at
  * all, so substituting one for another would only launder the fault: they are
  * deleted, along with every other form, by `collapseAddress`. What remains
  * here is the one form that is not in `ADDRESS_FORMS` because it is a phrase
@@ -196,7 +196,7 @@ const EMOJI = /\p{Extended_Pictographic}️?/gu;
  * Built from `ADDRESS_FORMS` rather than written out, because this file and
  * `voice.ts` disagreeing is a silent failure: a form the composer uses and the
  * checker does not recognise slips past the rate rule and the one-per-reply
- * rule together, and the only symptom is Helix saying it slightly too often.
+ * rule together, and the only symptom is Havoc saying it slightly too often.
  */
 const ADDRESS_OCCURRENCE = addressPattern();
 
@@ -345,7 +345,7 @@ export function inspect(text: string): RegisterFinding[] {
 }
 
 /**
- * Bring a model's reply into Helix's register.
+ * Bring a model's reply into Havoc's register.
  *
  * Deletion and fixed substitution only. Nothing here can invent a sentence,
  * and the findings are returned so the caller can see what the model needed
@@ -358,7 +358,7 @@ export interface RepairOptions {
    * Defaults to false, and `allowAddressInReply()` in `voice.ts` - which the
    * orchestrator passes - always returns false as well. The option survives
    * because a caller that wants to see a reply unrepaired should be able to
-   * ask, not because Helix ever addresses anyone as "sir".
+   * ask, not because Havoc ever addresses anyone as "sir".
    *
    * The default was true. A default of true is how an honorific gets back in:
    * every call site that forgets the option gets the old behaviour, silently.

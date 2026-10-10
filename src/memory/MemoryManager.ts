@@ -1,5 +1,5 @@
 import type { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { Logger } from '../core/Logger.js';
 import { findSecrets, looksLikeLabelledCredential } from '../core/secrets.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
@@ -98,11 +98,11 @@ export class MemoryManager {
 
   /**
    * Store a memory. Only ever called in response to an explicit user request.
-   * Throws a HelixError with a readable message when the content is refused.
+   * Throws a HavocError with a readable message when the content is refused.
    */
   async save(request: MemorySaveRequest): Promise<MemoryRecord> {
     if (!this.enabled) {
-      throw new HelixError(
+      throw new HavocError(
         'PERMISSION_DENIED',
         'Long-term memory is turned off. Enable it in Settings under Privacy if you want me to remember things.',
         { technical: 'save() called while allowLongTermMemory is false.' },
@@ -112,13 +112,13 @@ export class MemoryManager {
     const content = request.content.trim();
 
     if (content === '') {
-      throw new HelixError('VALIDATION_FAILED', 'There is nothing to remember.', {
+      throw new HavocError('VALIDATION_FAILED', 'There is nothing to remember.', {
         technical: 'save() called with empty content.',
       });
     }
 
     if (content.length > MAX_CONTENT_LENGTH) {
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
         `That is too long to store as a single memory (${content.length} characters, limit ${MAX_CONTENT_LENGTH}).`,
         { technical: `Memory content length ${content.length}` },
@@ -131,18 +131,18 @@ export class MemoryManager {
     if (secrets.length > 0) {
       const kinds = [...new Set(secrets.map((finding) => finding.label))].join(', ');
       this.#logger.warn('Refused to store content that looks like a credential.', { kinds });
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
-        `That looks like a credential (${kinds}), so I will not store it. Helix never keeps keys, tokens or passwords in memory.`,
+        `That looks like a credential (${kinds}), so I will not store it. Havoc never keeps keys, tokens or passwords in memory.`,
         { technical: `Rejected memory containing: ${kinds}` },
       );
     }
 
     if (looksLikeLabelledCredential(content)) {
       this.#logger.warn('Refused to store a labelled credential.');
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
-        'That reads like a password or key, so I will not store it. Helix never keeps credentials in memory.',
+        'That reads like a password or key, so I will not store it. Havoc never keeps credentials in memory.',
         { technical: 'Rejected memory matching the labelled-credential pattern.' },
       );
     }
@@ -274,7 +274,7 @@ export class MemoryManager {
   ): Promise<MemoryRecord> {
     const existing = await this.get(id);
     if (!existing) {
-      throw new HelixError('NOT_FOUND', 'That memory no longer exists.', {
+      throw new HavocError('NOT_FOUND', 'That memory no longer exists.', {
         technical: `update: unknown memory ${id}`,
       });
     }
@@ -282,13 +282,13 @@ export class MemoryManager {
     if (patch.content !== undefined) {
       const content = patch.content.trim();
       if (content === '') {
-        throw new HelixError('VALIDATION_FAILED', 'A memory cannot be empty.', {
+        throw new HavocError('VALIDATION_FAILED', 'A memory cannot be empty.', {
           technical: 'update called with empty content.',
         });
       }
       // Editing must be held to the same credential rule as creating.
       if (findSecrets(content).length > 0 || looksLikeLabelledCredential(content)) {
-        throw new HelixError(
+        throw new HavocError(
           'VALIDATION_FAILED',
           'That looks like a credential, so I will not store it.',
           { technical: 'Rejected memory edit containing credential-shaped content.' },

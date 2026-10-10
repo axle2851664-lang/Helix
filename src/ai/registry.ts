@@ -185,7 +185,7 @@ export const MODEL_REGISTRY: readonly ModelInfo[] = [
     // entry is replaced wholesale by whatever is genuinely installed -
     // `OllamaProvider` is the only authority on that, and this exists purely
     // so the settings screen has something to name before then.
-    note: 'A placeholder until the local runtime reports what is installed. Helix runs Whisper locally for speech, which is a different thing from a local language model.',
+    note: 'A placeholder until the local runtime reports what is installed. Havoc runs Whisper locally for speech, which is a different thing from a local language model.',
   },
 ];
 

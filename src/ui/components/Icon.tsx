@@ -1,7 +1,7 @@
 /**
- * Helix icon set.
+ * Havoc icon set.
  *
- * Original 24x24 stroke paths drawn for Helix - no third-party icon library and
+ * Original 24x24 stroke paths drawn for Havoc - no third-party icon library and
  * no copied assets. Uniform 1.6 stroke weight and rounded caps keep the
  * navigation visually consistent.
  */

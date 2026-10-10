@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Icon, type IconName } from '../components/Icon.js';
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
 import type { Activity } from '../../core/ActivityManager.js';
 import { formatContext } from '../../models/catalog.js';
 
 /**
- * The Helix status panel.
+ * The Havoc status panel.
  *
  * Every row is derived from real application state. The reference design shows
  * "Connected" against most rows; that is not reproduced here, because nothing
@@ -32,7 +32,7 @@ interface StatusPanelProps {
 
 export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
   const { platform, store, activity, conversations, projects, memory, ai, bus, voice } =
-    useHelix();
+    useHavoc();
   const settings = useSettings([
     'languageProvider',
     'inferenceProvider',
@@ -257,7 +257,7 @@ export function StatusPanel({ onClose, onOpenSystem }: StatusPanelProps) {
   return (
     <aside className="hx-status">
       <header className="hx-status__head">
-        <h2 className="hx-status__title">HELIX STATUS</h2>
+        <h2 className="hx-status__title">HAVOC STATUS</h2>
         <button type="button" className="hx-iconbtn" onClick={onClose} aria-label="Close status panel">
           <Icon name="close" size={16} />
         </button>

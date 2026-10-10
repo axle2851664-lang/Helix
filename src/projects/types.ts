@@ -8,7 +8,7 @@
  *    name cannot break a reference.
  *
  * 2. **Originals are separate from generated output.** `origin` distinguishes
- *    a file the user imported from anything Helix produced from it, so a failed
+ *    a file the user imported from anything Havoc produced from it, so a failed
  *    or unwanted generation can be removed without touching the source.
  */
 

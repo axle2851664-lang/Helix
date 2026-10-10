@@ -204,7 +204,7 @@ describe('formatLatLong', () => {
   });
 
   // Four places is about eleven metres, which is past the accuracy of anything
-  // Helix holds. More would be claiming precision it does not have.
+  // Havoc holds. More would be claiming precision it does not have.
   it('defaults to four decimal places', () => {
     expect(formatLatLong({ latitude: 1.123456789, longitude: 1 })).toContain('1.1235');
   });

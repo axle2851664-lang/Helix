@@ -1,29 +1,29 @@
 /**
- * Questions about Helix itself, answered by Helix.
+ * Questions about Havoc itself, answered by Havoc.
  *
- * THE CONVERSATION THIS COMES FROM. A user asked how to give Helix permission
+ * THE CONVERSATION THIS COMES FROM. A user asked how to give Havoc permission
  * to read their files. The model - llama3.2:1b - answered:
  *
  *   "You can type 'I want to give you permission to access my files' at any
  *    time."
  *
  * There is no such mechanism. It invented one, the user typed the phrase in
- * good faith, and Helix opened the Files screen - which looked like
+ * good faith, and Havoc opened the Files screen - which looked like
  * confirmation that the invented mechanism was real. The same exchange
  * produced a menu that does not exist, services that are not running, and a
  * configuration page "not stored in any files, database or any other
  * location".
  *
  * None of that is a hallucination about the world, which a user can check. It
- * is a hallucination about *Helix*, which they cannot - and which teaches them
+ * is a hallucination about *Havoc*, which they cannot - and which teaches them
  * a false mental model of the thing in front of them.
  *
  * THE RULE. A language model is told, in the prompt, that it cannot see how
- * Helix works. That is a request, and a small model declines it. So questions
- * about Helix's own operation are answered here instead, from the registries
+ * Havoc works. That is a request, and a small model declines it. So questions
+ * about Havoc's own operation are answered here instead, from the registries
  * that hold the real answers, and never reach a model at all.
  *
- * What is NOT here: anything Helix would have to guess at. Where the honest
+ * What is NOT here: anything Havoc would have to guess at. Where the honest
  * answer is "that isn't a thing", it says so, and names the screen that is.
  */
 
@@ -96,7 +96,7 @@ const PROBES: readonly Probe[] = [
   },
 ];
 
-/** Is this a question about how Helix itself works? */
+/** Is this a question about how Havoc itself works? */
 export function selfQuestion(text: string): SelfQuestion | null {
   const trimmed = text.trim();
   if (trimmed === '') return null;
@@ -112,7 +112,7 @@ export function selfQuestion(text: string): SelfQuestion | null {
 }
 
 export interface SelfFacts {
-  /** Capability labels Helix can genuinely act on by conversation. */
+  /** Capability labels Havoc can genuinely act on by conversation. */
   capabilities: readonly string[];
   /** How many permissions are granted, out of how many exist. */
   permissions: { granted: number; total: number };
@@ -122,14 +122,14 @@ export interface SelfFacts {
  * The answer, built from facts rather than from a prompt.
  *
  * Every number here is read from the thing that owns it. Nothing is phrased
- * as a capability Helix does not have, and where the honest answer is "that
+ * as a capability Havoc does not have, and where the honest answer is "that
  * is not how this works", it says so and names what is.
  */
 export function answerAbout(topic: SelfTopic, facts: SelfFacts): string {
   switch (topic) {
     case 'permissions':
       return [
-        'There is nothing to type. Helix asks when it actually needs something,',
+        'There is nothing to type. Havoc asks when it actually needs something,',
         'and the dialog names what and why - you allow or refuse it there.',
         facts.permissions.granted === 0
           ? 'Nothing is granted at the moment.'
@@ -145,7 +145,7 @@ export function answerAbout(topic: SelfTopic, facts: SelfFacts): string {
 
     case 'configuration':
       return [
-        'Helix has no menus or background services - it is this window and nothing else.',
+        'Havoc has no menus or background services - it is this window and nothing else.',
         'Settings is in the sidebar for preferences and privacy, and Models for which model answers.',
       ].join(' ');
 

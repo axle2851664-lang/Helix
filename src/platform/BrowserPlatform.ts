@@ -7,7 +7,7 @@ import type {
 } from './PlatformAdapter.js';
 
 /**
- * Browser implementation of the Helix platform boundary.
+ * Browser implementation of the Havoc platform boundary.
  *
  * This is a real implementation of what a browser can genuinely do, and an
  * explicit refusal for what it cannot. Notably it does NOT fake a filesystem
@@ -35,7 +35,7 @@ export class BrowserPlatform implements PlatformAdapter {
       filesystem: {
         available: false,
         reason:
-          'Browser hosts have no real filesystem access. Helix data is held in origin storage until the Tauri shell is added.',
+          'Browser hosts have no real filesystem access. Havoc data is held in origin storage until the Tauri shell is added.',
       },
       diskStats: {
         available: false,
@@ -66,7 +66,7 @@ export class BrowserPlatform implements PlatformAdapter {
       if (!gl) {
         return {
           available: false,
-          reason: 'WebGL2 is unavailable. The 3D viewer, Spatial Mode and Helix Earth cannot render.',
+          reason: 'WebGL2 is unavailable. The 3D viewer, Spatial Mode and Havoc Earth cannot render.',
         };
       }
       return { available: true };
@@ -138,7 +138,7 @@ export class BrowserPlatform implements PlatformAdapter {
       return {
         freeBytes: Math.max(0, estimate.quota - estimate.usage),
         totalBytes: estimate.quota,
-        usedByHelixBytes: estimate.usage,
+        usedByHavocBytes: estimate.usage,
         // Critical: this is an origin quota, not the disk. Tagged so
         // StorageManager cannot mistake it for real free space.
         source: 'origin-quota',

@@ -1,4 +1,4 @@
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { CalendarProvider } from '../integrations/google/CalendarProvider.js';
 import type { GmailProvider } from '../integrations/google/GmailProvider.js';
 import { parseWhen } from '../integrations/google/when.js';
@@ -15,7 +15,7 @@ import { optionalString, readString } from './action.js';
  *   teach the user to click through confirmations - which is how the
  *   confirmation that matters gets clicked through too.
  *
- * - **Creating an event is confirmed.** It appears in a place Helix does not
+ * - **Creating an event is confirmed.** It appears in a place Havoc does not
  *   control, at a specific time, and the confirmation shows that time in full
  *   so a misread "Tuesday" is caught before it is booked rather than after it
  *   is missed.
@@ -68,7 +68,7 @@ function mailAction(options: {
     },
     run: async (params) => {
       const ids = idsFrom(params);
-      if (ids.length === 0) throw new HelixError('VALIDATION_FAILED', 'No messages were named.');
+      if (ids.length === 0) throw new HavocError('VALIDATION_FAILED', 'No messages were named.');
       const result = await options.run(ids);
       return {
         message: `${options.verb} ${result.changed} ${result.changed === 1 ? 'message' : 'messages'}.`,
@@ -176,7 +176,7 @@ export function googleActions(services: GoogleActionServices): ActionDefinition[
         },
       },
       permission: 'GOOGLE_CALENDAR_WRITE',
-      // It appears at a specific time in a place Helix does not control, and
+      // It appears at a specific time in a place Havoc does not control, and
       // the confirmation is where a misread day gets caught.
       confirmation: 'always',
       reversible: true,
@@ -184,7 +184,7 @@ export function googleActions(services: GoogleActionServices): ActionDefinition[
       describe: (params) => {
         const parsed = parseWhen(readString(params, 'when'), now());
         if (parsed === null) {
-          return `Helix could not work out when "${readString(params, 'when')}" is.`;
+          return `Havoc could not work out when "${readString(params, 'when')}" is.`;
         }
         return parsed.allDay
           ? `Add "${readString(params, 'summary')}" to your calendar, all day on ${parsed.start}.`
@@ -197,7 +197,7 @@ export function googleActions(services: GoogleActionServices): ActionDefinition[
         if (parsed === null) {
           // Refusing beats guessing: a misread time is found out by missing
           // the appointment.
-          throw new HelixError(
+          throw new HavocError(
             'VALIDATION_FAILED',
             `I could not be certain when "${when}" is, and I will not guess at a time. Give me a day and a time - "tomorrow at 3pm", or a date like 2026-10-02 at 09:30.`,
           );

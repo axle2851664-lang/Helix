@@ -5,8 +5,8 @@
 
 ## The requirement
 
-Helix must run from a portable SSD or fast USB drive, and must keep working when
-the drive letter changes — `E:\Helix` today, `F:\Helix` tomorrow.
+Havoc must run from a portable SSD or fast USB drive, and must keep working when
+the drive letter changes — `E:\Havoc` today, `F:\Havoc` tomorrow.
 
 **No drive letter may ever be hard-coded.** Not `C:\Users\...`, not `E:\`, not
 anywhere in source, config or documentation as a functional path.
@@ -32,14 +32,14 @@ Rules:
 - All paths derive from the application's own resolved location at runtime.
 - Nothing is stored as an absolute path in any persisted file. Project
   references, model registrations and memory records store **paths relative to
-  the Helix root**, so relocation is transparent.
+  the Havoc root**, so relocation is transparent.
 - Portable Mode is explicitly configurable, not inferred silently.
 
 ## Target layout
 
 ```
-Helix/
-├── Helix.exe
+Havoc/
+├── Havoc.exe
 ├── Core/       ├── Models/    ├── Memory/
 ├── Projects/   ├── Knowledge/ ├── Generated/
 ├── Cache/      ├── Temp/      ├── Config/
@@ -49,7 +49,7 @@ Helix/
 ## Removable-media handling (phase 2 / phase 10)
 
 Flash storage has limited write endurance and is slower than an internal SSD, so
-when Helix detects it is running from removable media it must reduce write
+when Havoc detects it is running from removable media it must reduce write
 volume: batched writes, controlled caching, log rotation, and temp cleanup.
 
 **Safe Eject** must, in order: stop AI processes → finish pending writes → close
@@ -59,7 +59,7 @@ databases → stop camera and microphone → release file handles → flush.
 
 No removable drive is currently attached to the development machine. `G:` is a
 Google Drive mount, not removable media — and being FAT32, it is unsuitable for
-Helix data regardless (see [STORAGE.md](STORAGE.md)).
+Havoc data regardless (see [STORAGE.md](STORAGE.md)).
 
 Portable Mode will therefore be built and unit-tested against a simulated root,
 but **drive-letter-change behaviour cannot be verified end-to-end until real

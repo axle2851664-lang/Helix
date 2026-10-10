@@ -1,11 +1,11 @@
 import type { VolumeStats } from '../platform/PlatformAdapter.js';
 
 /**
- * Deciding when Helix should clear up after itself, and when it must not.
+ * Deciding when Havoc should clear up after itself, and when it must not.
  *
  * `StorageManager` reports what could be reclaimed and refuses to act, on the
  * grounds that a storage figure is not consent. That rule was right and it has
- * been changed deliberately: the user asked for one specific tier - Helix's own
+ * been changed deliberately: the user asked for one specific tier - Havoc's own
  * rebuildable caches - to be cleared automatically when the disk gets tight.
  *
  * What that permission does and does not cover is the whole substance of this
@@ -13,7 +13,7 @@ import type { VolumeStats } from '../platform/PlatformAdapter.js';
  * are still there. It does not cover projects, imported files, notes, memories,
  * generated images or stored conversations. Those are the user's, some cannot
  * be recreated, and an automatic threshold is not a good enough reason to
- * destroy any of them - the standing instruction that Helix must never write to
+ * destroy any of them - the standing instruction that Havoc must never write to
  * the user's own data unasked is untouched by this.
  *
  * Two measurement traps, both real:
@@ -35,9 +35,9 @@ export interface PressureAssessment {
   level: PressureLevel;
   /** Free bytes on the volume, or null where that cannot be measured. */
   freeBytes: number | null;
-  /** True only when Helix should clear its own rebuildable caches now. */
+  /** True only when Havoc should clear its own rebuildable caches now. */
   shouldReclaim: boolean;
-  /** One sentence, in Helix's voice, always present. */
+  /** One sentence, in Havoc's voice, always present. */
   message: string;
 }
 

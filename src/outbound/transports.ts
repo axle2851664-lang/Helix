@@ -1,7 +1,7 @@
 import type { OutboundKind } from './outbound.js';
 
 /**
- * The ways Helix could actually send something, and what each one costs.
+ * The ways Havoc could actually send something, and what each one costs.
  *
  * Written as a decision record rather than as configuration, the same as the
  * Earth provider list, and for the same reason: the useful part is not the
@@ -15,7 +15,7 @@ import type { OutboundKind } from './outbound.js';
  *   pays a carrier to terminate a call or a text on a real phone number. No
  *   provider gives that away, free tiers are trial credit that runs out, and a
  *   trial account is usually restricted to numbers you have already verified.
- *   There is no arrangement in which Helix rings an arbitrary phone for free.
+ *   There is no arrangement in which Havoc rings an arbitrary phone for free.
  *
  * Messages are a different matter. A bot API or your own mailbox carries no
  * per-message charge, so "send" can be genuinely free in a way that "call"
@@ -58,7 +58,7 @@ export const TRANSPORT_OPTIONS: readonly TransportOption[] = [
     kinds: ['email'],
     cost: 'free-within-your-account',
     summary:
-      'Helix sends through the mail account you already have, so mail arrives from your real address.',
+      'Havoc sends through the mail account you already have, so mail arrives from your real address.',
     needs: [
       'An app password or an OAuth token for the mailbox.',
       'The desktop shell. A browser cannot open an SMTP connection at all, and the credential must not sit in the page.',
@@ -131,7 +131,7 @@ export const TRANSPORT_OPTIONS: readonly TransportOption[] = [
     kinds: ['call'],
     cost: 'free',
     summary:
-      'A real voice call between two people running Helix, or Helix and a browser, carried directly between them.',
+      'A real voice call between two people running Havoc, or Havoc and a browser, carried directly between them.',
     needs: [
       'A signalling step, so the two ends can find each other. It carries no audio and can be very small.',
       'A STUN server, which is a trivial free service.',
@@ -180,7 +180,7 @@ export function requiresPayment(kind: OutboundKind): boolean {
 }
 
 /**
- * What Helix can honestly tell someone who asks whether this is free.
+ * What Havoc can honestly tell someone who asks whether this is free.
  *
  * Named per kind rather than answered once, because the true answer is
  * different for a message and for a call and flattening them would mislead in

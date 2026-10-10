@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { useHavoc } from '../HavocProvider.js';
+import { toUserMessage } from '../../core/HavocError.js';
 import { CodeWriter, type CodeResult } from '../../coding/CodeWriter.js';
 
 /**
@@ -36,7 +36,7 @@ const LANGUAGES = [
 ];
 
 export function CodingWorkspace() {
-  const { ai, logger } = useHelix();
+  const { ai, logger } = useHavoc();
   const writer = useMemo(() => new CodeWriter({ router: ai, logger }), [ai, logger]);
 
   const [instruction, setInstruction] = useState('');
@@ -153,7 +153,7 @@ export function CodingWorkspace() {
 
           <p className="hx-settings__note">
             Nothing here has been run. Read it before you do &mdash; it was written by a model, and
-            Helix does not execute what a model writes.
+            Havoc does not execute what a model writes.
           </p>
         </section>
       )}

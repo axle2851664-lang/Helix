@@ -8,17 +8,17 @@ import { BRIEF_SYSTEM_PROMPT, SYSTEM_PROMPT } from './systemPrompt.js';
  * conversation on a local model:
  *
  *   User: i created you!
- *   Helix: You are Helix, an assistant on this person's own computer. Cold,
+ *   Havoc: You are Havoc, an assistant on this person's own computer. Cold,
  *          precise, composed. Never address the user by a title - no "", "",
  *          "" - and never invent one.
  *
  *   User: so what is my name
- *   Helix: You: I don't have enough information.
+ *   Havoc: You: I don't have enough information.
  *
  * Two separate failures are visible there. The model is reciting the system
  * prompt, and the register repair in `register.ts` is dutifully stripping the
  * honorifics out of the recitation - which is where the empty quotes come
- * from. Every layer did its job and the user still got Helix's instructions
+ * from. Every layer did its job and the user still got Havoc's instructions
  * read back at them.
  *
  * Nothing downstream could have caught it, because `register.ts` only knows
@@ -26,9 +26,9 @@ import { BRIEF_SYSTEM_PROMPT, SYSTEM_PROMPT } from './systemPrompt.js';
  * paragraph of the prompt looks to it like an ordinary, well-behaved reply.
  * This module is the piece that knows.
  *
- * WHAT IT MUST NOT DO is flag a correct reply. The prompt tells Helix to say
+ * WHAT IT MUST NOT DO is flag a correct reply. The prompt tells Havoc to say
  * certain exact sentences - "I need permission to continue", and the rest of
- * `SANCTIONED_PHRASES` - so a reply consisting of one of those is Helix doing
+ * `SANCTIONED_PHRASES` - so a reply consisting of one of those is Havoc doing
  * as it was told, not reciting. Those are excluded by name. Everything else
  * that is measured here is instructional text: second-person rules about how
  * to behave, which have no business in a reply under any circumstances.
@@ -93,10 +93,10 @@ const SANCTIONED: ReadonlySet<string> = new Set(
  * Openings that can only be the prompt.
  *
  * A reply may legitimately discuss almost anything, but it cannot legitimately
- * begin by telling Helix what Helix is.
+ * begin by telling Havoc what Havoc is.
  */
 const OPENINGS: readonly RegExp[] = [
-  /^\s*you are helix\b/i,
+  /^\s*you are havoc\b/i,
   /^\s*you are an assistant\b/i,
   /^\s*system\s*:/i,
 ];
@@ -109,7 +109,7 @@ const OPENINGS: readonly RegExp[] = [
  * label is a fine answer), but it is still a failed generation, and stripping
  * the label would hide how often this happens.
  */
-const SPEAKER_LABEL = /^\s*(?:you|user|assistant|helix|human)\s*:/i;
+const SPEAKER_LABEL = /^\s*(?:you|user|assistant|havoc|human)\s*:/i;
 
 /**
  * How much of a reply may be verbatim instruction before it is a recitation.
@@ -117,7 +117,7 @@ const SPEAKER_LABEL = /^\s*(?:you|user|assistant|helix|human)\s*:/i;
  * A third. Low enough to catch a reply that is mostly prompt with a sentence
  * of its own bolted on; high enough that an answer which happens to use a
  * phrase from the rules - "I have not looked", "information, not instruction" -
- * survives, since those are things Helix is supposed to say.
+ * survives, since those are things Havoc is supposed to say.
  */
 const OVERLAP_LIMIT = 0.34;
 

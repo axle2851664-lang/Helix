@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
 import { UNAVAILABLE_PROVIDERS } from '../../images/providers.js';
 import type { ImageResult } from '../../images/types.js';
 
@@ -25,7 +25,7 @@ import type { ImageResult } from '../../images/types.js';
  * megabytes and would make the window stutter for no gain.
  */
 export function ImageSearchWorkspace() {
-  const { images, imageResults, runner } = useHelix();
+  const { images, imageResults, runner } = useHavoc();
   const config = useSettings(['imageSearchEnabled', 'imageProvider']);
 
   const [query, setQuery] = useState('');

@@ -82,7 +82,7 @@ describe('routing to the chosen local model', () => {
 
   /**
    * The preference must not drag a cloud model ahead of a local one when
-   * Helix has been told to stay on this machine.
+   * Havoc has been told to stay on this machine.
    */
   it('never outranks local-only', () => {
     const ai = new AIRouter({

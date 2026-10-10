@@ -2,7 +2,7 @@
  * Geodesy and tile mathematics.
  *
  * Every provider in the Earth stack needs this and none of it needs a network,
- * so it is the one part of Helix Earth that can be built and proved correct
+ * so it is the one part of Havoc Earth that can be built and proved correct
  * today. Cesium, Mapbox, NASA GIBS, OpenStreetMap and Sentinel all address
  * imagery by the same scheme: a zoom level and an x/y tile index in Web
  * Mercator. Get this wrong and every provider is wrong in the same way, which
@@ -222,7 +222,7 @@ export function tilesForBounds(bounds: BoundingBox, zoom: number): TileCoordinat
  * Format a coordinate for display.
  *
  * Six decimal places is roughly a tenth of a metre, which is past the accuracy
- * of anything Helix will hold. Four is about eleven metres, and is the honest
+ * of anything Havoc will hold. Four is about eleven metres, and is the honest
  * default for a place rather than a survey point.
  */
 export function formatLatLong(point: LatLong, decimals = 4): string {

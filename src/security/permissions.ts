@@ -1,8 +1,8 @@
 /**
- * What Helix is allowed to do, declared as data (spec 6).
+ * What Havoc is allowed to do, declared as data (spec 6).
  *
  * The rule this file exists to enforce is a single sentence from the
- * specification: *Helix must not automatically have unrestricted access to
+ * specification: *Havoc must not automatically have unrestricted access to
  * everything.* Every sensitive capability is named here, and nothing that is
  * not named here can be granted - `PermissionManager` refuses ids it does not
  * recognise rather than inventing a record for them.
@@ -10,7 +10,7 @@
  * Three fields carry most of the weight, and each is here because leaving it
  * out produces a specific failure:
  *
- * - **`secondGate`** names the *other* thing that must also say yes. A Helix
+ * - **`secondGate`** names the *other* thing that must also say yes. A Havoc
  *   grant is necessary, never sufficient: the microphone still needs the
  *   operating system, and Gmail still needs Google's own consent screen. Left
  *   out, "granted" starts to read as "working", and the first honest bug
@@ -18,7 +18,7 @@
  *
  * - **`alwaysConfirm`** marks the permissions that a grant must never turn into
  *   a blanket. Deleting, exporting and sending are irreversible from the user's
- *   side; agreeing once that Helix *may* delete is not agreeing that it may
+ *   side; agreeing once that Havoc *may* delete is not agreeing that it may
  *   delete *this*. The action layer reads this flag; the grant alone is not
  *   enough to proceed.
  *
@@ -76,8 +76,8 @@ export interface PermissionDescriptor {
   description: string;
   risk: PermissionRisk;
   /**
-   * The other consent that must also be given, or null when Helix's own grant
-   * is the only gate. Never a thing Helix can grant itself.
+   * The other consent that must also be given, or null when Havoc's own grant
+   * is the only gate. Never a thing Havoc can grant itself.
    */
   secondGate: string | null;
   /**
@@ -119,7 +119,7 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'FILES_DELETE',
     group: 'files',
     label: 'Delete files',
-    description: 'Remove files from your vault folders. Helix asks before each deletion.',
+    description: 'Remove files from your vault folders. Havoc asks before each deletion.',
     risk: 'high',
     secondGate: null,
     // Nothing here is undoable from the user's side, so one grant is never
@@ -140,12 +140,12 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
   FILES_EXPORT: permission({
     id: 'FILES_EXPORT',
     group: 'files',
-    label: 'Copy files out of Helix',
+    label: 'Copy files out of Havoc',
     description:
       'Copy files to somewhere outside your vault, such as a USB drive or another folder.',
     risk: 'high',
     secondGate: null,
-    // An export is the one file action whose result Helix stops governing.
+    // An export is the one file action whose result Havoc stops governing.
     alwaysConfirm: true,
     requires: null,
   }),
@@ -155,7 +155,7 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'GOOGLE_ACCOUNT',
     group: 'google',
     label: 'Connect a Google account',
-    description: 'Sign in to Google so Helix can be given access to specific Google services.',
+    description: 'Sign in to Google so Havoc can be given access to specific Google services.',
     risk: 'low',
     secondGate: "Google's own sign-in and consent screen",
     alwaysConfirm: false,
@@ -175,7 +175,7 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'GOOGLE_GMAIL_SEND',
     group: 'google',
     label: 'Send mail as you',
-    description: 'Send email from your account. Helix shows you every message before it goes.',
+    description: 'Send email from your account. Havoc shows you every message before it goes.',
     risk: 'high',
     secondGate: "Google's consent screen, which grants the send scope separately",
     alwaysConfirm: true,
@@ -185,7 +185,7 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'GOOGLE_CALENDAR_READ',
     group: 'google',
     label: 'Read your calendar',
-    description: 'See your events, so Helix can answer what is coming up.',
+    description: 'See your events, so Havoc can answer what is coming up.',
     risk: 'medium',
     secondGate: "Google's consent screen",
     alwaysConfirm: false,
@@ -195,7 +195,7 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'GOOGLE_CALENDAR_WRITE',
     group: 'google',
     label: 'Change your calendar',
-    description: 'Create, edit and cancel events. Invitations reach other people, so Helix asks first.',
+    description: 'Create, edit and cancel events. Invitations reach other people, so Havoc asks first.',
     risk: 'high',
     secondGate: "Google's consent screen",
     alwaysConfirm: true,
@@ -248,7 +248,7 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'PHONE_PAIR',
     group: 'phone',
     label: 'Pair with your phone',
-    description: 'Let a phone you have paired connect to Helix over your own private network.',
+    description: 'Let a phone you have paired connect to Havoc over your own private network.',
     risk: 'low',
     secondGate: null,
     alwaysConfirm: false,
@@ -258,7 +258,7 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'PHONE_MESSAGES_READ',
     group: 'phone',
     label: 'Receive your messages',
-    description: 'Save messages your phone forwards to Helix into your vault.',
+    description: 'Save messages your phone forwards to Havoc into your vault.',
     risk: 'high',
     secondGate: 'the phone itself, which decides what it is willing to forward',
     alwaysConfirm: false,
@@ -268,7 +268,7 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'PHONE_MESSAGES_SEND',
     group: 'phone',
     label: 'Send messages from your phone',
-    description: 'Ask your phone to send a message. Helix shows you the message before it goes.',
+    description: 'Ask your phone to send a message. Havoc shows you the message before it goes.',
     risk: 'high',
     secondGate: 'the phone itself',
     alwaysConfirm: true,
@@ -278,7 +278,7 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'PHONE_NOTIFICATIONS',
     group: 'phone',
     label: 'Receive phone notifications',
-    description: 'See notifications your phone forwards to Helix.',
+    description: 'See notifications your phone forwards to Havoc.',
     risk: 'medium',
     secondGate: 'the phone itself',
     alwaysConfirm: false,
@@ -288,7 +288,7 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'PHONE_FILES',
     group: 'phone',
     label: 'Exchange files with your phone',
-    description: 'Send files to your phone, and accept files it sends to Helix.',
+    description: 'Send files to your phone, and accept files it sends to Havoc.',
     risk: 'medium',
     secondGate: 'the phone itself',
     alwaysConfirm: false,
@@ -300,9 +300,9 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'MICROPHONE',
     group: 'sensors',
     label: 'Use your microphone',
-    description: 'Listen when you are speaking to Helix. Nothing is recorded to disk.',
+    description: 'Listen when you are speaking to Havoc. Nothing is recorded to disk.',
     risk: 'high',
-    // The OS prompt is the real gate. Helix cannot answer it on the user's
+    // The OS prompt is the real gate. Havoc cannot answer it on the user's
     // behalf and must not present its own grant as though it had.
     secondGate: 'your operating system, which asks separately and can revoke it at any time',
     alwaysConfirm: false,
@@ -335,7 +335,7 @@ export const PERMISSIONS: Readonly<Record<PermissionId, PermissionDescriptor>> =
     id: 'WEB_ACCESS',
     group: 'system',
     label: 'Reach the internet',
-    description: 'Fetch pages and search the web when you ask a question Helix cannot answer locally.',
+    description: 'Fetch pages and search the web when you ask a question Havoc cannot answer locally.',
     risk: 'medium',
     secondGate: null,
     alwaysConfirm: false,

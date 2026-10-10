@@ -20,16 +20,16 @@ import type { OutboundKind } from '../outbound/outbound.js';
  *
  * So they return the truth in the same shape as a working tool: a spoken line
  * saying it cannot be done, and a card setting out what is missing, what is
- * blocking it, and what Helix will still refuse to do once it works. A user who
- * asks Helix to read their inbox learns more from this card than from a
+ * blocking it, and what Havoc will still refuse to do once it works. A user who
+ * asks Havoc to read their inbox learns more from this card than from a
  * one-line refusal - it tells them what to go and build.
  *
  * The blocker is worth stating plainly because it is not a matter of effort.
  * The page ships a Content-Security-Policy of `connect-src 'self' blob:`,
  * which means the browser refuses every request to an origin that is not
- * Helix itself. No mail server and no search engine is reachable from here,
+ * Havoc itself. No mail server and no search engine is reachable from here,
  * with or without credentials. That is deliberate - it is also why no API key
- * can leak from this build - and it does not change until Helix runs inside a
+ * can leak from this build - and it does not change until Havoc runs inside a
  * desktop shell that makes network calls outside the page.
  */
 
@@ -134,7 +134,7 @@ export function inboxRequirement(blocker?: string): ToolReply {
       },
     ],
     caveat:
-      'Nothing on this card is a sample of your mail. Helix has never seen your mail and has no way to reach it.',
+      'Nothing on this card is a sample of your mail. Havoc has never seen your mail and has no way to reach it.',
   };
 
   return {
@@ -213,9 +213,9 @@ export function sendingRequirement(kind: OutboundKind): ToolReply {
           source: 'Your standing instruction',
         },
         {
-          label: 'Helix will use an account, never fund one',
+          label: 'Havoc will use an account, never fund one',
           detail:
-            'Buying a number, topping up credit or taking out a subscription is yours. Helix refuses a draft that reads as a purchase',
+            'Buying a number, topping up credit or taking out a subscription is yours. Havoc refuses a draft that reads as a purchase',
           meta: 'permanent',
           accent: 'good',
           source: 'Your standing instruction',
@@ -272,7 +272,7 @@ export function researchRequirement(query: string): ToolReply {
             detail: 'No search or fetch provider is configured, and none is written',
             meta: 'not written',
             accent: 'warn',
-            source: 'Helix providers',
+            source: 'Havoc providers',
           },
           {
             label: 'A way to reach one',

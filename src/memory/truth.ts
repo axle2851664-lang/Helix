@@ -1,16 +1,16 @@
 /**
- * Facts the user has explicitly asked Helix to hold.
+ * Facts the user has explicitly asked Havoc to hold.
  *
- * WHAT THIS IS FOR. Helix already learns a narrow set of self-disclosures -
+ * WHAT THIS IS FOR. Havoc already learns a narrow set of self-disclosures -
  * your name, where you live - from `disclosure.ts`. This is the general case:
  * anything at all, marked by the user as something to treat as true.
  *
- *   "The truth is that my project is called Helix."
+ *   "The truth is that my project is called Havoc."
  *   "Remember this as a fact: the supplier only ships on Tuesdays."
  *
  * THE DISTINCTION THAT MATTERS MOST, and the reason this file is mostly
  * refusals. Marking something as true is an instruction; saying something is
- * not. Helix must not quietly turn a conversation into a set of beliefs, and
+ * not. Havoc must not quietly turn a conversation into a set of beliefs, and
  * the three cases it has to keep apart are:
  *
  *   A QUESTION      "Is the Earth flat?"
@@ -18,7 +18,7 @@
  *
  *   AN OPINION      "I think the Earth is flat."
  *                   Not stored. The user said what they think; they did not
- *                   ask Helix to hold it.
+ *                   ask Havoc to hold it.
  *
  *   A MARKED TRUTH  "The truth is that I believe the Earth is flat."
  *                   Stored - and stored as what it actually is, a fact about
@@ -38,13 +38,13 @@
 
 /** Where a stored claim came from, and therefore how far it may be trusted. */
 export type Provenance =
-  /** The user said so, and asked Helix to keep it. Nothing verified it. */
+  /** The user said so, and asked Havoc to keep it. Nothing verified it. */
   | 'user-stated'
   /** The user said they believe or think it. A fact about them, not the world. */
   | 'user-belief';
 
 export interface Truth {
-  /** The claim, as a sentence Helix can hold and read back. */
+  /** The claim, as a sentence Havoc can hold and read back. */
   claim: string;
   provenance: Provenance;
   /** The words that marked it, for the confirmation and the log. */
@@ -105,13 +105,13 @@ function tidy(claim: string): string {
  *
  * Null is the common answer and the safe one: almost nothing anyone says is a
  * request to store a fact, and storing something that was not meant as one is
- * both a privacy failure and a correctness failure - Helix would go on to use
+ * both a privacy failure and a correctness failure - Havoc would go on to use
  * it.
  */
 export function truthStatement(said: string): Truth | null {
   const text = said
     .trim()
-    .replace(/^(?:hey\s+|ok(?:ay)?\s+)?helix[,:]?\s*/i, '')
+    .replace(/^(?:hey\s+|ok(?:ay)?\s+)?havoc[,:]?\s*/i, '')
     .trim();
   if (text === '') return null;
 
@@ -173,7 +173,7 @@ const EDITS: ReadonlyArray<{ pattern: RegExp; kind: TruthEditKind }> = [
  * particular is worse than changing nothing.
  */
 export function truthEdit(said: string): TruthEdit | null {
-  const text = said.trim().replace(/^(?:hey\s+|ok(?:ay)?\s+)?helix[,:]?\s*/i, '').trim();
+  const text = said.trim().replace(/^(?:hey\s+|ok(?:ay)?\s+)?havoc[,:]?\s*/i, '').trim();
   if (text === '') return null;
 
   for (const { pattern, kind } of EDITS) {
@@ -195,8 +195,8 @@ export function truthEdit(said: string): TruthEdit | null {
  *
  * This is the single place that stops a user's assertion being laundered into
  * a verified fact. "The truth is the moon is made of cheese" comes back as
- * something the user told Helix, never as something Helix knows - because
- * Helix does not know it, and nothing about having been told makes it so.
+ * something the user told Havoc, never as something Havoc knows - because
+ * Havoc does not know it, and nothing about having been told makes it so.
  */
 export function phrase(claim: string, provenance: Provenance): string {
   const body = claim.replace(/\.$/, '');

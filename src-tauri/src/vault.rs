@@ -5,8 +5,8 @@
 //! command rather than a general file API:
 //!
 //! - **Read only.** There is no write, move or delete command here, and adding
-//!   one should be argued for separately. Helix indexing your notes must not
-//!   become Helix able to alter them.
+//!   one should be argued for separately. Havoc indexing your notes must not
+//!   become Havoc able to alter them.
 //! - **Only where you pointed it.** Every file is resolved and checked to sit
 //!   inside a configured root before it is opened, so a symlink out of the
 //!   vault reaches nothing.

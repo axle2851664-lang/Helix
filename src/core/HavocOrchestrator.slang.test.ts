@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
-import { HelixOrchestrator } from './HelixOrchestrator.js';
+import { HavocOrchestrator } from './HavocOrchestrator.js';
 import { Logger } from './Logger.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
@@ -33,12 +33,12 @@ async function makeContext(ai?: AIRouter) {
   await settings.load();
 
   const conversations = new ConversationStore({ store: kv, settings, logger });
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store: kv, logger, paths });
   const memory = new MemoryManager({ store: kv, settings, logger });
   const knowledge = new KnowledgeIndex({ store: kv, projects, logger });
 
-  const orchestrator = new HelixOrchestrator({
+  const orchestrator = new HavocOrchestrator({
     settings,
     conversations,
     activity: new ActivityManager(),
@@ -69,11 +69,11 @@ describe('slang, when asked', () => {
     expect(ai.calls[0]?.system).toContain('Do not answer it');
   });
 
-  it('rewrites what Helix last said when the request points back', async () => {
+  it('rewrites what Havoc last said when the request points back', async () => {
     const ai = fakeAi();
     const context = await makeContext(ai.router);
     await context.conversations.appendMessage(context.conversation.id, {
-      role: 'helix',
+      role: 'havoc',
       text: 'The meeting has been moved to Tuesday.',
     });
 
@@ -111,8 +111,8 @@ describe('slang, when asked', () => {
     expect(response.failure).toBe('PROVIDER_NOT_CONFIGURED');
   });
 
-  it('does not put the slang back into Helix\u2019s own register', async () => {
-    // `repair` enforces Helix's voice, which would undo the whole request.
+  it('does not put the slang back into Havoc\u2019s own register', async () => {
+    // `repair` enforces Havoc's voice, which would undo the whole request.
     const ai = fakeAi('nah fam that ain\u2019t it');
     const context = await makeContext(ai.router);
 

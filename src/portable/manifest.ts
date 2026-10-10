@@ -6,7 +6,7 @@ import { NEVER_COPIED, formatBytes } from './plan.js';
  *
  * It exists for the moment somebody finds this disk in a drawer in two years
  * and wants to know what is on it without running anything. That reader has
- * no Helix, no browser and no patience, so it is a text file, and it says
+ * no Havoc, no browser and no patience, so it is a text file, and it says
  * what is there rather than what the feature is called.
  *
  * It also names what is deliberately absent. A person restoring this copy
@@ -15,7 +15,7 @@ import { NEVER_COPIED, formatBytes } from './plan.js';
  */
 export function manifestText(plan: PortablePlan, when: Date): string {
   const lines: string[] = [
-    'HELIX - PORTABLE COPY',
+    'HAVOC - PORTABLE COPY',
     '',
     `Written ${when.toISOString()}`,
     '',
@@ -51,8 +51,8 @@ export function manifestText(plan: PortablePlan, when: Date): string {
     '',
     'HOW TO USE IT',
     plan.carriesApp
-      ? '  Open the "app" folder and run Helix from there. It needs nothing installed.'
-      : '  This copy holds data only. Install Helix on the other machine first.',
+      ? '  Open the "app" folder and run Havoc from there. It needs nothing installed.'
+      : '  This copy holds data only. Install Havoc on the other machine first.',
     plan.include.some((item) => item.id !== 'app')
       ? '  Then use Settings > Storage > Restore, and choose data.helix.json from this folder.'
       : '',

@@ -78,7 +78,7 @@ export const MODELS = [
 /** One catalogue entry, with its id narrowed to a literal. */
 export type Model = (typeof MODELS)[number];
 
-/** The exact set of ids Helix can select. Keep settings/schema.ts in step. */
+/** The exact set of ids Havoc can select. Keep settings/schema.ts in step. */
 export type ModelId = Model['id'];
 
 export const DEFAULT_MODEL_ID: ModelId = 'claude-opus-5';

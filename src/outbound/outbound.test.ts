@@ -77,7 +77,7 @@ describe('draft', () => {
 
   /**
    * Unmeasured cost is null, never zero. Reporting zero because nothing
-   * measured would turn "never spend" into a rule Helix breaks while
+   * measured would turn "never spend" into a rule Havoc breaks while
    * believing it is keeping it.
    */
   it('records unmeasured cost as unknown rather than as free', () => {

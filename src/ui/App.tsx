@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ConsentGate } from './consent/ConsentGate.js';
 import { DropZone } from './intake/DropZone.js';
-import { HelixMark } from './components/HelixMark.js';
+import { HavocMark } from './components/HavocMark.js';
 import { Sidebar } from './sidebar/Sidebar.js';
 import { TopBar } from './header/TopBar.js';
 import { StatusPanel } from './status/StatusPanel.js';
-import { HelixProvider, useHelix, useHelixState, useSettings } from './HelixProvider.js';
+import { HavocProvider, useHavoc, useHavocState, useSettings } from './HavocProvider.js';
 import { WorkspaceView } from './workspaces/index.js';
 import { WORKSPACES, type WorkspaceId } from './workspaces/registry.js';
 import { TimeOverlay } from './time/TimeOverlay.js';
-import type { HelixResponse } from '../core/HelixOrchestrator.js';
+import type { HavocResponse } from '../core/HavocOrchestrator.js';
 
 /**
  * Width at or below which the sidebar becomes an overlay drawer. Mirrors the
@@ -23,13 +23,13 @@ const SIDEBAR_OVERLAY_WIDTH = 820;
  * Every other workspace gets a title and a subtitle above it, which is right
  * for a panel of controls and wrong for a surface you are looking at or
  * writing on. The home screen was already exempt; the Notepad is exempt for
- * the same reason - a heading reading "Notepad / Notes you asked Helix to
+ * the same reason - a heading reading "Notepad / Notes you asked Havoc to
  * keep" above a page you are typing on is furniture between you and the page.
  */
 const FULL_BLEED: ReadonlySet<WorkspaceId> = new Set<WorkspaceId>(['home', 'notepad']);
 
 /**
- * The Helix application shell: three columns - navigation, workspace, status.
+ * The Havoc application shell: three columns - navigation, workspace, status.
  *
  * Kept thin on purpose. It owns layout, navigation and the current
  * conversation, and delegates everything else to workspace components and the
@@ -37,19 +37,19 @@ const FULL_BLEED: ReadonlySet<WorkspaceId> = new Set<WorkspaceId>(['home', 'note
  */
 export function App() {
   return (
-    <HelixProvider>
-      <HelixShell />
-    </HelixProvider>
+    <HavocProvider>
+      <HavocShell />
+    </HavocProvider>
   );
 }
 
-function HelixShell() {
-  const { state } = useHelixState();
+function HavocShell() {
+  const { state } = useHavocState();
 
   if (state.phase === 'starting') {
     return (
       <div className="hx-boot">
-        <HelixMark status="PROCESSING" size={84} />
+        <HavocMark status="PROCESSING" size={84} />
         <p className="hx-boot__label">Starting</p>
       </div>
     );
@@ -58,19 +58,19 @@ function HelixShell() {
   if (state.phase === 'failed') {
     return (
       <div className="hx-boot">
-        <HelixMark status="ERROR" size={84} />
-        <p className="hx-boot__label">Helix could not start</p>
+        <HavocMark status="ERROR" size={84} />
+        <p className="hx-boot__label">Havoc could not start</p>
         <p className="hx-boot__detail">{state.message}</p>
       </div>
     );
   }
 
-  return <HelixWorkspaceShell />;
+  return <HavocWorkspaceShell />;
 }
 
-function HelixWorkspaceShell() {
-  const { bus, platform, conversations } = useHelix();
-  const { warnings } = useHelixState();
+function HavocWorkspaceShell() {
+  const { bus, platform, conversations } = useHavoc();
+  const { warnings } = useHavocState();
   const appearance = useSettings(['reduceMotion', 'accentIntensity', 'theme', 'offlineMode']);
 
   const [workspace, setWorkspace] = useState<WorkspaceId>('home');
@@ -98,7 +98,7 @@ function HelixWorkspaceShell() {
    *
    * It used to open itself on any screen wider than 820px, and then reassert
    * that on every resize - which made a permanent navigation rail the resting
-   * state of the whole interface. What Helix is meant to look like at rest is
+   * state of the whole interface. What Havoc is meant to look like at rest is
    * the core and nothing else. The sidebar is untouched and fully functional;
    * it is reached by asking for it, or by the button in the header, which is
    * where it always was.
@@ -108,7 +108,7 @@ function HelixWorkspaceShell() {
   /**
    * The overlay that currently owns the screen, or null.
    *
-   * One at a time, deliberately: these are full-screen displays Helix brings
+   * One at a time, deliberately: these are full-screen displays Havoc brings
    * up, and two of them at once would be two things claiming to be the focus.
    */
   const [overlay, setOverlay] = useState<'time' | null>(null);
@@ -123,7 +123,7 @@ function HelixWorkspaceShell() {
 
   /**
    * Conversations are created lazily, on the first message. Creating one on
-   * mount produced an empty conversation every time Helix opened - and two
+   * mount produced an empty conversation every time Havoc opened - and two
    * under StrictMode's double-invoke - which then cluttered the history list.
    */
   const ensureConversation = useCallback(async (): Promise<string> => {
@@ -152,14 +152,14 @@ function HelixWorkspaceShell() {
   }, [navigate]);
 
   /**
-   * Interface changes Helix asked for.
+   * Interface changes Havoc asked for.
    *
    * Applied here because this is where the interface state lives. Nothing in
    * this path touches a model: showing a panel and reading a clock are things
    * the browser does, and routing them through one would be slower and, for
    * the clock, wrong.
    */
-  const applyUi = useCallback((ui: HelixResponse['ui']) => {
+  const applyUi = useCallback((ui: HavocResponse['ui']) => {
     if (!ui) return;
     if (ui.sidebar === 'show') setSidebarOpen(true);
     if (ui.sidebar === 'hide') setSidebarOpen(false);
@@ -268,12 +268,12 @@ function HelixWorkspaceShell() {
         <StatusPanel onClose={() => setStatusOpen(false)} onOpenSystem={() => navigate('system')} />
       )}
 
-      {/* Brought up by Helix, over whatever workspace is open, and cleared
+      {/* Brought up by Havoc, over whatever workspace is open, and cleared
           the same way. Unmounted rather than hidden, so nothing invisible is
           left over the interface swallowing clicks. */}
       {overlay === 'time' && <TimeOverlay onClose={() => setOverlay(null)} />}
 
-      {/* Mounted for the whole session: it is what lets Helix ask, and until
+      {/* Mounted for the whole session: it is what lets Havoc ask, and until
           something can ask, every permission and every destructive action is
           refused rather than assumed. */}
       <ConsentGate />

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { useHavoc } from '../HavocProvider.js';
+import { toUserMessage } from '../../core/HavocError.js';
 import { NullVisionProvider } from '../../vision/types.js';
 import { NullGestureProvider } from '../../gestures/types.js';
 import { formatBytes } from '../../projects/validation.js';
@@ -19,7 +19,7 @@ import type { ProjectSummary } from '../../projects/types.js';
  * screen starts the device on mount.
  */
 export function CameraWorkspace() {
-  const { camera, projects, logger } = useHelix();
+  const { camera, projects, logger } = useHavoc();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [snapshot, setSnapshot] = useState<CameraSnapshot>(() => camera.snapshot);
@@ -183,7 +183,7 @@ export function CameraWorkspace() {
             )}
 
             <p className="hx-settings__note">
-              Nothing is recorded. Helix holds no video buffer, and a still exists only when you
+              Nothing is recorded. Havoc holds no video buffer, and a still exists only when you
               press Capture.
             </p>
           </>
@@ -244,7 +244,7 @@ export function CameraWorkspace() {
         </div>
         <p className="hx-settings__note">
           Once a provider is configured, a captured still can be described, questioned, or scanned
-          for objects. Until then Helix will not guess at what an image contains.
+          for objects. Until then Havoc will not guess at what an image contains.
         </p>
       </section>
 

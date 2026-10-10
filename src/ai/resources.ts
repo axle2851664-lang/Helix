@@ -30,7 +30,7 @@ export interface ModelFootprint {
  *
  * Free memory is a reading, not a property. Taken at the wrong second on this
  * machine it said 1.1 GB, and on that basis every installed model was marked
- * unavailable - which would have left Helix unable to speak for the rest of
+ * unavailable - which would have left Havoc unable to speak for the rest of
  * the session because of a momentary spike, with two perfectly serviceable
  * models sitting on the disk.
  *

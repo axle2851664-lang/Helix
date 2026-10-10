@@ -61,7 +61,7 @@ impl TailscaleLookup {
 /// without Tailscale being installed.
 fn parse_status(json: &str) -> Result<String, String> {
     let root: serde_json::Value = serde_json::from_str(json)
-        .map_err(|_| "Tailscale replied with something Helix could not read.".to_string())?;
+        .map_err(|_| "Tailscale replied with something Havoc could not read.".to_string())?;
 
     // A backend that is not running still answers, and its answer contains no
     // usable address. Reporting that as "not found" would send someone looking
@@ -132,7 +132,7 @@ fn run_tailscale() -> Option<String> {
 pub fn tailscale_address() -> TailscaleLookup {
     match run_tailscale() {
         None => TailscaleLookup::missing(
-            "Helix could not find Tailscale on this machine. Install it, sign in on this computer and on your phone, then try again.",
+            "Havoc could not find Tailscale on this machine. Install it, sign in on this computer and on your phone, then try again.",
         ),
         Some(json) => match parse_status(&json) {
             Ok(address) => TailscaleLookup::found(address),

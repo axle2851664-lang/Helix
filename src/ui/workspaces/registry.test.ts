@@ -92,7 +92,7 @@ describe('resolveWorkspace', () => {
   });
 
   it('resolves a title', () => {
-    expect(resolveWorkspace('Helix Earth')).toBe('earth');
+    expect(resolveWorkspace('Havoc Earth')).toBe('earth');
     expect(resolveWorkspace('Image Generation')).toBe('image-generation');
   });
 

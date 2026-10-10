@@ -1,5 +1,5 @@
 /**
- * What Helix can actually do, described as data.
+ * What Havoc can actually do, described as data.
  *
  * WHY THIS EXISTS. Every capability used to describe itself inside its own
  * matcher, as a list of phrases and a `lower.includes(...)`. Sixteen tools,
@@ -23,7 +23,7 @@
  * had to be predicted.
  *
  * WHAT THIS IS NOT. It is not semantic understanding in the neural sense.
- * There is no embedding model here and none is pretended at - Helix has no
+ * There is no embedding model here and none is pretended at - Havoc has no
  * embedding provider, and inventing one would be the fake capability the brief
  * forbids. What it is, is lexical understanding done properly: decomposition,
  * synonym sets, fuzzy matching and context, which between them cover the
@@ -270,7 +270,7 @@ export const CAPABILITIES: readonly Capability[] = [
         words: [...OPEN_WORDS, 'list'],
         risk: 'safe',
         needsTarget: false,
-        summary: 'show what Helix remembers',
+        summary: 'show what Havoc remembers',
       },
       {
         verb: 'search',
@@ -312,7 +312,7 @@ export const CAPABILITIES: readonly Capability[] = [
         words: ['export', 'copy', 'back up', 'backup', 'put', 'move', 'transfer'],
         risk: 'safe',
         needsTarget: false,
-        summary: 'copy Helix onto a disk',
+        summary: 'copy Havoc onto a disk',
       },
     ],
   },
@@ -386,7 +386,7 @@ export const CAPABILITIES: readonly Capability[] = [
       // Dismissals that name nothing. They only resolve to the clock when it
       // is what is in focus - see the focus carry in understand.ts.
       { phrase: 'go back', verb: 'close' },
-      { phrase: 'return to helix', verb: 'close' },
+      { phrase: 'return to havoc', verb: 'close' },
       { phrase: "that's enough", verb: 'close' },
       { phrase: 'thats enough', verb: 'close' },
       { phrase: 'close that', verb: 'close' },
@@ -477,7 +477,7 @@ export const CAPABILITIES: readonly Capability[] = [
      *
      * What this cannot do is as important as what it can: there is no
      * operating-system scheduling behind it, so an alarm only sounds while
-     * Helix is running. The orchestrator says so when one is set far enough
+     * Havoc is running. The orchestrator says so when one is set far enough
      * ahead to be slept through, because the warning is worthless afterwards.
      */
     id: 'alarm',

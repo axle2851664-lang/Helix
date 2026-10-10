@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { TauriPlatform, detectTauri, shellInstallRoot, tauriInvoke } from './TauriPlatform.js';
 
-const dataRoot = 'E:/Helix/data';
+const dataRoot = 'E:/Havoc/data';
 
 const shell = (handlers: Record<string, unknown>) =>
   new TauriPlatform({
@@ -31,7 +31,7 @@ describe('detectTauri', () => {
   });
 
   /**
-   * The case that made Helix report `host: 'browser'` inside its own desktop
+   * The case that made Havoc report `host: 'browser'` inside its own desktop
    * window: `withGlobalTauri` is off by default in Tauri 2, so `__TAURI__` is
    * never injected and only the internals are there.
    */
@@ -59,7 +59,7 @@ describe('shellInstallRoot', () => {
     }) as <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
 
   it('returns what the shell reports', async () => {
-    expect(await shellInstallRoot(call('C:/Program Files/Helix'))).toBe('C:/Program Files/Helix');
+    expect(await shellInstallRoot(call('C:/Program Files/Havoc'))).toBe('C:/Program Files/Havoc');
   });
 
   /**
@@ -191,7 +191,7 @@ describe('volume statistics', () => {
   const stats = {
     freeBytes: 86_000_000_000,
     totalBytes: 238_000_000_000,
-    usedByHelixBytes: 0,
+    usedByHavocBytes: 0,
     source: 'volume',
   };
 

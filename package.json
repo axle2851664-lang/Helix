@@ -1,9 +1,9 @@
 {
-  "name": "helix",
+  "name": "havoc",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Helix - modular portable Windows AI assistant",
+  "description": "Havoc - modular portable Windows AI assistant",
   "license": "UNLICENSED",
   "engines": {
     "node": ">=20"

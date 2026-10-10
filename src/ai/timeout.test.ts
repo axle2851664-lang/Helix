@@ -5,7 +5,7 @@ import type { InferenceTransport } from './types.js';
 /**
  * A wait that ends.
  *
- * Reported from a running build: Helix sat on "Standing by" for ever after
+ * Reported from a running build: Havoc sat on "Standing by" for ever after
  * the request finally started reaching Ollama. Neither side had a timeout -
  * the shell's HTTP client had none, and nothing on this side gave up either -
  * so a stalled request waited indefinitely with nothing on screen to read and

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix } from '../HelixProvider.js';
+import { useHavoc } from '../HavocProvider.js';
 import { tauriInvoke } from '../../platform/TauriPlatform.js';
 import {
   NEVER_COPIED,
@@ -15,11 +15,11 @@ import type { PortableItemId } from '../../portable/plan.js';
 import { isArchivable, type ArchivableNamespace } from '../../backup/archive.js';
 
 /**
- * Taking Helix with you.
+ * Taking Havoc with you.
  *
  * The screen asks one question - what should go on the disk - and asks it one
  * item at a time, with the consequence of each attached. That shape is the
- * whole feature. A single "copy Helix to USB" button would be easier to build
+ * whole feature. A single "copy Havoc to USB" button would be easier to build
  * and would quietly put a conversation history on a stick that lives in a coat
  * pocket, which is not a thing anybody agreed to.
  *
@@ -38,11 +38,11 @@ interface Drive {
   mountPoint: string;
   freeBytes: number;
   totalBytes: number;
-  hasHelix: boolean;
+  hasHavoc: boolean;
 }
 
 export function PortableWorkspace() {
-  const { backup } = useHelix();
+  const { backup } = useHavoc();
 
   const [drives, setDrives] = useState<readonly Drive[]>([]);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -99,7 +99,7 @@ export function PortableWorkspace() {
        * Only what was ticked.
        *
        * This used to be `backup.export('full')`, which wrote every namespace
-       * whatever the user had chosen: tick "Helix itself" and nothing else,
+       * whatever the user had chosen: tick "Havoc itself" and nothing else,
        * and the stick still carried the whole conversation history, under a
        * manifest that said it did not. The checkboxes described a choice that
        * was never passed on. `app` is filtered out because it is the program
@@ -142,7 +142,7 @@ export function PortableWorkspace() {
         <section className="hx-panel">
           <h2 className="hx-panel__title">This needs the desktop app</h2>
           <p className="hx-muted">
-            A web page cannot see your disks or write to them. Open Helix on the machine itself to
+            A web page cannot see your disks or write to them. Open Havoc on the machine itself to
             make a portable copy.
           </p>
         </section>
@@ -163,7 +163,7 @@ export function PortableWorkspace() {
 
         {drives.length === 0 ? (
           <p className="hx-muted">
-            No removable disk is plugged in. Helix only writes to a disk you can take with you, so
+            No removable disk is plugged in. Havoc only writes to a disk you can take with you, so
             a portable copy can never land on top of your real installation.
           </p>
         ) : (
@@ -183,8 +183,8 @@ export function PortableWorkspace() {
                     <br />
                     <span className="hx-muted">
                       {formatBytes(entry.freeBytes)} free of {formatBytes(entry.totalBytes)}
-                      {entry.hasHelix
-                        ? ' · already has a Helix folder, which will be replaced'
+                      {entry.hasHavoc
+                        ? ' · already has a Havoc folder, which will be replaced'
                         : ''}
                     </span>
                   </span>
@@ -294,7 +294,7 @@ export function PortableWorkspace() {
 function NeverCopied() {
   return (
     <section className="hx-panel">
-      <h2 className="hx-panel__title">What Helix will never put on a disk</h2>
+      <h2 className="hx-panel__title">What Havoc will never put on a disk</h2>
       <ul className="hx-list">
         {NEVER_COPIED.map((entry) => (
           <li key={entry.what}>

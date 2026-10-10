@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Helix",
+  "productName": "Havoc",
   "version": "0.1.0",
   "identifier": "com.helix.assistant",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Helix",
+        "title": "Havoc",
         "width": 1440,
         "height": 900,
         "minWidth": 960,
@@ -30,12 +30,17 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["msi", "nsis"],
-    "icon": ["icons/icon.ico"],
+    "targets": [
+      "msi",
+      "nsis"
+    ],
+    "icon": [
+      "icons/icon.ico"
+    ],
     "resources": [],
     "copyright": "",
     "category": "Productivity",
     "shortDescription": "A portable assistant",
-    "longDescription": "Helix - a portable assistant that keeps its data beside it."
+    "longDescription": "Havoc - a portable assistant that keeps its data beside it."
   }
 }

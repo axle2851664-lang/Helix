@@ -3,7 +3,7 @@
 //! The third thing this shell does that a page cannot, and the one with the
 //! widest blast radius. Inference talks to a fixed set of providers; Google
 //! talks to an allow-list of paths on one host. This talks to *whatever the
-//! user asked about*, which means the destination is influenced by text Helix
+//! user asked about*, which means the destination is influenced by text Havoc
 //! did not write - a search result, a link in a page, eventually a suggestion
 //! from a language model.
 //!
@@ -29,7 +29,7 @@
 use serde::Serialize;
 use std::net::IpAddr;
 
-/// Bytes of a response Helix will hold. Beyond this the body is truncated.
+/// Bytes of a response Havoc will hold. Beyond this the body is truncated.
 const MAX_BYTES: usize = 2 * 1024 * 1024;
 
 /// How long any single request may take.
@@ -49,7 +49,7 @@ pub struct WebResponse {
     pub truncated: bool,
 }
 
-/// Is this address one Helix must never be steered into?
+/// Is this address one Havoc must never be steered into?
 ///
 /// Checked on the resolved IP rather than the hostname. A name is not an
 /// address, and `127.0.0.1.nip.io` is a public name that resolves to loopback
@@ -172,7 +172,7 @@ pub async fn web_fetch(url: String) -> Result<WebResponse, String> {
         .redirect(reqwest::redirect::Policy::none())
         // Identifying rather than impersonating. A server that would rather
         // not serve a tool can say so.
-        .user_agent("Helix/0.1 (personal assistant; +https://github.com/)")
+        .user_agent("Havoc/0.1 (personal assistant; +https://github.com/)")
         .build()
         .map_err(|error| format!("Could not build an HTTP client: {error}"))?;
 

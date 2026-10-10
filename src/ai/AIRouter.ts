@@ -9,7 +9,7 @@ import type {
 } from './types.js';
 
 /**
- * The Helix AI router.
+ * The Havoc AI router.
  *
  * Answers three questions per request, in this order: which model should do
  * this, which inference provider should run it, and what happens when that
@@ -306,7 +306,7 @@ export class AIRouter {
       const detail = relevant
         .map((provider) => `${provider.name}: ${provider.isConfigured().reason}`)
         .join(' ');
-      return `Helix is set to run entirely on this machine, and no local model is available. ${detail}`.trim();
+      return `Havoc is set to run entirely on this machine, and no local model is available. ${detail}`.trim();
     }
 
     const reasons = relevant

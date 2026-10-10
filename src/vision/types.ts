@@ -1,7 +1,7 @@
 /**
  * Vision provider interface (spec 10).
  *
- * Helix can capture images today; it cannot interpret them. Analysis requires a
+ * Havoc can capture images today; it cannot interpret them. Analysis requires a
  * vision model, and none is configured. This interface exists so a local model
  * or a cloud provider can be added without touching the camera, the projects
  * system or the UI - and so the absence of one is a reported state rather than

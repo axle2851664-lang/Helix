@@ -3,7 +3,7 @@ import { understand } from '../understanding/understand.js';
 import { ConversationState } from '../understanding/state.js';
 
 /**
- * What Helix understands when someone asks for a timer.
+ * What Havoc understands when someone asks for a timer.
  *
  * Through the real understanding layer, not a mock of it. These are the
  * phrasings the feature exists to serve, and each one declined at some point

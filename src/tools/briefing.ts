@@ -4,21 +4,21 @@ import { observe } from '../persona/voice.js';
 /**
  * The briefing and the plan.
  *
- * Both read the same snapshot of what Helix actually holds - projects, the
+ * Both read the same snapshot of what Havoc actually holds - projects, the
  * knowledge index, long-term memory - and both are pure functions of it, so
  * they can be tested without a browser, a store or a clock.
  *
- * The brief asked for five items "ordered by what moves money". Helix cannot
+ * The brief asked for five items "ordered by what moves money". Havoc cannot
  * do that, and pretending otherwise would be the most expensive kind of lie:
- * a confident ordering built on nothing. Helix has never been told what the
+ * a confident ordering built on nothing. Havoc has never been told what the
  * user sells, what a client is worth, or when anything is due. So the ordering
  * is by a rule it *can* defend - how long something has sat untouched in
- * Helix, and whether Helix can still search it - and that rule is printed on
+ * Havoc, and whether Havoc can still search it - and that rule is printed on
  * the card rather than implied.
  *
  * Every number on these cards carries its scope. "14 days" is a claim about
- * the user's working life that Helix has no standing to make; "14 days since
- * Helix saw a change" is a claim about Helix's own store, which is the only
+ * the user's working life that Havoc has no standing to make; "14 days since
+ * Havoc saw a change" is a claim about Havoc's own store, which is the only
  * thing it can actually observe.
  */
 
@@ -48,15 +48,15 @@ export interface BriefingInput {
   projects: readonly BriefProject[];
   /**
    * How many long-term memories exist. Used only as the signal for whether
-   * Helix has been told anything about the user at all - it is not treated as
+   * Havoc has been told anything about the user at all - it is not treated as
    * knowing who they are.
    */
   memoryCount: number;
   /**
-   * Whether Helix is permitted to use long-term memory at all. Distinct from
+   * Whether Havoc is permitted to use long-term memory at all. Distinct from
    * a count of zero: "you have told me nothing" and "you have told me things
    * I am not allowed to read" are different sentences, and collapsing them
-   * would have Helix report an empty record when the truth is a closed door.
+   * would have Havoc report an empty record when the truth is a closed door.
    */
   memoryEnabled: boolean;
   knowledge: { documents: number; searchable: number };
@@ -64,7 +64,7 @@ export interface BriefingInput {
 
 /** The ordering rule, stated once and printed on both cards. */
 const ORDERING_RULE =
-  'Ordered by what has gone longest untouched in Helix and what Helix can no longer search - not by what it is worth. I have not been told what your work is, so I cannot rank it by money.';
+  'Ordered by what has gone longest untouched in Havoc and what Havoc can no longer search - not by what it is worth. I have not been told what your work is, so I cannot rank it by money.';
 
 const MAX_ITEMS = 5;
 
@@ -79,19 +79,19 @@ function daysSince(then: number, now: number): number {
   return Math.max(0, Math.floor((now - then) / DAY_MS));
 }
 
-/** Age, always phrased as something Helix observed rather than something you did. */
+/** Age, always phrased as something Havoc observed rather than something you did. */
 function ageMeta(project: BriefProject, now: number): string {
   const days = daysSince(project.updatedAt, now);
-  if (days === 0) return 'changed today, as Helix has it';
-  if (days === 1) return '1 day since Helix saw a change';
-  return days + ' days since Helix saw a change';
+  if (days === 0) return 'changed today, as Havoc has it';
+  if (days === 1) return '1 day since Havoc saw a change';
+  return days + ' days since Havoc saw a change';
 }
 
 /**
  * Score a project for attention.
  *
  * The reasons are ordered by how much they cost the user, not by how easy they
- * are to detect. Files Helix cannot search are worse than files that are
+ * are to detect. Files Havoc cannot search are worse than files that are
  * merely old, because the second is a fact about time and the first is a
  * capability quietly missing.
  */
@@ -155,7 +155,7 @@ function rankAll(input: BriefingInput): Ranked[] {
     .sort((a, b) => b.score - a.score || a.project.id.localeCompare(b.project.id));
 }
 
-/** Context Helix can state without interpreting it. */
+/** Context Havoc can state without interpreting it. */
 function standingSection(input: BriefingInput): CardItem[] {
   const items: CardItem[] = [];
 
@@ -234,7 +234,7 @@ export function buildBrief(input: BriefingInput): ToolReply {
         heading: 'Wanting attention',
         items,
         empty:
-          'No projects yet. Nothing here is a judgement on your work - Helix simply has not been given any.',
+          'No projects yet. Nothing here is a judgement on your work - Havoc simply has not been given any.',
       },
       { heading: 'Standing', items: standingSection(input) },
     ],
@@ -292,7 +292,7 @@ function briefSpoken(ranked: readonly Ranked[], input: BriefingInput): string {
 export function buildPlan(input: BriefingInput): ToolReply {
   const items: CardItem[] = [];
 
-  // Memory is off: asking the user to tell Helix things it cannot keep would
+  // Memory is off: asking the user to tell Havoc things it cannot keep would
   // be a task designed to fail, so the switch is the item instead.
   if (!input.memoryEnabled) {
     items.push({
@@ -366,11 +366,11 @@ export function buildPlan(input: BriefingInput): ToolReply {
       {
         items,
         empty:
-          'Nothing outstanding that Helix can see. That is a statement about Helix, not about your day.',
+          'Nothing outstanding that Havoc can see. That is a statement about Havoc, not about your day.',
       },
     ],
     caveat:
-      'Built from what Helix holds - projects, files and notes. It knows nothing of your calendar, your inbox or your deadlines, so this is not your whole day.',
+      'Built from what Havoc holds - projects, files and notes. It knows nothing of your calendar, your inbox or your deadlines, so this is not your whole day.',
   };
 
   return { spoken: planSpoken(items), card };
@@ -378,7 +378,7 @@ export function buildPlan(input: BriefingInput): ToolReply {
 
 function planSpoken(items: readonly CardItem[]): string {
   if (items.length === 0) {
-    return observe('Nothing outstanding that I can see, though I only see what is in Helix');
+    return observe('Nothing outstanding that I can see, though I only see what is in Havoc');
   }
   const mine = items.filter((item) => item.meta === 'I can do this').length;
   const one = items.length === 1;

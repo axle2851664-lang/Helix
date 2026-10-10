@@ -1,4 +1,4 @@
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import { describeOutcome, type ImageSearch } from '../images/ImageSearch.js';
 import type { ImageResultsStore } from '../images/ImageResultsStore.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
@@ -10,7 +10,7 @@ import { optionalNumber, optionalString, readString } from './action.js';
  *
  * Gated on WEB_ACCESS rather than a new permission of its own. A new
  * IMAGE_SEARCH permission would be a second prompt for the same thing a person
- * already answered - the question "may Helix reach the internet" does not get
+ * already answered - the question "may Havoc reach the internet" does not get
  * a different answer because the bytes coming back are a JPEG. The `Image
  * search` setting is the separate off switch for this specific feature, which
  * is what the brief actually needs.
@@ -62,14 +62,14 @@ export function imageActions(services: ImageActionServices): ActionDefinition[] 
       describe: (params) => `Search the web for pictures of "${readString(params, 'query')}".`,
       run: async (params) => {
         if (!settings.get('imageSearchEnabled')) {
-          throw new HelixError('CAPABILITY_UNAVAILABLE', 'Image search is switched off in Settings.', {
+          throw new HavocError('CAPABILITY_UNAVAILABLE', 'Image search is switched off in Settings.', {
             remedy: 'settings:providers',
           });
         }
 
         const blocker = search.blocker();
         if (blocker !== null) {
-          throw new HelixError('PROVIDER_NOT_CONFIGURED', blocker, { remedy: 'settings:providers' });
+          throw new HavocError('PROVIDER_NOT_CONFIGURED', blocker, { remedy: 'settings:providers' });
         }
 
         const provider = optionalString(params, 'provider');
@@ -89,7 +89,7 @@ export function imageActions(services: ImageActionServices): ActionDefinition[] 
           if (outcome.results.length === 0 && outcome.failures.length > 0) {
             // Every provider refused. That is a failure, not an empty result,
             // and the difference is what tells the user whether to retry.
-            throw new HelixError('PROVIDER_UNREACHABLE', describeOutcome(outcome, search.providers));
+            throw new HavocError('PROVIDER_UNREACHABLE', describeOutcome(outcome, search.providers));
           }
 
           return {

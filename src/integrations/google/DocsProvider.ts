@@ -10,7 +10,7 @@ import { planDocument, titleFrom, type DocumentPlan } from './docs.js';
  * Two things this will not do, stated before any of it is written:
  *
  *   - It will not open a document you already have. The scope is `drive.file`,
- *     which covers files Helix created and nothing else. Asked for last year's
+ *     which covers files Havoc created and nothing else. Asked for last year's
  *     report it says it has no access, rather than requesting the scope that
  *     would open every document in the account.
  *
@@ -37,7 +37,7 @@ export interface DocsProviderOptions {
    * The connected account, read at the moment of use.
    *
    * A function rather than a value: OAuth completes after the kernel has been
-   * built, so a string captured at construction is null forever and Helix
+   * built, so a string captured at construction is null forever and Havoc
    * refuses to write documents for an account it is in fact connected to.
    */
   account?: () => string | null | undefined;

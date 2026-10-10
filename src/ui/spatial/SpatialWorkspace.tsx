@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
-import { useHelix } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { useHavoc } from '../HavocProvider.js';
+import { toUserMessage } from '../../core/HavocError.js';
 import { SpatialScene } from '../../spatial/SpatialScene.js';
 import { GestureController } from '../../spatial/GestureController.js';
 import { MediaPipeGestureProvider } from '../../gestures/MediaPipeGestureProvider.js';
@@ -15,14 +15,14 @@ import type { ActionDefinition } from '../../actions/action.js';
  * Spatial mode: objects manipulated by hand over the camera view (spec 11, 12).
  *
  * Hand tracking runs on this machine - the MediaPipe runtime and model are
- * served from Helix's own origin, so camera frames are never transmitted.
+ * served from Havoc's own origin, so camera frames are never transmitted.
  *
  * Tracking is opt-in and separate from the camera: the camera can run without
  * tracking, and turning tracking off leaves the preview alone. Mouse control
  * works throughout, whether tracking is on or not.
  */
 export function SpatialWorkspace() {
-  const { camera, projects, logger, bus, actions, runner, imageResults } = useHelix();
+  const { camera, projects, logger, bus, actions, runner, imageResults } = useHavoc();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const providerRef = useRef<MediaPipeGestureProvider | null>(null);
@@ -318,7 +318,7 @@ export function SpatialWorkspace() {
           </li>
         </ul>
         <p className="hx-settings__note">
-          Hand tracking runs entirely on this machine. The runtime and model are served from Helix
+          Hand tracking runs entirely on this machine. The runtime and model are served from Havoc
           itself, so camera frames are never sent anywhere.
         </p>
       </section>

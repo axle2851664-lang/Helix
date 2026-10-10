@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
 import { googleProblem } from './googleProblem.js';
 
 /**
@@ -20,7 +20,7 @@ import { googleProblem } from './googleProblem.js';
  *     run on demand and reports exactly what it found.
  */
 export function RelayPanel() {
-  const { google, relay } = useHelix();
+  const { google, relay } = useHavoc();
   const config = useSettings([
     'googleClientId',
     'googleClientSecret',
@@ -48,7 +48,7 @@ export function RelayPanel() {
     return (
       <p className="helix-settings__note">
         Connecting a Google account needs the desktop shell. A web page cannot hold a mailbox
-        token safely, so these fields save here but cannot be used until Helix is running as the
+        token safely, so these fields save here but cannot be used until Havoc is running as the
         desktop app.
       </p>
     );

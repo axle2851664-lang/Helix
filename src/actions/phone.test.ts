@@ -102,7 +102,7 @@ describe('pairing a phone', () => {
     expect(settings.get('relaySecret')).toBe('');
   });
 
-  it('refuses a port that needs privileges Helix does not ask for', async () => {
+  it('refuses a port that needs privileges Havoc does not ask for', async () => {
     const { runner, settings } = await harness();
 
     const result = await runner.run('phone.pair', { host: 'helix-desktop', port: 80 });

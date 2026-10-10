@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProjectManager } from './ProjectManager.js';
 import { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import { Logger } from '../core/Logger.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
 import { PathManager } from '../storage/PathManager.js';
@@ -9,7 +9,7 @@ import { PathManager } from '../storage/PathManager.js';
 function makeManager(bus?: EventBus) {
   const store = new MemoryKeyValueStore();
   const logger = new Logger('test', { level: 'ERROR', sinks: [] });
-  const paths = new PathManager({ root: 'E:/Helix' });
+  const paths = new PathManager({ root: 'E:/Havoc' });
   const projects = new ProjectManager({ store, logger, paths, ...(bus ? { bus } : {}) });
   return { projects, store };
 }
@@ -39,7 +39,7 @@ describe('ProjectManager: projects', () => {
 
   it('refuses an absurdly long name', async () => {
     const { projects } = makeManager();
-    await expect(projects.createProject('x'.repeat(200))).rejects.toThrow(HelixError);
+    await expect(projects.createProject('x'.repeat(200))).rejects.toThrow(HavocError);
   });
 
   it('trims the name and description', async () => {
@@ -68,7 +68,7 @@ describe('ProjectManager: projects', () => {
   it('refuses to rename to an empty name', async () => {
     const { projects } = makeManager();
     const project = await projects.createProject('Iron Man');
-    await expect(projects.renameProject(project.id, '  ')).rejects.toThrow(HelixError);
+    await expect(projects.renameProject(project.id, '  ')).rejects.toThrow(HavocError);
   });
 
   it('lists projects newest-updated first', async () => {
@@ -183,7 +183,7 @@ describe('ProjectManager: assets', () => {
 
     await expect(
       projects.addFileToProject({ projectId: project.id, file: file('virus.exe'), data: bytes() }),
-    ).rejects.toThrow(HelixError);
+    ).rejects.toThrow(HavocError);
 
     expect(await store.keys('asset-blobs')).toEqual([]);
   });
@@ -389,7 +389,7 @@ describe('ProjectManager: search', () => {
       'bring up my Iron Man project',
       'open the Iron Man project',
       'show me Iron Man',
-      'Helix, can you open my Iron Man project please',
+      'Havoc, can you open my Iron Man project please',
     ]) {
       const results = await context.projects.searchProjects(phrase);
       expect(results[0]?.project.name, phrase).toBe('Iron Man');
@@ -446,7 +446,7 @@ describe('ProjectManager: storage accounting and paths', () => {
   it('resolves a portable project path', async () => {
     const { projects } = makeManager();
     const project = await projects.createProject('Iron Man');
-    expect(projects.projectPath(project.id)).toBe(`E:/Helix/projects/${project.id}`);
+    expect(projects.projectPath(project.id)).toBe(`E:/Havoc/projects/${project.id}`);
   });
 
   it('notifies subscribers when projects change', async () => {

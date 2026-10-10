@@ -23,7 +23,7 @@ import type { SpatialScene } from './SpatialScene.js';
  * action runner performs the chosen one with whatever permission or
  * confirmation it requires. Moving objects is direct manipulation and stays
  * here; anything with consequences goes through the pipeline, which is the
- * specification's rule that Helix acts through a central action system rather
+ * specification's rule that Havoc acts through a central action system rather
  * than reaching into state from wherever the gesture happened to be handled.
  *
  * Pure with respect to time: `update` takes the frame's timestamp rather than

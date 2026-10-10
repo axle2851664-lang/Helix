@@ -1,6 +1,19 @@
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { KeyValueStore } from './KeyValueStore.js';
 
+/**
+ * RENAMED TO HAVOC, EXCEPT HERE. This name is deliberately still 'helix'.
+ *
+ * It is not branding. It is the key the browser stores this profile's entire
+ * database under - settings, notes, memory, projects, timers. Changing it does
+ * not rename that database; it opens a different, empty one, and all of it is
+ * gone with no error to show for it. Nothing the user sees comes from this
+ * string.
+ *
+ * If it ever must change, that is a migration - open the old database, copy
+ * every namespace across, keep the old one until the copy is verified - and
+ * not an edit to this line.
+ */
 const DB_NAME = 'helix';
 const DB_VERSION = 1;
 const OBJECT_STORE = 'records';
@@ -34,9 +47,9 @@ export class IndexedDbStore implements KeyValueStore {
 
     if (!IndexedDbStore.isSupported()) {
       return Promise.reject(
-        new HelixError(
+        new HavocError(
           'STORAGE_UNAVAILABLE',
-          'Helix cannot save data because this browser has storage disabled. Settings and projects will not persist.',
+          'Havoc cannot save data because this browser has storage disabled. Settings and projects will not persist.',
           { technical: 'indexedDB is undefined.' },
         ),
       );
@@ -66,9 +79,9 @@ export class IndexedDbStore implements KeyValueStore {
 
       request.onerror = () =>
         reject(
-          new HelixError(
+          new HavocError(
             'STORAGE_UNAVAILABLE',
-            'Helix could not open its local database, so changes will not be saved.',
+            'Havoc could not open its local database, so changes will not be saved.',
             { technical: 'indexedDB.open failed: ' + String(request.error?.message ?? 'unknown') },
           ),
         );
@@ -76,9 +89,9 @@ export class IndexedDbStore implements KeyValueStore {
       // Fires when another tab holds an older version open and blocks the upgrade.
       request.onblocked = () =>
         reject(
-          new HelixError(
+          new HavocError(
             'STORAGE_UNAVAILABLE',
-            'Helix is open in another window using an older version of its database. Close it and try again.',
+            'Havoc is open in another window using an older version of its database. Close it and try again.',
             { technical: 'indexedDB.open blocked by an existing connection.' },
           ),
         );
@@ -106,9 +119,9 @@ export class IndexedDbStore implements KeyValueStore {
         request = run(tx.objectStore(OBJECT_STORE));
       } catch (error) {
         reject(
-          HelixError.from(
+          HavocError.from(
             error,
-            'Helix could not read or write its local data.',
+            'Havoc could not read or write its local data.',
             'STORAGE_UNAVAILABLE',
           ),
         );
@@ -117,7 +130,7 @@ export class IndexedDbStore implements KeyValueStore {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () =>
         reject(
-          new HelixError('STORAGE_UNAVAILABLE', 'Helix could not read or write its local data.', {
+          new HavocError('STORAGE_UNAVAILABLE', 'Havoc could not read or write its local data.', {
             technical: 'IndexedDB request failed: ' + String(request.error?.message ?? 'unknown'),
           }),
         );

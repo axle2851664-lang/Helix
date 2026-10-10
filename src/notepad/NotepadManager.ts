@@ -1,5 +1,5 @@
 import type { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
+import { HavocError } from '../core/HavocError.js';
 import type { Logger } from '../core/Logger.js';
 import { findSecrets, looksLikeLabelledCredential } from '../core/secrets.js';
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
@@ -12,7 +12,7 @@ import {
 } from './types.js';
 
 /**
- * Helix's notes.
+ * Havoc's notes.
  *
  * Built on the same three rules as `MemoryManager`, deliberately, because a
  * second store of the user's own words with looser rules would be the obvious
@@ -33,7 +33,7 @@ import {
  *
  * It differs from memory in one way that matters: there is no setting that
  * turns the Notepad off. Memory is consulted on every turn, so a user who
- * wants Helix to stop building a picture of them needs a switch. A note is
+ * wants Havoc to stop building a picture of them needs a switch. A note is
  * only ever read when it is asked for, so the switch would only be a way to
  * lose access to your own writing.
  *
@@ -134,18 +134,18 @@ export class NotepadManager {
       const kinds = [...new Set(secrets.map((finding) => finding.label))].join(', ');
       // The content itself is never logged, only the kind of thing it was.
       this.#logger.warn('Refused to write a note containing what looks like a credential.', { kinds });
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
-        `That looks like a credential (${kinds}), so I won't write it down. Helix keeps no keys, tokens or passwords in the Notepad.`,
+        `That looks like a credential (${kinds}), so I won't write it down. Havoc keeps no keys, tokens or passwords in the Notepad.`,
         { technical: `Rejected note containing: ${kinds}` },
       );
     }
 
     if (looksLikeLabelledCredential(content)) {
       this.#logger.warn('Refused to write a note matching the labelled-credential pattern.');
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
-        "That reads like a password or key, so I won't write it down. Helix keeps no credentials in the Notepad.",
+        "That reads like a password or key, so I won't write it down. Havoc keeps no credentials in the Notepad.",
         { technical: 'Rejected note matching the labelled-credential pattern.' },
       );
     }
@@ -155,13 +155,13 @@ export class NotepadManager {
     const trimmed = content.trim();
 
     if (trimmed === '') {
-      throw new HelixError('VALIDATION_FAILED', 'There is nothing to write down.', {
+      throw new HavocError('VALIDATION_FAILED', 'There is nothing to write down.', {
         technical: 'Notepad write called with empty content.',
       });
     }
 
     if (trimmed.length > MAX_CONTENT_LENGTH) {
-      throw new HelixError(
+      throw new HavocError(
         'VALIDATION_FAILED',
         `That is too long for one note (${trimmed.length} characters, limit ${MAX_CONTENT_LENGTH}). Split it and I'll keep both.`,
         { technical: `Note content length ${trimmed.length}` },
@@ -209,7 +209,7 @@ export class NotepadManager {
   ): Promise<Note> {
     const existing = await this.get(id);
     if (!existing) {
-      throw new HelixError('NOT_FOUND', "That note doesn't exist.", {
+      throw new HavocError('NOT_FOUND', "That note doesn't exist.", {
         technical: `update() on missing note ${id}`,
       });
     }
@@ -255,14 +255,14 @@ export class NotepadManager {
   async append(id: string, text: string): Promise<Note> {
     const existing = await this.get(id);
     if (!existing) {
-      throw new HelixError('NOT_FOUND', "That note doesn't exist.", {
+      throw new HavocError('NOT_FOUND', "That note doesn't exist.", {
         technical: `append() on missing note ${id}`,
       });
     }
 
     const addition = text.trim();
     if (addition === '') {
-      throw new HelixError('VALIDATION_FAILED', 'There is nothing to add.', {
+      throw new HavocError('VALIDATION_FAILED', 'There is nothing to add.', {
         technical: 'append() called with empty text.',
       });
     }
@@ -355,7 +355,7 @@ export class NotepadManager {
    *
    * A substring of the note and never anything else - the point of showing it
    * is to let the user see why this note came back, and a summary would be
-   * Helix's words presented as theirs.
+   * Havoc's words presented as theirs.
    */
   static #excerpt(note: Note, needle: string): string {
     const lines = note.content.split('\n').filter((line) => line.trim() !== '');

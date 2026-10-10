@@ -16,7 +16,7 @@ import { MODEL_REGISTRY } from './registry.js';
  * that preference will simply take effect the moment a runtime is installed -
  * no routing code changes.
  *
- * A word on a confusion worth heading off: Helix already runs Whisper on this
+ * A word on a confusion worth heading off: Havoc already runs Whisper on this
  * machine. That is speech recognition, not a language model. Having local
  * speech says nothing about being able to answer a question locally, and the
  * note below says so where a user will actually read it.
@@ -49,7 +49,7 @@ export class LocalProvider implements InferenceProvider {
       return {
         configured: false,
         reason:
-          'No local language model runtime is installed. Helix runs Whisper locally for speech, which is a different thing.',
+          'No local language model runtime is installed. Havoc runs Whisper locally for speech, which is a different thing.',
       };
     }
     if (!this.#runtime.isReady()) {

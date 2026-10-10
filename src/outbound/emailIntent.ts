@@ -2,7 +2,7 @@
  * Recognising a request to email somebody, and refusing to guess who.
  *
  * The hard rule here is the one `OutboundDraft` already states about
- * recipients: "never resolved from a nickname silently". Helix holds no
+ * recipients: "never resolved from a nickname silently". Havoc holds no
  * contacts. "Email Marlow" therefore names nobody, and the only honest
  * responses are to ask for the address or to refuse - never to pick the
  * likeliest Marlow. A message sent to the wrong person cannot be recalled,
@@ -31,7 +31,7 @@ export interface EmailIntent {
 const ADDRESS = /\b([^\s<>@,;:"'()[\]]+@[^\s<>@,;:"'()[\]]+\.[A-Za-z]{2,})\b/;
 
 const OPENERS =
-  /^(?:can you |could you |would you |please |helix,? )*(?:send (?:an? )?(?:email|e-mail)(?: to)?|email|e-mail|write (?:an? )?(?:email|e-mail)(?: to)?|draft (?:an? )?(?:email|e-mail)(?: to)?)\b/i;
+  /^(?:can you |could you |would you |please |havoc,? )*(?:send (?:an? )?(?:email|e-mail)(?: to)?|email|e-mail|write (?:an? )?(?:email|e-mail)(?: to)?|draft (?:an? )?(?:email|e-mail)(?: to)?)\b/i;
 
 /** "saying ..." is dictation; "about ..." is a topic to be drafted from. */
 const VERBATIM = /\b(?:saying|that says|with the message|tell(?:ing)? (?:them|him|her))\b\s*(.+)$/i;

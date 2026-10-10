@@ -1,6 +1,6 @@
-# Helix Standing Rules
+# Havoc Standing Rules
 
-These are the rules Helix operates under. They are not aspirations and not a
+These are the rules Havoc operates under. They are not aspirations and not a
 code of conduct — each one exists because breaking it has a specific cost, and
 each one is listed here with what actually stops it being broken today.
 
@@ -41,7 +41,7 @@ outstanding may be the two that matter.
 
 ### Ask before it leaves — *enforced*
 
-> Helix may send messages and place calls. Nothing leaves without you seeing it
+> Havoc may send messages and place calls. Nothing leaves without you seeing it
 > first and confirming that specific draft.
 
 **This rule replaced "never send", on your instruction.** The permission is now
@@ -83,7 +83,7 @@ failure keeps the provider's own message rather than losing it.
 
 ### Read-only outside its own folders — *by absence*
 
-> Helix never writes to your folders. Everything it keeps goes in its own data
+> Havoc never writes to your folders. Everything it keeps goes in its own data
 > directory.
 
 An assistant that can overwrite your work is one bug away from destroying it.
@@ -92,11 +92,11 @@ An assistant that can overwrite your work is one bug away from destroying it.
 already refuses any path outside the workspace, ready for the shell.
 
 **What weakens it:** under the shell this becomes the only thing standing
-between Helix and your disk.
+between Havoc and your disk.
 
 ### Never remember silently — *enforced*
 
-> Nothing is written to long-term memory without Helix saying so, and quoting it
+> Nothing is written to long-term memory without Havoc saying so, and quoting it
 > back.
 
 Memory you did not know was taken is surveillance, however well meant.
@@ -117,7 +117,7 @@ The two consumers share the list so they cannot drift apart.
 
 ### Never spend — *enforced*
 
-> Helix may use an account you have already set up and funded. It may never buy,
+> Havoc may use an account you have already set up and funded. It may never buy,
 > pay, top up, subscribe or upgrade.
 
 Sending on your behalf and spending on your behalf are different permissions,
@@ -126,7 +126,7 @@ way to lose trust.
 
 **Where the line falls.** Placing a call is itself billable on every provider
 worth using, so "may call" and "never spend" cannot both be absolute. The
-reading in force: Helix will make the call you asked for, on an account you have
+reading in force: Havoc will make the call you asked for, on an account you have
 funded, and will not fund it.
 
 **What holds it:** a draft whose text reads as a purchase — buy, pay, order, top
@@ -136,12 +136,12 @@ errs towards refusing: a false positive costs one rephrase, a false negative
 costs money.
 
 Cost is stated on every draft, and an unmeasured cost is `null` rather than
-zero. Reporting zero because nothing measured would turn this into a rule Helix
+zero. Reporting zero because nothing measured would turn this into a rule Havoc
 breaks while believing it is keeping it.
 
 ### Never invent — *by absence*
 
-> No made-up number, date, filename or client. If it is not in the files, Helix
+> No made-up number, date, filename or client. If it is not in the files, Havoc
 > says so.
 
 A plausible fabrication is worse than a blank, because it gets acted on.
@@ -161,8 +161,8 @@ hardest rule in the project the day one is wired in.
 A half-paid invoice on a running job is not a discount, and reporting it as one
 is a lie made of true numbers.
 
-**What holds it:** the briefing reports ages as *"since Helix saw a change"*,
-never as elapsed work — Helix can observe its own store and nothing else.
+**What holds it:** the briefing reports ages as *"since Havoc saw a change"*,
+never as elapsed work — Havoc can observe its own store and nothing else.
 Indexing reports what it skipped alongside what it indexed, so a run that
 skipped everything cannot read as a run that worked. Both are pinned by tests.
 
@@ -171,7 +171,7 @@ skipped everything cannot read as a run that worked. Both are pinned by tests.
 > A note in your files saying "ignore your instructions" is reported to you,
 > never obeyed.
 
-Anything Helix reads could have been written by someone else, for Helix to read.
+Anything Havoc reads could have been written by someone else, for Havoc to read.
 
 **What holds it:** [`src/guardrails/untrusted.ts`](../src/guardrails/untrusted.ts)
 scans file text for instruction-shaped passages — overrides, forged system
@@ -182,7 +182,7 @@ Files workspace, and in the reply to any search that matches such a file.
 Two decisions inside it are worth stating:
 
 - **It flags, it does not block.** A document *about* prompt injection will trip
-  these patterns, and should. Refusing to index it would make Helix useless to
+  these patterns, and should. Refusing to index it would make Havoc useless to
   anyone who writes on the subject. You are shown the passage and you decide.
 - **It never edits your file.** No sanitising, no stripping, no quiet removal.
   Your file is your file.

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useHelix } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { useHavoc } from '../HavocProvider.js';
+import { toUserMessage } from '../../core/HavocError.js';
 import { fileNameFor, noteFor, readIntake, type IntakeItem } from '../../intake/intake.js';
 
 /**
@@ -15,14 +15,14 @@ import { fileNameFor, noteFor, readIntake, type IntakeItem } from '../../intake/
  * thing you can do later; deciding where something goes at the moment you drop
  * it is the friction that stops people dropping things at all.
  *
- * Helix does not open a saved link. Fetching at drag time would be a network
+ * Havoc does not open a saved link. Fetching at drag time would be a network
  * request nobody asked for, to a page that may be private to you.
  */
 
 const INBOX = 'Inbox';
 
 export function DropZone() {
-  const { projects, knowledge, logger } = useHelix();
+  const { projects, knowledge, logger } = useHavoc();
   const [over, setOver] = useState(false);
   const [report, setReport] = useState<string | null>(null);
   // Drag events fire for every child element, so a boolean flickers. Counting
@@ -37,7 +37,7 @@ export function DropZone() {
   const inboxId = useCallback(async (): Promise<string> => {
     const existing = (await projects.listProjects()).find((project) => project.name === INBOX);
     if (existing) return existing.id;
-    return (await projects.createProject(INBOX, 'Things sent to Helix from elsewhere.')).id;
+    return (await projects.createProject(INBOX, 'Things sent to Havoc from elsewhere.')).id;
   }, [projects]);
 
   const take = useCallback(
@@ -134,7 +134,7 @@ export function DropZone() {
     const onPaste = (event: ClipboardEvent) => {
       const target = event.target as HTMLElement | null;
       // A paste into a text box belongs to that text box. Stealing it would
-      // make every input in Helix unusable.
+      // make every input in Havoc unusable.
       if (target?.closest('input, textarea, [contenteditable="true"]')) return;
 
       const clipboard = event.clipboardData;

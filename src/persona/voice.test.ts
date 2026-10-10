@@ -21,7 +21,7 @@ beforeEach(() => {
 
 describe('honorifics', () => {
   /**
-   * The rule this whole file exists to hold. Helix used to say "sir" in about
+   * The rule this whole file exists to hold. Havoc used to say "sir" in about
    * a third of its replies and there was machinery to meter it; the rate is
    * now zero, and the machinery removes rather than meters.
    */

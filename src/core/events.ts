@@ -1,5 +1,5 @@
 /**
- * Helix event catalogue (spec 20).
+ * Havoc event catalogue (spec 20).
  *
  * Every cross-module signal is declared here with its payload type. Modules
  * communicate through these events rather than importing each other directly,
@@ -18,10 +18,10 @@ export interface StorageWarningPayload {
   severity: 'high' | 'very-high' | 'critical' | 'exhausted';
 }
 
-export interface HelixEventMap {
+export interface HavocEventMap {
   // --- Lifecycle ---
-  'helix:ready': { startedAt: number };
-  'helix:shutdown': { reason: string };
+  'havoc:ready': { startedAt: number };
+  'havoc:shutdown': { reason: string };
 
   // --- Projects (spec 7) ---
   PROJECT_CREATED: { projectId: string; name: string };
@@ -50,7 +50,7 @@ export interface HelixEventMap {
   MEMORY_SAVED: { memoryId: string; category: string };
   MEMORY_DELETED: { memoryId: string };
 
-  // --- Notepad. Helix's own notes, written only when the user asks. The
+  // --- Notepad. Havoc's own notes, written only when the user asks. The
   //     events carry the note's id and kind and never a word of its text. ---
   NOTE_SAVED: { noteId: string; category: string };
   NOTE_DELETED: { noteId: string };
@@ -63,10 +63,10 @@ export interface HelixEventMap {
   STORAGE_WARNING: StorageWarningPayload;
 
   /**
-   * Free disk space is low, and what Helix did about it.
+   * Free disk space is low, and what Havoc did about it.
    *
    * Deliberately not folded into STORAGE_WARNING, which describes how full
-   * Helix's own quota is. That is a different measurement with a different
+   * Havoc's own quota is. That is a different measurement with a different
    * fix, and a browser can report the quota while having no idea what the
    * disk is doing.
    */
@@ -100,7 +100,7 @@ export interface HelixEventMap {
   // --- Connectivity (spec 27) ---
   CONNECTIVITY_CHANGED: { mode: 'online' | 'offline' };
 
-  // --- Actions (spec 5). Every action Helix performs is announced, so the
+  // --- Actions (spec 5). Every action Havoc performs is announced, so the
   //     user can see what it did without reading the log. ---
   ACTION_PERFORMED: { action: string; status: string; reason?: string };
 
@@ -108,7 +108,7 @@ export interface HelixEventMap {
   //     made, so the UI must be able to see both the asking and the answer. ---
   PERMISSION_REQUESTED: { permission: string; reason: string };
   /**
-   * A question is on screen and Helix has stopped until it is answered.
+   * A question is on screen and Havoc has stopped until it is answered.
    *
    * Raised by the consent gate, which is the only thing that knows. The core
    * on the home screen has to be able to show "awaiting confirmation" as a
@@ -140,4 +140,4 @@ export interface HelixEventMap {
   MESSAGE_APPENDED: { conversationId: string; role: string };
 }
 
-export type HelixEventName = keyof HelixEventMap;
+export type HavocEventName = keyof HavocEventMap;

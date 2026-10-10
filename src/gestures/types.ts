@@ -1,7 +1,7 @@
 /**
  * Hand tracking provider interface (spec 11).
  *
- * Helix has no hand-tracking implementation. MediaPipe is not bundled, and the
+ * Havoc has no hand-tracking implementation. MediaPipe is not bundled, and the
  * specification is explicit that gestures must not be faked with mouse events:
  * a pinch simulated from a click would look like working hand tracking while
  * teaching the user nothing about whether their camera can actually do it.
@@ -95,7 +95,7 @@ export class NullGestureProvider implements GestureProvider {
   readonly tracking = false;
 
   static readonly REASON =
-    'Hand tracking is not available. MediaPipe is not bundled with Helix yet, and ' +
+    'Hand tracking is not available. MediaPipe is not bundled with Havoc yet, and ' +
     'gestures are deliberately not simulated from mouse input.';
 
   isAvailable(): GestureAvailability {

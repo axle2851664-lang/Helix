@@ -1,4 +1,4 @@
-import { useHelix } from '../HelixProvider.js';
+import { useHavoc } from '../HavocProvider.js';
 import { PendingWorkspace } from './PendingWorkspace.js';
 import { SettingsWorkspace } from './SettingsWorkspace.js';
 import { SystemWorkspace } from './SystemWorkspace.js';
@@ -10,7 +10,7 @@ import { InboxWorkspace } from '../mail/InboxWorkspace.js';
 import { OutboxWorkspace } from '../outbound/OutboxWorkspace.js';
 import { PortableWorkspace } from '../portable/PortableWorkspace.js';
 import { ImageSearchWorkspace } from '../images/ImageSearchWorkspace.js';
-import type { HelixResponse } from '../../core/HelixOrchestrator.js';
+import type { HavocResponse } from '../../core/HavocOrchestrator.js';
 import { MemoryWorkspace } from '../memory/MemoryWorkspace.js';
 import { NotepadWorkspace } from '../notepad/NotepadWorkspace.js';
 import { FilesWorkspace } from '../knowledge/FilesWorkspace.js';
@@ -50,8 +50,8 @@ export function WorkspaceView({
   onOpenConversation: (conversationId: string) => void;
   /** Called when a tool resolved a note the Notepad should open on. */
   onOpenNote: (noteId: string) => void;
-  /** Called when Helix asked for a change to the interface itself. */
-  onUi: (ui: HelixResponse['ui']) => void;
+  /** Called when Havoc asked for a change to the interface itself. */
+  onUi: (ui: HavocResponse['ui']) => void;
   /** Set when a tool resolved a note the Notepad should open on. */
   openNoteId: string | null;
 }) {
@@ -121,7 +121,7 @@ export function WorkspaceView({
 }
 
 function WebResearchPending() {
-  const { platform } = useHelix();
+  const { platform } = useHavoc();
   return (
     <PendingWorkspace
       descriptor={WORKSPACES['web-research']}
@@ -131,7 +131,7 @@ function WebResearchPending() {
         'Show which sources were used for an answer.',
       ]}
       inPlace={[
-        'Connectivity is tracked, and Helix stops retrying cloud requests when offline.',
+        'Connectivity is tracked, and Havoc stops retrying cloud requests when offline.',
         `This host currently reports ${platform.isOnline() ? 'online' : 'offline'}.`,
       ]}
       blockedBy="No web search provider is configured, and the app's content security policy currently permits no external origins. Both are set up in phase 6."
@@ -140,7 +140,7 @@ function WebResearchPending() {
 }
 
 function ImageGenerationPending() {
-  const { platform } = useHelix();
+  const { platform } = useHavoc();
   return (
     <PendingWorkspace
       descriptor={WORKSPACES['image-generation']}

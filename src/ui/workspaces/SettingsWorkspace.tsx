@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useHelix, useSettings } from '../HelixProvider.js';
+import { useHavoc, useSettings } from '../HavocProvider.js';
 import { AddDevicePanel } from '../relay/AddDevicePanel.js';
 import { PhoneListenerStatus } from '../relay/PhoneListenerStatus.js';
 import { RelayPanel } from '../relay/RelayPanel.js';
@@ -61,16 +61,16 @@ const SECTION_LABELS: Record<SettingsSection, string> = {
  */
 const SECTION_NOTES: Partial<Record<SettingsSection, string>> = {
   voice:
-    'Speech in and out both work. Which voice Helix speaks with depends on what is installed on this machine, and it will tell you which one it chose.',
+    'Speech in and out both work. Which voice Havoc speaks with depends on what is installed on this machine, and it will tell you which one it chose.',
   camera: 'The camera workspace arrives in phase 6.',
   vision: 'Vision providers arrive in phase 6. No provider is implemented yet.',
   gestures: 'Hand tracking arrives in phase 9.',
   providers:
     'Local inference works. Cloud providers need the desktop shell, because a key held in a web page is a leaked key.',
   google:
-    'One connection, used by mail, calendar and documents. Helix asks for the narrowest scope that does each job - it cannot open documents you already have, and it has no way to delete mail. Needs the desktop app.',
+    'One connection, used by mail, calendar and documents. Havoc asks for the narrowest scope that does each job - it cannot open documents you already have, and it has no way to delete mail. Needs the desktop app.',
   relay:
-    'Your phone talks to Helix over Tailscale, on your own private network. Nothing is exposed to the internet, and pairing is a code you scan. Needs the desktop app.',
+    'Your phone talks to Havoc over Tailscale, on your own private network. Nothing is exposed to the internet, and pairing is a code you scan. Needs the desktop app.',
   storage: 'Reported usage arrives with StorageManager. The ceiling is stored now.',
 };
 
@@ -78,7 +78,7 @@ const SECTION_NOTES: Partial<Record<SettingsSection, string>> = {
  * Which of the relay section's settings belong to the phone connection.
  *
  * The section holds two unrelated things - a phone on your own network, and a
- * mailbox Helix reads - and `relaySecret` is shared by both. It is listed here
+ * mailbox Havoc reads - and `relaySecret` is shared by both. It is listed here
  * because pairing writes it, and shown by the pairing panel rather than as a
  * field somebody is expected to fill in.
  */
@@ -91,7 +91,7 @@ function isPhoneSetting(key: SettingsKey): boolean {
 }
 
 export function SettingsWorkspace() {
-  const { settings } = useHelix();
+  const { settings } = useHavoc();
   const values = useSettings();
   const [busyKey, setBusyKey] = useState<SettingsKey | null>(null);
 
@@ -113,8 +113,8 @@ export function SettingsWorkspace() {
     <div className="helix-settings">
       {!settings.persistent && (
         <div className="helix-notice helix-notice--warn" role="alert">
-          Helix cannot save settings right now. Changes will apply for this session only and will be
-          lost when Helix closes.
+          Havoc cannot save settings right now. Changes will apply for this session only and will be
+          lost when Havoc closes.
         </div>
       )}
 
@@ -174,7 +174,7 @@ export function SettingsWorkspace() {
               <details className="helix-settings__other">
                 <summary>Another way in: commands by email</summary>
                 <p className="helix-settings__note">
-                  A separate feature, not part of pairing a phone. Helix polls a mailbox for
+                  A separate feature, not part of pairing a phone. Havoc polls a mailbox for
                   instructions from your own address. It needs a Google account connected, and it
                   is off until you switch it on.
                 </p>

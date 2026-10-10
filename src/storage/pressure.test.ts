@@ -7,7 +7,7 @@ const GB = 1024 ** 3;
 const volume = (freeGb: number): VolumeStats => ({
   freeBytes: freeGb * GB,
   totalBytes: 237 * GB,
-  usedByHelixBytes: 1.2 * GB,
+  usedByHavocBytes: 1.2 * GB,
   source: 'volume',
 });
 
@@ -59,7 +59,7 @@ describe('assessDiskPressure', () => {
    */
   it('refuses to read an origin quota as free disk space', () => {
     const verdict = assessDiskPressure(
-      { freeBytes: 0.2 * GB, totalBytes: 1 * GB, usedByHelixBytes: 0.8 * GB, source: 'origin-quota' },
+      { freeBytes: 0.2 * GB, totalBytes: 1 * GB, usedByHavocBytes: 0.8 * GB, source: 'origin-quota' },
       threshold,
     );
 
@@ -85,7 +85,7 @@ describe('thresholdWarning', () => {
   /**
    * The number originally asked for, and why it is reported back rather than
    * silently accepted. On a 237 GB drive, 0.33 GB free means Windows is
-   * already failing to save; the caches Helix can clear are megabytes. The
+   * already failing to save; the caches Havoc can clear are megabytes. The
    * setting is still allowed - it is the user's machine - but pretending it
    * would rescue anything would be the flattering answer, not the true one.
    */

@@ -29,7 +29,7 @@ export interface CardItem {
   detail?: string;
   /**
    * The number or status, shown at the end of the row. Must carry its own
-   * qualifier: "14 days since Helix saw a change", not "14 days".
+   * qualifier: "14 days since Havoc saw a change", not "14 days".
    */
   meta?: string;
   accent?: CardAccent;

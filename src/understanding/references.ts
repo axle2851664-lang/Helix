@@ -4,7 +4,7 @@ import type { ConversationState, FocusedObject } from './state.js';
  * Working out what "it" means.
  *
  * Three kinds of reference turn up in ordinary speech, and all three used to
- * be invisible to Helix:
+ * be invisible to Havoc:
  *
  *   PRONOUN    "open it", "change that", "add this to it"
  *   ORDINAL    "the second one", "the first", "the last one"

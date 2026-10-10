@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useHelix } from '../HelixProvider.js';
+import { useHavoc } from '../HavocProvider.js';
 import {
   stopwatchElapsed,
   timerRemaining,
@@ -34,7 +34,7 @@ import { countdownReadout, elapsedReadout } from './readout.js';
  * milliseconds sit under it as a clearly secondary line, then the day, the
  * date and the zone, each smaller than the last. No card, no panel, no
  * border. The interface behind stays faintly visible - dimmed, not erased -
- * so the clock reads as Helix having turned itself into a time display rather
+ * so the clock reads as Havoc having turned itself into a time display rather
  * than as a window that opened on top of one.
  */
 
@@ -81,8 +81,8 @@ const pad2 = (value: number): string => String(value).padStart(2, '0');
 /**
  * Does this machine show time on a twelve-hour clock?
  *
- * Read from the system's own locale rather than from a Helix setting, because
- * there is no Helix setting and inventing one would be a second place to
+ * Read from the system's own locale rather than from a Havoc setting, because
+ * there is no Havoc setting and inventing one would be a second place to
  * answer a question the operating system has already answered. `hourCycle` is
  * the modern field; `hour12` is checked too because not every engine fills it
  * in, and a missing answer must not silently become "no".
@@ -173,7 +173,7 @@ export function TimeOverlay({ onClose }: TimeOverlayProps) {
   /** True once the exit has begun. The overlay stays mounted through it. */
   const [leaving, setLeaving] = useState(false);
 
-  const { timekeeper } = useHelix();
+  const { timekeeper } = useHavoc();
   /**
    * A counter bumped on every change, rather than a copy of the records.
    *
@@ -234,7 +234,7 @@ export function TimeOverlay({ onClose }: TimeOverlayProps) {
     return () => window.clearTimeout(idle);
   }, []);
 
-  // Escape closes, as it does everywhere else in Helix.
+  // Escape closes, as it does everywhere else in Havoc.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -378,7 +378,7 @@ export function TimeOverlay({ onClose }: TimeOverlayProps) {
         */}
         {/*
           Alarms that are set but not due. Listed rather than counted down to,
-          and each says plainly that it only sounds while Helix is open -
+          and each says plainly that it only sounds while Havoc is open -
           there is no operating-system scheduling behind these, and the one
           place that fact is any use is next to the alarm itself.
         */}
@@ -397,10 +397,10 @@ export function TimeOverlay({ onClose }: TimeOverlayProps) {
                 )}
                 <span className="hx-time__alarm-note">
                   {alarm.missed
-                    ? 'missed - Helix was closed'
+                    ? 'missed - Havoc was closed'
                     : alarm.ringing
                       ? 'now'
-                      : 'while Helix is open'}
+                      : 'while Havoc is open'}
                 </span>
               </li>
             ))}
