@@ -106,3 +106,4 @@ npm run verify
 - [SECURITY.md](docs/SECURITY.md) — permissions, secrets, sensor indicators
 - [PROVIDERS.md](docs/PROVIDERS.md) — local / cloud / hybrid provider model
 - [DEVELOPMENT.md](docs/DEVELOPMENT.md) — conventions, testing, troubleshooting
+- [AXUM.md](docs/AXUM.md) — AXUM, the proposed portable companion: discovery, boundaries, phase plan (**nothing implemented**)
