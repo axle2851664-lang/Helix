@@ -62,8 +62,8 @@ describe('orchestrator: model switching', () => {
   const ask = (text: string) =>
     context.orchestrator.submit({ text, conversationId: context.conversation.id });
 
-  it('defaults to Opus 5', () => {
-    expect(context.settings.get('languageModel')).toBe('claude-opus-5');
+  it('defaults to Mistral Large, which is the provider Havoc is built around', () => {
+    expect(context.settings.get('languageModel')).toBe('mistral-large-latest');
   });
 
   it('switches to Sonnet on command', async () => {
@@ -194,7 +194,7 @@ describe('orchestrator: model switching', () => {
     it('does not treat an ordinary question as a model switch', async () => {
       const response = await ask('what should I cook tonight?');
       expect(response.failure).toBe('PROVIDER_NOT_CONFIGURED');
-      expect(context.settings.get('languageModel')).toBe('claude-opus-5');
+      expect(context.settings.get('languageModel')).toBe('mistral-large-latest');
     });
 
     it('does not hijack a project request', async () => {
@@ -202,7 +202,7 @@ describe('orchestrator: model switching', () => {
       const response = await ask('open my Iron Man project');
 
       expect(response.openProjectId).toBe(project.id);
-      expect(context.settings.get('languageModel')).toBe('claude-opus-5');
+      expect(context.settings.get('languageModel')).toBe('mistral-large-latest');
     });
 
     it('does not hijack navigation', async () => {
@@ -214,7 +214,7 @@ describe('orchestrator: model switching', () => {
     it('ignores a switching verb with no model named', async () => {
       const response = await ask('switch to something else');
       expect(response.failure).toBe('PROVIDER_NOT_CONFIGURED');
-      expect(context.settings.get('languageModel')).toBe('claude-opus-5');
+      expect(context.settings.get('languageModel')).toBe('mistral-large-latest');
     });
   });
 });

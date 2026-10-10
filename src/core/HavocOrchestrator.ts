@@ -72,6 +72,7 @@ import { BRIEF_SYSTEM_PROMPT, SYSTEM_PROMPT } from '../persona/systemPrompt.js';
 import { exampleTurns } from '../persona/examples.js';
 import { detectEcho } from '../persona/echo.js';
 import { claimsPhantomState } from '../persona/stateClaim.js';
+import { IMPLEMENTED_INFERENCE_PROVIDERS, MODEL_REGISTRY } from '../ai/registry.js';
 import { sizeNote } from '../ai/modelSize.js';
 import { personalFact, personalQuestion, toSecondPerson } from '../memory/disclosure.js';
 import {
@@ -682,13 +683,75 @@ export class HavocOrchestrator {
     }
 
     const model = getModelOrDefault(this.#settings.get('languageModel'));
+
+    /**
+     * Two different failures, which this used to report as one.
+     *
+     * The message said "the connection is not yet built and no API key is
+     * configured" for every provider, which was true when nothing but Ollama
+     * existed and became false the moment Mistral did. Saying a connection
+     * is missing when the connection is there sends the user looking for the
+     * wrong thing - and a default of 'cloud' means they now see this on a
+     * fresh install, so it has to be right.
+     *
+     * So: is there an implementation for the chosen infrastructure? Anthropic
+     * is reachable from the shell but has no provider on this side, and that
+     * genuinely is not built. Everything else is built and wants a key.
+     *
+     * Read from the registry's static list rather than from the router, which
+     * is optional here - asking an absent router whether a provider exists
+     * answers "no" for all of them, which is how this first reported every
+     * provider as unimplemented including the one that works.
+     *
+     * And judged by what has to run the chosen *model*, not by the
+     * infrastructure setting alone. The two catalogues differ: `MODEL_REGISTRY`
+     * entries name their own provider, while `models/catalog.ts` is Claude and
+     * only Claude - which is the real reason this branch used to report
+     * everything as unbuilt, because for a long time every selectable model
+     * was one nothing here could run.
+     *
+     * So a selected model that the registry knows is judged by its provider;
+     * one that only the Claude catalogue knows needs Anthropic, whatever the
+     * setting says. Telling someone who picked Sonnet that no Mistral key is
+     * configured answers a question they did not ask.
+     */
+    const selected = this.#settings.get('languageModel');
+    const known = MODEL_REGISTRY.find((entry) => entry.id === selected);
+
+    /**
+     * Named from whichever catalogue knows it.
+     *
+     * There are two, and `getModelOrDefault` reads only the Claude one - so
+     * with a Mistral model selected it returned its own default and the
+     * sentence read "Opus 5 is selected, but no mistral key is configured":
+     * a model from one catalogue against a provider from the other. Both
+     * halves were individually true and the sentence was nonsense.
+     */
+    const name = known?.name ?? model.name;
+    // Every id is either in the registry, which names its provider, or is a
+    // Claude model from the other catalogue, which needs Anthropic.
+    const infrastructure = known?.inferenceProvider ?? 'anthropic';
+    const built =
+      infrastructure === 'none' || IMPLEMENTED_INFERENCE_PROVIDERS.includes(infrastructure);
+
+    if (!built) {
+      return {
+        text: unavailable(
+          `${name} runs on ${infrastructure}, which Havoc can reach but has no provider for yet`,
+          'Choose a different provider in Settings. I would rather say so than invent an answer.',
+        ),
+        handled: false,
+        failure: 'PROVIDER_NOT_IMPLEMENTED',
+      };
+    }
+
     return {
       text: unavailable(
-        `${model.name} is selected with a ${provider} provider, but the connection is not yet built and no API key is configured`,
-        'I would rather say so than invent an answer.',
+        `${name} is selected, but no ${infrastructure} key is configured`,
+        'Settings has a Keys panel - paste one there and it works immediately. I would rather say so than invent an answer.',
       ),
       handled: false,
-      failure: 'PROVIDER_NOT_IMPLEMENTED',
+      failure: 'PROVIDER_NOT_CONFIGURED',
     };
   }
 

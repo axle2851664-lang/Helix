@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { tauriInvoke } from '../../platform/TauriPlatform.js';
+import { useHavoc } from '../HavocProvider.js';
 
 /**
  * Where keys are put.
@@ -30,6 +31,7 @@ interface KeyStatus {
 }
 
 export function KeysPanel() {
+  const { bus } = useHavoc();
   const [statuses, setStatuses] = useState<readonly KeyStatus[] | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -64,6 +66,16 @@ export function KeysPanel() {
       // has no business still holding it.
       setDrafts((current) => ({ ...current, [name]: '' }));
       setNote(`Saved to ${where}. It is in use now - no restart needed.`);
+      /**
+       * The name, never the value. The kernel re-asks the shell what it holds
+       * and then asks the provider what it runs; nothing on the bus needs to
+       * carry a credential and nothing does.
+       *
+       * Without this the claim above would be false: the transport caches
+       * which providers have keys, so a key pasted here would have sat unused
+       * until the next launch.
+       */
+      bus.emit('CREDENTIALS_CHANGED', { name });
       await refresh();
     } catch (error) {
       setNote(messageOf(error));
@@ -79,6 +91,7 @@ export function KeysPanel() {
     setNote(null);
     try {
       await invoke<void>('forget_key', { name });
+      bus.emit('CREDENTIALS_CHANGED', { name });
       setNote('Forgotten.');
     } catch (error) {
       // Not swallowed: `forget_key` reports when the key is also set in the

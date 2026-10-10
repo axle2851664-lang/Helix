@@ -87,6 +87,14 @@ export interface HavocEventMap {
    */
   AI_MODELS_REGISTERED: { provider: string; usable: number; chosen: string | null };
   /**
+   * A key was saved or forgotten in Settings.
+   *
+   * Carries the variable name, never the value - nothing on the bus should
+   * hold a credential, and nothing needs to: the listeners re-ask the shell
+   * what it holds rather than being told.
+   */
+  CREDENTIALS_CHANGED: { name: string };
+  /**
    * A piece of a reply as it is generated.
    *
    * Carries the conversation it belongs to, because two conversations can be

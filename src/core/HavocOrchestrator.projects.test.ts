@@ -163,7 +163,9 @@ describe('orchestrator: project tool', () => {
 
   it('works with no language provider configured', async () => {
     await context.projects.createProject('Iron Man');
-    expect(context.settings.get('languageProvider')).toBe('none');
+    // Set, not assumed. This used to read the default, which is now 'cloud'
+    // - and the subject of the test is the no-provider case, so it says so.
+    await context.settings.set('languageProvider', 'none');
 
     expect((await ask('bring up Iron Man')).handled).toBe(true);
   });

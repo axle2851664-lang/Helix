@@ -509,7 +509,19 @@ export const SETTINGS_SCHEMA = {
     description: 'Primary provider for conversation and reasoning.',
     options: ['none', 'local', 'cloud'],
     optionLabels: { none: 'None', local: 'Local model', cloud: 'Cloud provider' },
-    default: 'none',
+    /**
+     * Cloud, with Mistral behind it - Havoc's primary brain.
+     *
+     * It was 'none', which meant a fresh install had no brain at all until
+     * someone found two settings and changed both. A default is what happens
+     * to the person who changes nothing, and for them nothing is the wrong
+     * answer.
+     *
+     * This changes nothing for an existing install: a stored preference is
+     * read in place of the default, so anyone already set to local stays
+     * local. Settings is where that is changed, not here.
+     */
+    default: 'cloud',
   },
   /**
    * Which infrastructure runs the model.
@@ -533,7 +545,14 @@ export const SETTINGS_SCHEMA = {
       mistral: 'Mistral',
       anthropic: 'Anthropic',
     },
-    default: 'none',
+    /**
+     * Mistral. Havoc's primary provider.
+     *
+     * Paid, per token, and needs a key - which is why the Keys panel in
+     * Settings exists and why nothing here pretends to work without one. With
+     * no key the router falls through to local inference, and says so.
+     */
+    default: 'mistral',
   },
   /** Used when the chosen provider fails or is over its limit. */
   fallbackInferenceProvider: {
@@ -608,6 +627,13 @@ export const SETTINGS_SCHEMA = {
     description:
       'Which cloud model Havoc would use if one were connected. It does not choose your local model - Ollama\u2019s installed models are found automatically, and the largest one that fits your machine is used. Ask Havoc "what are you running on" for the real answer.',
     options: [
+      // Mistral first, and the default: it is the provider Havoc is built
+      // around, and it was not on this list at all - so choosing Mistral as
+      // the infrastructure left the model preference naming something Mistral
+      // does not run. Two settings that cannot both be satisfied is worse
+      // than either being wrong.
+      'mistral-large-latest',
+      'mistral-small-latest',
       'claude-opus-5',
       'claude-sonnet-5',
       'claude-haiku-4-5',
@@ -617,11 +643,13 @@ export const SETTINGS_SCHEMA = {
       'local-gguf',
     ],
     optionLabels: {
+      'mistral-large-latest': 'Mistral Large - most capable',
+      'mistral-small-latest': 'Mistral Small - faster, cheaper',
       'claude-opus-5': 'Opus 5 - most capable',
       'claude-sonnet-5': 'Sonnet 5 - balanced',
       'claude-haiku-4-5': 'Haiku 4.5 - fastest',
     },
-    default: 'claude-opus-5',
+    default: 'mistral-large-latest',
   },
 
   languageEndpoint: {

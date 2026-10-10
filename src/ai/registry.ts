@@ -20,6 +20,30 @@ import type { Capability, ModelInfo } from './types.js';
  * time would be worse than admitting the gap.
  */
 
+/**
+ * Infrastructures Havoc has a provider class for.
+ *
+ * A static fact about this codebase, not about what is configured or what a
+ * router was handed - which is the distinction that matters when saying why a
+ * request could not be answered. "No key" and "no implementation" send the
+ * user to two different places, and conflating them sent them to the wrong
+ * one: the message used to tell everybody the connection was not built, which
+ * stopped being true the moment the Mistral provider existed.
+ *
+ * Anthropic is deliberately absent. `inference.rs` can reach api.anthropic.com
+ * and the registry lists Claude models, but nothing on this side implements
+ * the provider - see the note on those entries.
+ *
+ * `providers.test.ts` asserts this matches the classes that actually exist, so
+ * it cannot drift from the truth it claims to state.
+ */
+export const IMPLEMENTED_INFERENCE_PROVIDERS: readonly string[] = [
+  'ollama',
+  'gemini',
+  'cerebras',
+  'mistral',
+];
+
 export const MODEL_REGISTRY: readonly ModelInfo[] = [
   // -------------------------------------------------------- Gemini (cloud)
   //

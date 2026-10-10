@@ -90,7 +90,9 @@ describe('HavocOrchestrator', () => {
 
     // Navigation is genuinely local: it must work with no provider and offline.
     it('works with no language provider configured', async () => {
-      expect(context.settings.get('languageProvider')).toBe('none');
+      // Set, not assumed. This used to read the default, which is now 'cloud'
+    // - and the subject of the test is the no-provider case, so it says so.
+    await context.settings.set('languageProvider', 'none');
       const response = await context.orchestrator.submit({
         text: 'open memory',
         conversationId: context.conversation.id,
@@ -110,6 +112,9 @@ describe('HavocOrchestrator', () => {
   describe('honesty when unhandled', () => {
     // The single most important behaviour: no fabricated answers.
     it('reports the missing provider rather than answering', async () => {
+      // Explicit, because the default is now 'cloud' and this is the
+      // no-provider case.
+      await context.settings.set('languageProvider', 'none');
       const response = await context.orchestrator.submit({
         text: 'write a poem about the ocean',
         conversationId: context.conversation.id,
@@ -130,8 +135,16 @@ describe('HavocOrchestrator', () => {
       expect(loaded?.messages[1]?.failure).toBe('PROVIDER_NOT_CONFIGURED');
     });
 
+    /**
+     * "Unbuilt" now means something narrower than it did, and the test says
+     * which. Mistral is built and wants a key; Anthropic is reachable from the
+     * shell and has no provider on this side. Those are different sentences
+     * and the user needs the right one, so the test picks a model that is
+     * genuinely unrunnable rather than relying on everything being so.
+     */
     it('does not claim success when a provider is selected but unbuilt', async () => {
       await context.settings.set('languageProvider', 'cloud');
+      await context.settings.set('languageModel', 'claude-opus-5');
 
       const response = await context.orchestrator.submit({
         text: 'write a poem about the ocean',

@@ -18,7 +18,10 @@ describe('schema validation', () => {
     expect(defaults.portableMode).toBe(true);
     expect(defaults.storageLimitGb).toBe(500);
     // Providers default to none: Havoc must never imply a working provider.
-    expect(defaults.languageProvider).toBe('none');
+    // Cloud, with Mistral behind it: Havoc's primary brain, and what a fresh
+    // install gets without anyone changing two settings first.
+    expect(defaults.languageProvider).toBe('cloud');
+    expect(defaults.inferenceProvider).toBe('mistral');
     expect(defaults.visionProvider).toBe('none');
     expect(defaults.allowComputerControl).toBe(false);
   });

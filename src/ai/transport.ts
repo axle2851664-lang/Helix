@@ -267,6 +267,20 @@ export interface StreamingTransport {
   }): Promise<void>;
 }
 
+/**
+ * Can this transport be asked which credentials the host holds?
+ *
+ * Duck-typed like `canStream` above, for the same reason: the browser
+ * transport has no host to ask, and a required method would force it to
+ * answer a question it cannot.
+ */
+export function canRefreshCredentials(
+  value: unknown,
+): value is { refreshCredentials(): Promise<string[]> } {
+  return typeof (value as { refreshCredentials?: unknown } | null)?.refreshCredentials
+    === 'function';
+}
+
 export function canStream(value: unknown): value is StreamingTransport {
   return typeof (value as StreamingTransport | null)?.streamChat === 'function';
 }

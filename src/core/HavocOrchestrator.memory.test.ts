@@ -229,7 +229,9 @@ describe('orchestrator: memory tool', () => {
 
     // Works with no provider and offline: retrieval is literal, not a model.
     it('recalls with no language provider configured', async () => {
-      expect(context.settings.get('languageProvider')).toBe('none');
+      // Set, not assumed. This used to read the default, which is now 'cloud'
+    // - and the subject of the test is the no-provider case, so it says so.
+    await context.settings.set('languageProvider', 'none');
       const response = await ask('what do you remember about my sister');
       expect(response.handled).toBe(true);
     });

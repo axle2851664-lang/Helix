@@ -71,6 +71,7 @@ import {
 import { BrowserWebTransport, TauriWebTransport } from '../web/transport.js';
 import {
   BrowserInferenceTransport,
+  canRefreshCredentials,
   TauriGoogleTransport,
   TauriInferenceTransport,
 } from '../ai/transport.js';
@@ -696,6 +697,71 @@ export class HavocKernel {
         return false;
       }
     };
+
+    /**
+     * Ask the shell which cloud keys exist, then ask those providers what
+     * they actually run.
+     *
+     * Neither half was happening, and between them they made every cloud
+     * provider unreachable however good the key was. The transport was built
+     * with `configuredProviders: ['ollama']` and a comment saying "the shell
+     * confirms the rest" - and nothing ever asked it to. So
+     * `hasCredential('mistral')` answered false for ever,
+     * `MistralProvider.isConfigured()` reported "not configured", and the
+     * router had one candidate. `refreshCredentials` existed and was tested;
+     * it simply had no caller outside the test.
+     *
+     * The second half matters for honesty rather than reachability. The
+     * registry seeds cloud models from documentation and marks them
+     * `unverified`, on the understanding that the live list replaces them -
+     * which only Ollama ever did. Now a configured provider is asked, and a
+     * model the provider itself names becomes `available`. One it does not
+     * name stays `unverified` and says so, which is the difference between a
+     * list and a guess.
+     */
+    const refreshCloudModels = async (): Promise<readonly string[]> => {
+      if (!canRefreshCredentials(inferenceTransport)) return [];
+
+      let configured: readonly string[];
+      try {
+        configured = await inferenceTransport.refreshCredentials();
+      } catch (error) {
+        logger.debug('The shell did not report which keys it holds.', error);
+        return [];
+      }
+
+      for (const id of configured) {
+        // Ollama has its own probe, which also assesses what the hardware can
+        // actually run - a question no cloud provider has.
+        if (id === 'ollama') continue;
+        const provider = ai.provider(id);
+        if (!provider) continue;
+
+        try {
+          const models = await provider.getAvailableModels();
+          if (models.length === 0) continue;
+          ai.registry.replaceProviderModels(id, models);
+          const usable = models.filter((model) => model.status !== 'unavailable').length;
+          logger.info('Cloud models registered.', { provider: id, usable });
+          bus.emit('AI_MODELS_REGISTERED', { provider: id, usable, chosen: null });
+        } catch (error) {
+          // One provider being unreachable must not stop the others. The
+          // seeded entries stand, and they are marked unverified.
+          logger.debug('A cloud provider did not list its models.', { provider: id, error });
+        }
+      }
+
+      return configured;
+    };
+
+    void refreshCloudModels();
+
+    /**
+     * And again whenever a key is saved, so pasting one into Settings works
+     * without a restart. That is the whole point of holding keys in the shell
+     * rather than in a file the user has to edit and then relaunch.
+     */
+    bus.on('CREDENTIALS_CHANGED', () => void refreshCloudModels());
 
     void (async () => {
       if (await probeLocalModels()) return;

@@ -167,7 +167,9 @@ describe('orchestrator: file search tool', () => {
 
   it('works with no language provider configured', async () => {
     await addFile('notes.md', 'The deadline is Friday.');
-    expect(context.settings.get('languageProvider')).toBe('none');
+    // Set, not assumed. This used to read the default, which is now 'cloud'
+    // - and the subject of the test is the no-provider case, so it says so.
+    await context.settings.set('languageProvider', 'none');
 
     expect((await ask('search my files for deadline')).handled).toBe(true);
   });
