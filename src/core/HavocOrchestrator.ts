@@ -85,6 +85,7 @@ import {
 import { promptableMemories, volunteersPrivateFact } from '../memory/sensitivity.js';
 import { slangPrompt, slangRequest } from '../persona/slang.js';
 import { imageIntent } from '../images/query.js';
+import { editIntent, generationIntent } from '../images/generate.js';
 import { docsIntent, draftPrompt } from '../integrations/google/docsIntent.js';
 import { calendarIntent } from '../integrations/google/calendarIntent.js';
 import { repair } from '../persona/register.js';
@@ -328,6 +329,7 @@ export class HavocOrchestrator {
     this.registerTool(this.#calendarTool());
     this.registerTool(this.#docsTool());
     this.registerTool(this.#imageTool());
+    this.registerTool(this.#imageGenerationTool());
     this.registerTool(this.#slangTool());
     this.registerTool(this.#researchTool());
     this.registerTool(this.#navigationTool());
@@ -2988,6 +2990,92 @@ ${lines}${more}`,
    * The search itself goes through the action runner, so it inherits the web
    * permission and the off switch without this tool knowing about either.
    */
+  /**
+   * Requests to make an image, answered honestly.
+   *
+   * Havoc cannot generate images. Mistral has no image model and nothing else
+   * is configured, so this tool produces no picture and does not pretend to.
+   *
+   * It exists because the alternative is worse than a refusal. Without it the
+   * request fell through to the language model, which cannot make an image
+   * either but can very easily say that it has - and "here is your image"
+   * with nothing attached is the failure the brief singles out. The only
+   * reliable way to stop a model claiming it is to not let the question reach
+   * one.
+   *
+   * Priority above the image search tool, because the two sentences look
+   * alike and a request to create must not be served a stock photograph of
+   * something similar.
+   */
+  #imageGenerationTool(): HavocTool {
+    return {
+      name: 'imageGeneration',
+      description: 'Says what making an image would require. Generates nothing.',
+      priority: 440,
+      matches: (request) =>
+        generationIntent(request.text) !== null || editIntent(request.text),
+      unavailableReason: () => null,
+      execute: async (request) => {
+        const editing = editIntent(request.text);
+        const intent = generationIntent(request.text);
+        if (!editing && intent === null) return null;
+
+        const wanted = intent?.prompt ?? '';
+        const card: ToolCard = {
+          kind: 'requirement',
+          title: editing ? 'Editing an image' : 'Making an image',
+          subtitle: 'No image provider is configured. Here is what it would take',
+          sections: [
+            {
+              heading: 'Missing',
+              items: [
+                {
+                  label: 'An image model',
+                  detail:
+                    'Mistral, which answers everything else, has no image model. Nothing else is connected.',
+                  meta: 'not configured',
+                  accent: 'warn',
+                  source: 'AI providers',
+                },
+              ],
+            },
+            {
+              heading: 'What I can do instead',
+              items: [
+                {
+                  label: 'Find one that exists',
+                  detail:
+                    wanted === ''
+                      ? 'Ask me to show you pictures of something and I will search the web for real ones.'
+                      : `Say "show me pictures of ${wanted}" and I will search the web for real ones.`,
+                  source: 'Image search',
+                },
+              ],
+            },
+          ],
+          // The card lists what an image provider would need, which is the
+          // kind of thing that reads as a plan already under way. It is not:
+          // nothing was attempted and nothing was made.
+          caveat:
+            'No image was made. Nothing on this card is a picture, a preview, or work in progress.',
+        };
+
+        return {
+          // Said plainly, and said first. The card is for reading; this is
+          // what Havoc actually says, and it must not sound like a maybe.
+          text: regret(
+            editing
+              ? 'I cannot edit images - no image provider is configured, so there is nothing here that could'
+              : 'I cannot make images - no image provider is configured, so nothing I did would produce one',
+          ),
+          handled: false,
+          failure: 'PROVIDER_NOT_CONFIGURED',
+          card,
+        };
+      },
+    };
+  }
+
   #imageTool(): HavocTool {
     return {
       name: 'imageSearch',

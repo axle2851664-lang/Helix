@@ -158,3 +158,50 @@ describe('asking Havoc for pictures', () => {
     expect(context.imageResults.outcome).toBeNull();
   });
 });
+
+/**
+ * Making an image, which Havoc cannot do.
+ *
+ * Through the orchestrator rather than the matcher, because the thing being
+ * guarded is a routing decision: this request must reach a tool that refuses
+ * rather than a model that might claim success, and it must not reach the
+ * image search and be answered with a stock photograph of something similar.
+ */
+describe('asking Havoc to make a picture', () => {
+  it('says it cannot, and does not search instead', async () => {
+    const context = await makeContext();
+    const response = await ask(context, 'create an image of a futuristic AI core');
+
+    expect(response.handled).toBe(false);
+    expect(response.failure).toBe('PROVIDER_NOT_CONFIGURED');
+    expect(response.text).toMatch(/cannot make images/i);
+    // Nothing was searched for, so nothing was stored.
+    expect(context.imageResults.outcome).toBeNull();
+  });
+
+  it('offers the thing it can actually do, naming what was asked for', async () => {
+    const context = await makeContext();
+    const response = await ask(context, 'generate a picture of a red bicycle');
+
+    const detail = JSON.stringify(response.card);
+    expect(detail).toContain('a red bicycle');
+    // And says plainly that nothing on the card is an image.
+    expect(detail).toMatch(/No image was made/i);
+  });
+
+  it('answers an edit request as its own question', async () => {
+    const context = await makeContext();
+    const response = await ask(context, 'upscale that photo');
+
+    expect(response.handled).toBe(false);
+    expect(response.text).toMatch(/cannot edit images/i);
+  });
+
+  /** The search path must be untouched by all of the above. */
+  it('still searches when asked to find pictures', async () => {
+    const context = await makeContext();
+    const response = await ask(context, 'show me pictures of mountains');
+
+    expect(response.text).not.toMatch(/cannot make images/i);
+  });
+});
