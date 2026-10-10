@@ -45,7 +45,7 @@ let drafts: Draft[] = [
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
-export const useHelix = () => ({
+export const useHavoc = () => ({
   gmail: {
     status: () => ({ connected: true, address: 'me@example.com', message: 'Connected.' }),
     unread: async () => ({ total: messages.length, messages, topSenders: [{ sender: 'Marlow', count: 1 }] }),
@@ -89,5 +89,5 @@ export const useSettings = () => ({});
 
 // The portable screen exports through the real BackupManager interface; the
 // harness only needs it to hand back some text.
-export const useHelixBackup = () => ({});
+export const useHavocBackup = () => ({});
 

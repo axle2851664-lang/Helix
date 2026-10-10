@@ -131,8 +131,9 @@ export class ConversationStore {
 
     try {
       const stored = await this.#store.get<Conversation>(NAMESPACE, id);
-      if (stored) this.#session.set(id, stored);
-      return stored;
+      const conversation = stored === undefined ? undefined : migrateRoles(stored);
+      if (conversation) this.#session.set(id, conversation);
+      return conversation;
     } catch (error) {
       this.#logger.error('Could not read a conversation.', error);
       return undefined;
@@ -238,4 +239,34 @@ export class ConversationStore {
       this.#logger.error('Could not save a conversation.', error);
     }
   }
+}
+
+/**
+ * Messages stored before the rename said `role: 'helix'`.
+ *
+ * Normalised here, at the one place conversations are read, because the role
+ * is compared by value all over the orchestrator - which decides what the
+ * model is shown, and what counts as the last thing Havoc said. Renaming the
+ * union and nothing else silently dropped every message of an existing
+ * conversation out of the context sent to the model: Havoc would have been
+ * answering with no memory of anything it had ever said, which is far worse
+ * than an error, because it looks like forgetfulness rather than a bug.
+ *
+ * A read-time normalisation rather than a stored migration. It costs a pass
+ * over a conversation that was being loaded anyway, it cannot half-finish, and
+ * a conversation that is never opened never needs it. The value is written
+ * back the next time a message is appended.
+ */
+function migrateRoles(conversation: Conversation): Conversation {
+  const stale = conversation.messages.some(
+    (message) => (message.role as string) === 'helix',
+  );
+  if (!stale) return conversation;
+
+  return {
+    ...conversation,
+    messages: conversation.messages.map((message) =>
+      (message.role as string) === 'helix' ? { ...message, role: 'havoc' as const } : message,
+    ),
+  };
 }

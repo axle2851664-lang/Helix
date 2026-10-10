@@ -23,6 +23,20 @@
  */
 
 export const ARCHIVE_FORMAT = 'havoc.backup';
+
+/**
+ * The marker written before the rename, still accepted on the way in.
+ *
+ * This is the one the user's existing backups carry. `readArchive` rejects any
+ * file whose format does not match, so renaming the constant and nothing else
+ * made every backup already on disk unreadable - "that file is not a Havoc
+ * backup", about a file Havoc itself wrote. The rename found this by
+ * accident, which is the argument for the list of names that were left alone.
+ *
+ * Read, never written: a new archive is branded Havoc. This exists so an old
+ * one still restores.
+ */
+export const LEGACY_ARCHIVE_FORMAT = 'helix.backup';
 /**
  * Bumped to 2 when the Notepad was added.
  *
@@ -197,7 +211,7 @@ export function parseArchive(text: string): Archive {
 
   const candidate = raw as Partial<Archive>;
 
-  if (candidate.format !== ARCHIVE_FORMAT) {
+  if (candidate.format !== ARCHIVE_FORMAT && candidate.format !== LEGACY_ARCHIVE_FORMAT) {
     throw new ArchiveError('That file is not a Havoc backup - it has no Havoc backup marker.');
   }
 

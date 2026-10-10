@@ -403,3 +403,39 @@ describe('carrying only what was chosen', () => {
     expect(section?.entries).toEqual([['note_1', note]]);
   });
 });
+
+/**
+ * A backup written before the rename.
+ *
+ * `parseArchive` rejects any file whose format marker does not match, so
+ * renaming the constant made every archive already on disk unreadable - with
+ * Havoc saying "that file is not a Havoc backup" about a file it had written
+ * itself. The old marker is accepted on the way in for exactly that reason,
+ * and this is what keeps it accepted.
+ */
+describe('a backup written before the rename', () => {
+  const archive = (format: string) =>
+    JSON.stringify({
+      format,
+      version: 1,
+      createdAt: 0,
+      scope: 'full',
+      sections: [{ namespace: 'memory', entries: [['one', { text: 'a fact' }]] }],
+      omitted: [],
+    });
+
+  it('is still read', () => {
+    const parsed = parseArchive(archive('helix.backup'));
+    expect(parsed.sections[0]?.namespace).toBe('memory');
+  });
+
+  it('as is one written since', () => {
+    expect(parseArchive(archive('havoc.backup')).sections).toHaveLength(1);
+  });
+
+  /** Accepting the old marker must not mean accepting anything. */
+  it('while a file that is not a backup at all is still refused', () => {
+    expect(() => parseArchive(archive('something.else'))).toThrow(/not a Havoc backup/i);
+    expect(() => parseArchive(archive('something.else'))).toThrow(ArchiveError);
+  });
+});

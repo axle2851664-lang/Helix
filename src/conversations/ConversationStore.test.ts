@@ -215,3 +215,46 @@ describe('ConversationStore', () => {
     });
   });
 });
+
+/**
+ * A conversation stored before the rename.
+ *
+ * The role is compared by value in the orchestrator, which decides what the
+ * model is shown and what counts as the last thing Havoc said. Renaming the
+ * union without this dropped every message of an existing conversation out of
+ * the model's context - Havoc answering with no memory of anything it had
+ * said, which reads as forgetfulness rather than as a bug.
+ */
+describe('a conversation stored before the rename', () => {
+  it('reads its messages back as Havoc, not as an unknown role', async () => {
+    const kv = new MemoryKeyValueStore();
+    const logger = new Logger('test', { level: 'ERROR', sinks: [] });
+    const settings = new SettingsManager({ store: kv, logger });
+    await settings.load();
+    await settings.set('saveConversationHistory', true);
+
+    const first = new ConversationStore({ store: kv, settings, logger });
+    const created = await first.create();
+    await first.appendMessage(created.id, { role: 'user', text: 'hello' });
+
+    // Rewritten the way the old build wrote it, behind the store's back.
+    const stored = await kv.get<{ messages: Array<Record<string, unknown>> }>(
+      'conversations',
+      created.id,
+    );
+    await kv.set('conversations', created.id, {
+      ...stored,
+      messages: [
+        ...(stored?.messages ?? []),
+        { id: 'b', role: 'helix', text: 'standing by', createdAt: 2 },
+      ],
+    });
+
+    // A new instance, so the in-session cache cannot hide the stored copy.
+    const second = new ConversationStore({ store: kv, settings, logger });
+    const loaded = await second.get(created.id);
+
+    expect(loaded?.messages.map((message) => message.role)).toEqual(['user', 'havoc']);
+    expect(loaded?.messages[1]?.text).toBe('standing by');
+  });
+});

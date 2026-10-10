@@ -7,6 +7,6 @@ export default defineConfig({
   root: here,
   plugins: [react()],
   resolve: {
-    alias: [{ find: /^.*HelixProvider\.js$/, replacement: `${here}/stubProvider.tsx` }],
+    alias: [{ find: /^.*HavocProvider\.js$/, replacement: `${here}/stubProvider.tsx` }],
   },
 });

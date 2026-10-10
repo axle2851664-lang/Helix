@@ -6,7 +6,7 @@ looked at in a browser. That leaves one gap - *interaction*. A screen can
 render correctly and still send the wrong thing when a button is pressed.
 
 This directory closes that gap. It mounts a single workspace against a fake
-`useHelix()` and drives it with Playwright. It earned its place immediately:
+`useHavoc()` and drives it with Playwright. It earned its place immediately:
 the inbox screen infinite-looped on mount (an effect depending on a callback
 whose identity follows the services object) and sent message ids as an array
 where the action layer takes a comma-separated string. Both typechecked, both
@@ -30,7 +30,7 @@ production build starts from `index.html`, so this directory is invisible to
 both. A test in `src/core/source-hygiene.test.ts` holds the same line from the
 other side.
 
-The alias is anchored (`/^.*HelixProvider\.js$/`) on purpose. An unanchored
+The alias is anchored (`/^.*HavocProvider\.js$/`) on purpose. An unanchored
 regex replaces only the matched tail and leaves the `../` prefix in front of
 an absolute path, which fails to resolve in a way that reads like a missing
 file.

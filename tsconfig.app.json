@@ -7,7 +7,7 @@
     "jsx": "react-jsx",
     "useDefineForClassFields": true,
 
-    /* Strictness - Helix requires strong typing (spec 33) */
+    /* Strictness - Havoc requires strong typing (spec 33) */
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,

@@ -7,13 +7,13 @@ const written: unknown[] = [];
   invoke: async (command: string, args: unknown) => {
     if (command === 'portable_drives') {
       return [
-        { name: 'KINGSTON', mountPoint: 'E:\\', freeBytes: 14_000_000_000, totalBytes: 16_000_000_000, hasHelix: false },
-        { name: 'SANDISK', mountPoint: 'F:\\', freeBytes: 900_000, totalBytes: 2_000_000_000, hasHelix: true },
+        { name: 'KINGSTON', mountPoint: 'E:\\', freeBytes: 14_000_000_000, totalBytes: 16_000_000_000, hasHavoc: false },
+        { name: 'SANDISK', mountPoint: 'F:\\', freeBytes: 900_000, totalBytes: 2_000_000_000, hasHavoc: true },
       ];
     }
     if (command === 'portable_write') {
       written.push(args);
-      return { folder: 'E:\\Helix', bytesWritten: 48_000_000 };
+      return { folder: 'E:\\Havoc', bytesWritten: 48_000_000 };
     }
     return null;
   },
