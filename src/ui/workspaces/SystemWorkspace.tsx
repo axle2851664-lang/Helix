@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { GuardrailPanel } from '../system/GuardrailPanel.js';
 import { useHelix, useHelixState } from '../HelixProvider.js';
 import type { HardwareProfile, VolumeStats } from '../../platform/PlatformAdapter.js';
-import type { LogRecord } from '../../core/Logger.js';
+import type { LogRecord } from '@hx/core';
 import { HelixMark } from '../components/HelixMark.js';
 import { HELIX_STATES, type HelixStatus } from '../../types/status.js';
 

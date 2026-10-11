@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useHelix } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { toUserMessage } from '@hx/core';
 import { SpatialScene } from '../../spatial/SpatialScene.js';
 import { GestureController } from '../../spatial/GestureController.js';
 import { MediaPipeGestureProvider } from '../../gestures/MediaPipeGestureProvider.js';

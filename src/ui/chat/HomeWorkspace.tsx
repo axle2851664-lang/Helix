@@ -5,7 +5,7 @@ import { useHelix, useSettings } from '../HelixProvider.js';
 import { Reactor } from '../hero/Reactor.js';
 import { describeReasoning, reactorSegments } from '../hero/capabilities.js';
 import { rotateWindow, suggestedPrompts } from '../hero/prompts.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { toUserMessage } from '@hx/core';
 import type { VoiceSnapshot } from '../../voice/VoiceManager.js';
 import type { Conversation, ConversationMessage } from '../../conversations/ConversationStore.js';
 import type { WorkspaceId } from '../workspaces/registry.js';

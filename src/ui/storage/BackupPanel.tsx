@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useHelix, useSettings } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { toUserMessage } from '@hx/core';
 import { formatBytes } from '../../storage/budget.js';
 import type { Archive, RestorePlan } from '../../backup/archive.js';
 import type { SnapshotSummary } from '../../backup/BackupManager.js';

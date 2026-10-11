@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ConsoleSink, Logger, MemorySink, REDACTED, redact } from './Logger.js';
-import type { LogRecord, LogSink } from './Logger.js';
+import { ConsoleSink, Logger, MemorySink, REDACTED, redact } from '@hx/core';
+import type { LogRecord, LogSink } from '@hx/core';
 
 class CaptureSink implements LogSink {
   records: LogRecord[] = [];

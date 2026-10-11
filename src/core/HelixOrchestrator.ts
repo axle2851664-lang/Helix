@@ -1,7 +1,7 @@
 import type { ActivityManager } from './ActivityManager.js';
 import type { EventBus } from './EventBus.js';
-import { HelixError } from './HelixError.js';
-import type { Logger } from './Logger.js';
+import { HelixError } from '@hx/core';
+import type { Logger } from '@hx/core';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import type { ConversationStore } from '../conversations/ConversationStore.js';
 import { resolveWorkspace, type WorkspaceId } from '../ui/workspaces/registry.js';

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useHelix } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { toUserMessage } from '@hx/core';
 import { NullVisionProvider } from '../../vision/types.js';
 import { NullGestureProvider } from '../../gestures/types.js';
 import { formatBytes } from '../../projects/validation.js';

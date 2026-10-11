@@ -1,5 +1,5 @@
 import type { EventBus } from '../core/EventBus.js';
-import type { Logger } from '../core/Logger.js';
+import type { Logger } from '@hx/core';
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
 import type { ProjectManager } from '../projects/ProjectManager.js';
 import { chunkText, extractText, extractionBlocker } from './extract.js';

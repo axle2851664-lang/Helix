@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useHelix } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { toUserMessage } from '@hx/core';
 import type { VoiceSnapshot } from '../../voice/VoiceManager.js';
 
 /**

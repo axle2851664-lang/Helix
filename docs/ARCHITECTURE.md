@@ -45,20 +45,31 @@ instead of stubbing them out to look functional.
 Implemented modules are marked ✅; the rest are planned and named here so
 boundaries are fixed before code lands.
 
+The repository is an npm workspace. `packages/*` holds what Helix shares with
+AXUM, its portable companion; everything else is the Helix application, which
+is the root package. See [AXUM.md](AXUM.md) §6.1 for why Helix stays at the
+root rather than becoming `apps/helix/`.
+
 ```
+packages/
+└── core/                       @hx/core — shared with AXUM, knows neither
+    └── src/
+        ├── EventBus.ts      ✅ typed pub/sub, generic over the host's event map
+        ├── Logger.ts        ✅ structured logging, redacts secrets on write
+        ├── HelixError.ts    ✅ user-facing vs technical messages
+        ├── secrets.ts       ✅ shared credential detection
+        └── index.ts         ✅ the package boundary; nothing else is importable
+
 src/
 ├── core/
-│   ├── EventBus.ts          ✅ typed pub/sub, error-isolated dispatch
+│   ├── EventBus.ts          ✅ the shared bus bound to Helix's catalogue
 │   ├── events.ts            ✅ the event catalogue (single source of truth)
 │   ├── HelixKernel.ts       ✅ DI container, startup and shutdown
-│   ├── Logger.ts            ✅ structured logging, redacts secrets on write
-│   ├── HelixError.ts        ✅ user-facing vs technical messages
 │   ├── HelixOrchestrator.ts ✅ tool registry and routing
 │   ├── ActivityManager.ts   ✅ real activity tracking
 │   ├── HelixCore.ts         ▫ later — deeper orchestration
 │   ├── ContextManager.ts    ▫ phase 5 — context assembly
 │   ├── ProviderManager.ts   ▫ phase 5 — local/cloud/hybrid selection
-│   ├── secrets.ts           ✅ shared credential detection
 │   └── PermissionManager.ts ▫ phase 7 — sensor and tool permissions
 ├── platform/
 │   ├── PlatformAdapter.ts   ✅ the host boundary
@@ -117,7 +128,10 @@ src/
 ## The EventBus contract
 
 Modules communicate through [`EventBus`](../src/core/EventBus.ts) rather than
-importing each other. This is what keeps Camera, Spatial, Memory and Storage
+importing each other. The mechanism lives in
+[`@hx/core`](../packages/core/src/EventBus.ts) and is generic over its event
+map; `src/core/EventBus.ts` is where it is bound to Helix's catalogue, so AXUM
+can share the bus without sharing Helix's events. This is what keeps Camera, Spatial, Memory and Storage
 independently removable, and it is why the event catalogue is a typed map — a
 mistyped event name or payload is a compile error, not a silent no-op.
 

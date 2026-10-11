@@ -20,13 +20,29 @@ import { describe, expect, it } from 'vitest';
  * Tabs, newlines and carriage returns are allowed; nothing else below 0x20 is.
  */
 
-const ROOT = new URL('../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+/** The repository root, so the scan is not limited to one package. */
+const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 
-/** Everything under src, since the fault can land in any file a patch touches. */
+/**
+ * Everything under `src`, `packages` and `apps`, since the fault can land in
+ * any file a patch touches.
+ *
+ * The list of roots is not cosmetic. This test scanned `src` alone, and when
+ * the shared primitives moved to `packages/core` they left both checks below
+ * without anything failing - the scan simply stopped seeing them. A hygiene
+ * test that silently narrows its own scope is worse than no hygiene test,
+ * because the green tick is still there. `expect(files.length)` below is the
+ * guard against that happening again.
+ */
+const SCAN_ROOTS = ['src', 'packages', 'apps'];
+
 function sourceFiles(directory: string): string[] {
   const found: string[] = [];
 
   for (const entry of readdirSync(directory)) {
+    // Build output and dependencies are not ours to police.
+    if (entry === 'node_modules' || entry === 'dist') continue;
+
     const path = join(directory, entry);
     if (statSync(path).isDirectory()) {
       found.push(...sourceFiles(path));
@@ -35,6 +51,20 @@ function sourceFiles(directory: string): string[] {
     }
   }
   return found;
+}
+
+function allSourceFiles(): string[] {
+  return SCAN_ROOTS.flatMap((root) => {
+    const path = join(ROOT, root);
+    // `apps/` does not exist yet. A missing root is not a failure; a root that
+    // exists and is skipped would be.
+    try {
+      if (!statSync(path).isDirectory()) return [];
+    } catch {
+      return [];
+    }
+    return sourceFiles(path);
+  });
 }
 
 const FORBIDDEN = new RegExp(
@@ -52,10 +82,23 @@ const FORBIDDEN = new RegExp(
 );
 
 describe('source hygiene', () => {
-  const files = sourceFiles(ROOT);
+  const files = allSourceFiles();
 
   it('finds source to check', () => {
     expect(files.length).toBeGreaterThan(40);
+  });
+
+  /**
+   * The scan reaches every workspace root that exists.
+   *
+   * Stated as its own test because the failure it guards against is a silent
+   * one: moving a module into a package it does not scan takes it out of every
+   * check in this file and nothing goes red.
+   */
+  it('scans the shared packages, not just the application', () => {
+    const scanned = files.map((file) => file.replace(ROOT, '').replace(/\\/g, '/'));
+    expect(scanned.some((file) => file.startsWith('src/'))).toBe(true);
+    expect(scanned.some((file) => file.startsWith('packages/core/src/'))).toBe(true);
   });
 
   it('contains no control characters', () => {

@@ -14,7 +14,7 @@ import {
 } from './archive.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
 import { PathManager } from '../storage/PathManager.js';
-import { Logger } from '../core/Logger.js';
+import { Logger } from '@hx/core';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { ProjectManager } from '../projects/ProjectManager.js';
 import { MemoryManager } from '../memory/MemoryManager.js';

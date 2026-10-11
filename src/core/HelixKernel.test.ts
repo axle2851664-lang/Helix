@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { HelixKernel } from './HelixKernel.js';
-import { HelixError } from './HelixError.js';
+import { HelixError } from '@hx/core';
 import { MemoryKeyValueStore, type KeyValueStore } from '../storage/KeyValueStore.js';
 import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
 

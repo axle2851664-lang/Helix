@@ -1,9 +1,16 @@
 # AXUM — Phase 1: discovery, boundaries and proposed architecture
 
-> **Status: nothing in this document is implemented.** It is the Phase 1
-> deliverable — what was inspected, what was found, and what is proposed. No
-> AXUM code exists in this repository. Two decisions are needed from the owner
-> before Phase 2 can start; they are marked **DECISION** below.
+> **Status: Phase 2b is under way; no AXUM code exists yet.** This began as the
+> Phase 1 deliverable — what was inspected, what was found, what was proposed.
+> Both decisions it asked for have since been answered by the owner and are
+> recorded at the two **DECISION** headings below:
+>
+> 1. **Helix is the main AI the brief calls HAVOC.** Read HAVOC as Helix
+>    throughout. **Nothing is renamed** — see §2 for why a rename is a separate
+>    job that has to be done in step with the phone.
+> 2. **The workspace approach**, over a fork or a persona switch. The first
+>    package is extracted and green; see §6.1 for what was actually built,
+>    which differs from what this document originally proposed in one respect.
 
 ## 1. What was actually inspected
 
@@ -74,10 +81,18 @@ to different work:
 - **(c) HAVOC is aspirational** — the name for what Helix becomes. Then nothing
   is blocked and the rename is optional.
 
-**DECISION 1 required.** This document proceeds on assumption (a) — *Helix is
-the main AI the brief calls HAVOC* — because it is the only reading under which
-the instruction "inspect the existing codebase and reuse it" has a referent.
-Where the brief says HAVOC, read Helix. **No renaming is proposed or performed.**
+**DECISION 1 — answered: (a).** The owner confirms Helix is the main AI the
+brief calls HAVOC. Where the brief says HAVOC, read Helix.
+
+**Nothing is renamed, and that is a decision rather than deferral.** Three of
+the names above are live protocol shared with software this repository does not
+contain: `helix-key:` on inbound mail, `helix-do:` on outbound directives, and
+the literal reply subject `Helix` that the phone's iOS Shortcuts automation
+triggers on. Renaming them without editing those Shortcuts in the same change
+stops the relay working, with no error anywhere — the mail simply arrives and
+nothing runs. A rename is therefore its own task, done in step with the phone,
+and worth doing only if the owner wants the product name changed for its own
+sake.
 
 ## 3. The overlap problem, stated second
 
@@ -130,7 +145,9 @@ once.
 7. **A second identity's settings and storage namespace** that cannot collide
    with Helix's.
 
-**DECISION 2 required.** Three ways to build AXUM. I recommend the third.
+**DECISION 2 — answered: the workspace.** The owner chose the third option
+below. The other two are kept because the reasons against them are the reasons
+the package boundaries are shaped as they are.
 
 - **Fork.** Copy `src/`, rename, diverge. Fastest to a demo, worst long-term:
   every fix lands twice and the two personas will drift into each other.
@@ -241,28 +258,81 @@ Five rules. Each is checkable, and Phase 2 adds a test for each.
 
 ### 6.1 Repository shape
 
+npm workspaces, declared at the root as `["packages/*", "apps/*"]`. What exists
+now, with the rest named so the boundaries are fixed before code lands:
+
 ```
-helix/                          (this repository)
+helix/                          (the repository root IS the Helix app)
+├── src/                        Helix: kernel, orchestrator, tools, UI, persona
+├── src-tauri/                  the desktop shell
 ├── packages/
-│   ├── core/          EventBus, Logger, HelixError, secrets, events
-│   ├── storage/       PathManager, KeyValueStore, IndexedDbStore, budget, pressure
-│   ├── platform/      PlatformAdapter + Browser/Tauri implementations
-│   ├── settings/      the schema machinery (not the schema contents)
-│   ├── guardrails/    untrusted.ts, rules machinery
-│   ├── link/          ** NEW ** the AXUM <-> Helix protocol, pure and transport-free
-│   └── axum-persona/  ** NEW ** the AXUM character
+│   ├── core/          DONE  EventBus (generic), Logger, HelixError, secrets
+│   ├── storage/       next  PathManager, KeyValueStore, IndexedDbStore, budget, pressure
+│   ├── platform/            PlatformAdapter + Browser/Tauri implementations
+│   ├── settings/            the schema machinery (not the schema contents)
+│   ├── guardrails/          untrusted.ts, rules machinery
+│   ├── link/                the AXUM <-> Helix protocol, pure and transport-free
+│   └── axum-persona/        the AXUM character
 ├── apps/
-│   ├── helix/         today's src/ minus what moved to packages/
-│   └── axum/          ** NEW ** AXUM's own kernel wiring, tools, settings, UI
+│   └── axum/                AXUM's own kernel wiring, tools, settings, UI
 └── services/
-    └── axum-cloud/    ** NEW ** the backend, deployable or absent
+    └── axum-cloud/          the backend, deployable or absent
 ```
 
-The extraction is mechanical (move files, fix import paths, keep tests with
-their modules) and should be its own commit, verified green, before any AXUM
-code exists. If the extraction cannot be made green, AXUM is built as
-`apps/axum/` importing from `src/` by relative path and the extraction is
-deferred — worse, but not a reason to stall.
+**Helix stays at the repository root rather than moving to `apps/helix/`,**
+which is where this document originally put it. Moving it would touch every
+path in `vite.config.ts`, three tsconfigs, `index.html`, `.claude/launch.json`
+and the Tauri configuration, for no functional gain whatever — and the brief's
+standing instruction is not to rename working components unnecessarily or to
+break a functioning application in passing. The root package is the Helix app;
+`packages/*` is the shared layer; `apps/*` is for siblings. The asymmetry is
+visible and is the price of not churning 123 files to make a diagram tidier.
+If a second app ever makes the root feel wrong, moving Helix then is the same
+mechanical change, done when it buys something.
+
+**Extraction order is by dependency depth, one package per commit, each
+verified green.** `core` was first because everything depends on it and it
+depends on nothing.
+
+#### What `packages/core` cost, and the one real design problem in it
+
+Moved: `EventBus`, `Logger`, `HelixError`, `secrets`, with their tests. Not
+moved: `events.ts`, `ActivityManager`, `HelixKernel`, `HelixOrchestrator` —
+the first is Helix's own catalogue and the rest are application wiring, which
+is the line this package is drawn along.
+
+`EventBus` could not simply be moved. It typed itself directly against
+`HelixEventMap`: Helix's 31 events, covering projects, spatial mode, camera and
+3D model generation. Shared as written, AXUM would have inherited compile-time
+knowledge of features it does not have, and adding an AXUM event would have
+meant editing Helix's catalogue. So the bus is now generic over its map, and
+each application binds its own:
+
+```ts
+// src/core/EventBus.ts — Helix's bus, in the Helix app
+export class EventBus extends TypedEventBus<HelixEventMap> {}
+```
+
+A subclass rather than a type alias, because `EventBus` is used both as a value
+and as a type across twenty-odd files; a subclass satisfies both, so the
+extraction changed no call site. The constraint on the map is `object`, not the
+more obvious `Record<string, unknown>` — a catalogue declared as an `interface`
+has no implicit index signature and so is not assignable to a `Record`, which
+rejected both real catalogues. Payload types are still checked and an unknown
+event name is still a compile error; `src/core/EventBus.binding.test.ts` pins
+both with `@ts-expect-error`.
+
+Two things the extraction turned up that were worth more than the move:
+
+- **The package's own tests were written against Helix's event names.** A
+  shared primitive whose tests only compile against one application's
+  catalogue is not shared, so they now run on a fixture map. The Helix binding
+  is tested separately, next to the catalogue it binds.
+- **`source-hygiene.test.ts` scanned `src/` alone.** The moment the primitives
+  moved, they left both of its checks — the control-character scan and the
+  hard-coded-address guard — and nothing went red. A hygiene test that
+  silently narrows its own scope is worse than none, because the green tick
+  remains. It now scans `src`, `packages` and `apps`, and asserts that it did.
 
 ### 6.2 The USB client
 
@@ -511,7 +581,7 @@ without a check is a claim.
 |---|---|---|
 | 1 | This document | Inspection recorded; 1221 tests green, `npm run verify` exits 0 |
 | 2a | `packages/link` — the protocol, pure | MAC verify, tamper, replay, clock-skew, unknown-version and scope-refusal tests |
-| 2b | Workspace extraction (**DECISION 2**) | `npm run verify` green, test count unchanged |
+| 2b | Workspace extraction | **`core` done**: `npm run verify` exits 0, 1226 tests. `storage`, `platform`, `settings`, `guardrails` to follow, one commit each |
 | 2c | AXUM core: kernel wiring, settings namespace, persona, tool registry | AXUM boots, says who it is, refuses what it cannot do |
 | 3 | Portable profile: paths, encryption, notes, conversations | Wrong passphrase refuses; drive-letter change invisible; namespace isolation test |
 | 4 | Web client and backend skeleton | Sign-in, a conversation, responsive on a real iPhone |

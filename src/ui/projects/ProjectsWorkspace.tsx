@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useHelix } from '../HelixProvider.js';
-import { toUserMessage } from '../../core/HelixError.js';
+import { toUserMessage } from '@hx/core';
 import { ACCEPT_ATTRIBUTE, formatBytes } from '../../projects/validation.js';
 import type { ProjectAsset, ProjectSummary } from '../../projects/types.js';
 

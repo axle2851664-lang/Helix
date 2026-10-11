@@ -12,7 +12,7 @@ import {
 } from './outbound.js';
 import { OutboundManager, type Transport } from './OutboundManager.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
-import { Logger } from '../core/Logger.js';
+import { Logger } from '@hx/core';
 
 const email = (over: Partial<Parameters<typeof draft>[0]> = {}) =>
   draft({

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HelixError } from '../core/HelixError.js';
+import { HelixError } from '@hx/core';
 import {
   ACCEPT_ATTRIBUTE,
   fileExtension,

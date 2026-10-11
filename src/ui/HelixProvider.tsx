@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { HelixKernel, type KernelServices } from '../core/HelixKernel.js';
 import type { HelixSettings, SettingsKey } from '../settings/schema.js';
-import { toUserMessage } from '../core/HelixError.js';
+import { toUserMessage } from '@hx/core';
 
 /**
  * Binds the kernel's lifetime to the React tree.

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProjectManager } from './ProjectManager.js';
 import { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
-import { Logger } from '../core/Logger.js';
+import { HelixError } from '@hx/core';
+import { Logger } from '@hx/core';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
 import { PathManager } from '../storage/PathManager.js';
 

@@ -1,6 +1,6 @@
 import type { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
-import type { Logger } from '../core/Logger.js';
+import { HelixError } from '@hx/core';
+import type { Logger } from '@hx/core';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
 

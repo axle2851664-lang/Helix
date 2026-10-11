@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KnowledgeIndex } from './KnowledgeIndex.js';
 import { EventBus } from '../core/EventBus.js';
-import { Logger } from '../core/Logger.js';
+import { Logger } from '@hx/core';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
 import { PathManager } from '../storage/PathManager.js';
 import { ProjectManager } from '../projects/ProjectManager.js';

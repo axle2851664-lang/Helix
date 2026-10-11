@@ -1,6 +1,6 @@
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
-import type { Logger } from '../core/Logger.js';
-import { HelixError } from '../core/HelixError.js';
+import type { Logger } from '@hx/core';
+import { HelixError } from '@hx/core';
 import {
   BILLABLE_KINDS,
   OutboundError,

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { StorageManager } from './StorageManager.js';
 import { MemoryKeyValueStore } from './KeyValueStore.js';
 import { PathManager } from './PathManager.js';
-import { Logger } from '../core/Logger.js';
+import { Logger } from '@hx/core';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { ProjectManager } from '../projects/ProjectManager.js';

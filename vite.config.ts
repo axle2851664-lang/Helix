@@ -15,6 +15,11 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      // The workspace package, aliased explicitly rather than left to node
+      // resolution. npm links it into node_modules, but its entry point is
+      // TypeScript source, and an explicit alias keeps it on Vite's normal
+      // transform path instead of its dependency-prebundling path.
+      '@hx/core': fileURLToPath(new URL('./packages/core/src/index.ts', import.meta.url)),
       '@core': fileURLToPath(new URL('./src/core', import.meta.url)),
       '@platform': fileURLToPath(new URL('./src/platform', import.meta.url)),
       '@ui': fileURLToPath(new URL('./src/ui', import.meta.url)),
@@ -49,6 +54,16 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    // Shared packages are tested by the same run as the application. One
+    // command, one count: a package whose tests needed a second invocation
+    // would be a package whose tests stop being run.
+    include: [
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx',
+      'packages/*/src/**/*.test.ts',
+      'packages/*/src/**/*.test.tsx',
+      'apps/*/src/**/*.test.ts',
+      'apps/*/src/**/*.test.tsx',
+    ],
   },
 });

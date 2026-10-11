@@ -1,6 +1,6 @@
 import { EventBus } from './EventBus.js';
-import { HelixError } from './HelixError.js';
-import { ConsoleSink, Logger, MemorySink, type LogLevel } from './Logger.js';
+import { HelixError } from '@hx/core';
+import { ConsoleSink, Logger, MemorySink, type LogLevel } from '@hx/core';
 import { IndexedDbStore } from '../storage/IndexedDbStore.js';
 import { MemoryKeyValueStore, type KeyValueStore } from '../storage/KeyValueStore.js';
 import { PathManager } from '../storage/PathManager.js';

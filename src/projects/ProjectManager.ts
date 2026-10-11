@@ -1,6 +1,6 @@
 import type { EventBus } from '../core/EventBus.js';
-import { HelixError } from '../core/HelixError.js';
-import type { Logger } from '../core/Logger.js';
+import { HelixError } from '@hx/core';
+import type { Logger } from '@hx/core';
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
 import type { PathManager } from '../storage/PathManager.js';
 import { DEFAULT_MAX_FILE_BYTES, validateUpload, type FileCandidate } from './validation.js';

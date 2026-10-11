@@ -1,4 +1,4 @@
-import { HelixError } from '../core/HelixError.js';
+import { HelixError } from '@hx/core';
 import type { AssetKind } from './types.js';
 
 /**

@@ -1,4 +1,4 @@
-import { HelixError } from '../core/HelixError.js';
+import { HelixError } from '@hx/core';
 
 /**
  * Portable path resolution (spec 13).

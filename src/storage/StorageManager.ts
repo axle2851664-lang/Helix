@@ -1,12 +1,12 @@
 import type { KeyValueStore } from './KeyValueStore.js';
-import type { Logger } from '../core/Logger.js';
+import type { Logger } from '@hx/core';
 import type { PlatformAdapter } from '../platform/PlatformAdapter.js';
 import type { SettingsManager } from '../settings/SettingsManager.js';
 import type { ProjectManager } from '../projects/ProjectManager.js';
 import type { KnowledgeIndex } from '../knowledge/KnowledgeIndex.js';
 import type { ConversationStore } from '../conversations/ConversationStore.js';
 import type { MemoryManager } from '../memory/MemoryManager.js';
-import { HelixError } from '../core/HelixError.js';
+import { HelixError } from '@hx/core';
 import {
   admit,
   fillRatio,

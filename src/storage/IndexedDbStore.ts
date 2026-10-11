@@ -1,4 +1,4 @@
-import { HelixError } from '../core/HelixError.js';
+import { HelixError } from '@hx/core';
 import type { KeyValueStore } from './KeyValueStore.js';
 
 const DB_NAME = 'helix';

@@ -20,7 +20,7 @@ geographic environment.
 | Subsystem | State |
 |---|---|
 | Build system (Vite 8 + React 19 + TypeScript 5.9, strict) | Working |
-| `EventBus` — typed pub/sub, error-isolated (spec §20) | Working |
+| `EventBus` — typed pub/sub, error-isolated, generic over its event map (spec §20) | Working |
 | `Logger` — structured, leveled, redacts secrets before writing | Working |
 | `HelixError` — separate user-facing and technical messages (spec §17) | Working |
 | `PathManager` — portable paths, survives a drive-letter change (spec §13) | Working |
@@ -106,4 +106,5 @@ npm run verify
 - [SECURITY.md](docs/SECURITY.md) — permissions, secrets, sensor indicators
 - [PROVIDERS.md](docs/PROVIDERS.md) — local / cloud / hybrid provider model
 - [DEVELOPMENT.md](docs/DEVELOPMENT.md) — conventions, testing, troubleshooting
-- [AXUM.md](docs/AXUM.md) — AXUM, the proposed portable companion: discovery, boundaries, phase plan (**nothing implemented**)
+- [AXUM.md](docs/AXUM.md) — AXUM, the portable companion: boundaries, the shared-package layout, phase plan
+- [packages/core/README.md](packages/core/README.md) — `@hx/core`, the primitives Helix and AXUM share

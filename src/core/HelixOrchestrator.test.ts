@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActivityManager } from './ActivityManager.js';
 import { HelixOrchestrator, type HelixTool } from './HelixOrchestrator.js';
-import { Logger } from './Logger.js';
+import { Logger } from '@hx/core';
 import { ConversationStore } from '../conversations/ConversationStore.js';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';

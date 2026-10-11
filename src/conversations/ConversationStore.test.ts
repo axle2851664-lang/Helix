@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConversationStore } from './ConversationStore.js';
 import { EventBus } from '../core/EventBus.js';
-import { Logger } from '../core/Logger.js';
+import { Logger } from '@hx/core';
 import { SettingsManager } from '../settings/SettingsManager.js';
 import { MemoryKeyValueStore } from '../storage/KeyValueStore.js';
 

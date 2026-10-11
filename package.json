@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Helix - modular portable Windows AI assistant",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "license": "UNLICENSED",
   "engines": {
     "node": ">=20"

@@ -1,7 +1,7 @@
 import type { KeyValueStore } from '../storage/KeyValueStore.js';
-import type { Logger } from '../core/Logger.js';
+import type { Logger } from '@hx/core';
 import type { SettingsManager } from '../settings/SettingsManager.js';
-import { HelixError } from '../core/HelixError.js';
+import { HelixError } from '@hx/core';
 import {
   ARCHIVABLE,
   ArchiveError,

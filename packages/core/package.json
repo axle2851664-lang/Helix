@@ -1,0 +1,12 @@
+{
+  "name": "@hx/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Primitives shared by Helix and AXUM: typed event bus, logging, errors, secret detection",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts"
+}

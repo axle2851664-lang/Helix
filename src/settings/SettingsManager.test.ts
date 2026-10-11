@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventBus } from '../core/EventBus.js';
-import { Logger } from '../core/Logger.js';
+import { Logger } from '@hx/core';
 import { MemoryKeyValueStore, type KeyValueStore } from '../storage/KeyValueStore.js';
 import { SettingsManager } from './SettingsManager.js';
 import { getDefaultSettings, validateSettings } from './schema.js';
