@@ -61,11 +61,29 @@ camera frames, microphone audio.
 
 ## Dependencies
 
-The dependency tree is kept deliberately small (currently 54 packages,
-0 known vulnerabilities). The initial Vite 5 toolchain carried 5 advisories
-rooted in `esbuild <=0.24.2`; rather than suppress them, the toolchain was
-upgraded to Vite 8 — which resolved all five and halved the dependency count.
-Prefer removing a dependency over auditing around it.
+The dependency tree is kept deliberately small. The initial Vite 5 toolchain
+carried 5 advisories rooted in `esbuild <=0.24.2`; rather than suppress them,
+the toolchain was upgraded to Vite 8 — which resolved all five and halved the
+dependency count. Prefer removing a dependency over auditing around it.
+
+**Audited state, measured rather than asserted.** `npm audit` reports
+**0 vulnerabilities in production dependencies** and **1 high advisory in dev
+dependencies**: `source-map-js <=1.2.1` (event-loop DoS), reached only through
+`vite -> postcss`. 173 packages in total (48 prod, 86 dev).
+
+The figure above was once "54 packages, 0 known vulnerabilities" and had drifted
+badly: a later audit found 8 advisories, 5 of them high, and the package count
+had more than tripled. Seven of the eight came through one direct dependency and
+were cleared by a single non-major bump — `@huggingface/transformers` 4.2.0 to
+4.3.1 — which took `adm-zip` off 8 advisories (among them symlink-following
+arbitrary file overwrite and SUID/SGID preservation from untrusted archives),
+and updated `sharp`, `onnxruntime-node`, `global-agent`, `roarr` and
+`sprintf-js`.
+
+The lesson is about this file rather than about the packages: a hard-coded count
+in prose is a claim that rots silently. Re-run `npm audit` before trusting the
+numbers here, and prefer `npm audit --omit=dev` for the figure that describes
+what ships.
 
 ## Camera
 

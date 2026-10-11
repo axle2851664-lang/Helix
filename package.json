@@ -22,7 +22,7 @@
     "tauri:build": "tauri build"
   },
   "dependencies": {
-    "@huggingface/transformers": "4.2.0",
+    "@huggingface/transformers": "4.3.1",
     "@mediapipe/tasks-vision": "1.0.1",
     "@tauri-apps/api": "^2.11.1",
     "pdfjs-dist": "^6.3.289",

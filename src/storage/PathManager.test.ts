@@ -121,6 +121,57 @@ describe('PathManager', () => {
     expect(() => portable().fromPortable('E:/Helix/projects/a.png')).toThrow(HelixError);
   });
 
+  /**
+   * The gap this closes. Refusing an absolute path was not enough:
+   * `normalizePath` collapses `..` instead of refusing it, so a stored record
+   * reading "../../etc/passwd" is relative, passed the absolute-path check,
+   * and resolved cleanly to a location outside the workspace. Every other
+   * resolver on this class was guarded; this one - the one persisted records
+   * are read through - was not.
+   */
+  describe('fromPortable refuses a stored path that escapes the data root', () => {
+    for (const stored of [
+      '../../etc/passwd',
+      '../secrets.txt',
+      'projects/../../../etc/shadow',
+      '..\\..\\Windows\\System32\\config',
+      './../../outside/file.txt',
+    ]) {
+      it(`refuses ${JSON.stringify(stored)}`, () => {
+        try {
+          portable().fromPortable(stored);
+          expect.unreachable('should have thrown');
+        } catch (error) {
+          expect(error).toBeInstanceOf(HelixError);
+          expect((error as HelixError).code).toBe('PERMISSION_DENIED');
+        }
+      });
+    }
+
+    it('names the resolved location in the technical detail, not just the input', () => {
+      try {
+        portable().fromPortable('../../etc/passwd');
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect((error as HelixError).technical).toContain('E:/Helix');
+        expect((error as HelixError).technical).toContain('/etc/passwd');
+      }
+    });
+
+    it('still resolves an ordinary stored path, and the empty path, unchanged', () => {
+      const paths = portable();
+      expect(paths.fromPortable('projects/ironman/a.png')).toBe('E:/Helix/projects/ironman/a.png');
+      expect(paths.fromPortable('')).toBe('E:/Helix');
+    });
+
+    it('whatever it returns is inside the workspace, for any stored input', () => {
+      const paths = portable();
+      for (const stored of ['projects/a', 'models/b.gguf', '', 'a/b/c/../d']) {
+        expect(paths.isWithinWorkspace(paths.fromPortable(stored))).toBe(true);
+      }
+    });
+  });
+
   describe('workspace containment', () => {
     it('accepts paths inside the workspace', () => {
       const paths = portable();

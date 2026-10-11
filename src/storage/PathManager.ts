@@ -177,7 +177,21 @@ export class PathManager {
     return normalized.slice(prefix.length);
   }
 
-  /** Resolve a stored portable path back to an absolute one for the current root. */
+  /**
+   * Resolve a stored portable path back to an absolute one for the current root.
+   *
+   * Containment is checked here rather than left to the caller, and that is the
+   * whole point of the check existing at all. Refusing an absolute path is not
+   * sufficient: `normalizePath` *collapses* `..` rather than rejecting it, so a
+   * stored record reading `../../etc/passwd` is relative, passes the test above,
+   * and resolves perfectly cleanly to somewhere outside the workspace.
+   *
+   * A stored path is not a trusted path. It may have come from a restored
+   * backup archive, which `backup/archive.ts` describes in its own header as
+   * untrusted input from disk. Leaving the check to each caller means it is
+   * absent from the first caller that forgets, and this is the resolver every
+   * other part of Helix is meant to read persisted locations through.
+   */
   fromPortable(relativePath: string): string {
     const normalized = normalizePath(relativePath);
     if (isAbsolutePath(normalized)) {
@@ -187,7 +201,26 @@ export class PathManager {
         { technical: 'fromPortable received absolute path "' + normalized + '".' },
       );
     }
-    return joinPath(this.#dataRoot, normalized);
+
+    const resolved = joinPath(this.#dataRoot, normalized);
+
+    // Deliberately a different message from `assertWithinWorkspace`. That one
+    // answers "you asked for a file outside the workspace"; this one answers
+    // "something Helix saved points outside it", which is a sign of crafted or
+    // corrupted stored data rather than of a user overreaching.
+    if (!this.isWithinWorkspace(resolved)) {
+      throw new HelixError(
+        'PERMISSION_DENIED',
+        'A saved file location points outside the Helix workspace, so Helix will not open it.',
+        {
+          technical:
+            'fromPortable: "' + relativePath + '" resolved to "' + resolved +
+            '", which is outside data root "' + this.#dataRoot + '".',
+        },
+      );
+    }
+
+    return resolved;
   }
 
   /**
