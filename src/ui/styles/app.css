@@ -1534,7 +1534,8 @@
 }
 
 .hx-card--brief .hx-card__head,
-.hx-card--plan .hx-card__head {
+.hx-card--plan .hx-card__head,
+.hx-card--result .hx-card__head {
   color: var(--hx-accent);
 }
 

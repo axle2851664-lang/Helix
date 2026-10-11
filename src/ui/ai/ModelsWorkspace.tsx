@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon.js';
 import { useHelix, useSettings } from '../HelixProvider.js';
 import { formatBytes } from '../../storage/budget.js';
 import { assessFit, footprintFromName, largestComfortableModel } from '../../ai/resources.js';
+import type { FitVerdict } from '../../ai/resources.js';
 import type { LocalAIStatus } from '../../ai/OllamaProvider.js';
 import type { OllamaProvider } from '../../ai/OllamaProvider.js';
 import type { ModelInfo } from '../../ai/types.js';
@@ -22,12 +23,30 @@ import type { HardwareProfile } from '../../platform/PlatformAdapter.js';
  * clicked the wrong row is not a button worth having.
  */
 
-const VERDICT_TONE = {
+/**
+ * Typed as a total map over `FitVerdict` rather than inferred.
+ *
+ * Inferred, it was a map of four keys against a type that had grown to five:
+ * `not-right-now` arrived with the measured-memory work and nothing here was
+ * updated, so that verdict rendered `hx-dot--undefined` - an invisible dot on
+ * precisely the row the user needed to look at. `Record` turns the next added
+ * verdict into a compile error in this file.
+ *
+ * `not-right-now` shares `warn` with `tight` deliberately. Only four dot tones
+ * exist and the distinction between them is not a matter of degree: the dot is
+ * a coarse signal, and `fit.message` directly below it says in full whether
+ * the memory is merely close or currently spoken for. A red `busy` dot would
+ * read as more alarming than `will-not-fit`, which would be backwards - a
+ * transient shortage is the less serious of the two, and the Use button stays
+ * enabled for it.
+ */
+const VERDICT_TONE: Record<FitVerdict, 'ok' | 'warn' | 'off'> = {
   comfortable: 'ok',
   tight: 'warn',
+  'not-right-now': 'warn',
   'will-not-fit': 'warn',
   unknown: 'off',
-} as const;
+};
 
 export function ModelsWorkspace() {
   const { ai, platform } = useHelix();
@@ -157,10 +176,10 @@ export function ModelsWorkspace() {
         ) : (
           <ul className="hx-filelist">
             {models.map((model) => {
-              const fit = assessFit(
-                footprintFromName(model.id, model.note?.includes('GB') ? null : null),
-                memory,
-              );
+              // No disk size is passed: both branches of the ternary that used
+              // to stand here evaluated to null, which is also the parameter's
+              // default. The note is prose, not a byte count.
+              const fit = assessFit(footprintFromName(model.id), memory);
               const active = model.id === settings.languageModel;
 
               return (

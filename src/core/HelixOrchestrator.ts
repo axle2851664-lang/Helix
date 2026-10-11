@@ -294,9 +294,17 @@ export class HelixOrchestrator {
       const raw = result.text.trim();
       const spoken = repair(raw, {
         // The same rolling window that governs Helix's own sentences, so a
-        // model that reaches for "sir" every time is brought back to the rate
-        // rather than left to set it.
-        allowAddress: allowAddressInReply(/\bsir\b/i.test(raw)),
+        // model that reaches for an address every time is brought back to the
+        // rate rather than left to set it.
+        //
+        // `carriesAddress`, not a literal /\bsir\b/. The literal knew only one
+        // of the two forms, and the consequences ran in both directions: a
+        // reply saying "boss" was reported as unaddressed, so the rolling
+        // window under-counted and the address was permitted more often than
+        // the third it targets - and worse, `repair` recognises both forms
+        // internally, so it saw an address the caller had just declared absent
+        // and stripped the "boss" out of every reply that used it.
+        allowAddress: allowAddressInReply(carriesAddress(raw)),
       });
       if (spoken.findings.length > 0) {
         this.#logger.debug('Register corrected on a model reply.', {
@@ -1158,7 +1166,9 @@ ${lines}`,
     );
 
     const spoken = repair(result.text.trim(), {
-      allowAddress: allowAddressInReply(/\bsir\b/i.test(result.text)),
+      // Both forms, for the reason given at the other call site: a predicate
+      // that knows only "sir" silently deletes every "boss".
+      allowAddress: allowAddressInReply(carriesAddress(result.text)),
     });
 
     return { text: spoken.text, handled: true, card };

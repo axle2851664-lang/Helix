@@ -16,27 +16,33 @@ npm install        -> clean
 npx vitest run     -> 55 files passed, 1 skipped; 1195 tests passed, 1 skipped
 ```
 
+Those are the figures as first inspected. The suite now stands at 1221 tests in
+56 files, and `npm run verify` exits 0; see the table below for what changed.
+
 That number is the contract for everything below: AXUM must not reduce it.
 
-**But `npm run verify` is red on `main`, and was before this document existed.**
-`tsc --build --force` reports three errors, none of which the test suite catches
-because each is a type error in a path tests do not typecheck through:
+**`npm run verify` was red when this document was written, and is now green.**
+`tsc --build --force` reported three errors, none of which the test suite
+caught, because each sat in a path no test typechecked through. All three are
+fixed; what they were is kept here because two of them were worse than a type
+complaint, and because the shape of each mistake is the argument for how the
+fixes were written.
 
-| Error | File | What it is |
-|---|---|---|
-| TS6133 | `src/core/HelixOrchestrator.ts:14` | `carriesAddress` imported and never used — dead import left by a later edit |
-| TS2322 | `src/tools/researchCard.ts:67` | returns `kind: 'result'`, but `ToolCard.kind` in `src/tools/cards.ts:49` is `'brief' \| 'plan' \| 'requirement'`. The research card has never been a valid `ToolCard` |
-| TS7053 | `src/ui/ai/ModelsWorkspace.tsx:168` | `VERDICT_TONE` has four keys; `FitVerdict` gained a fifth, `not-right-now`, in commit `1c7d6df`. The map was not updated, so that verdict renders `hx-dot--undefined` |
+| Error | File | What it was | Fix |
+|---|---|---|---|
+| TS6133 | `HelixOrchestrator.ts:14` | `carriesAddress` imported, never used | **Not a dead import — an unfinished refactor.** Commit `5b5d0f1` added the import, and its message claims it rebuilt "the orchestrator's rate check" from the shared form list. It did not: both call sites kept a literal `sir` match, so a model reply saying "boss" was reported as unaddressed. The rolling window under-counted, *and* `repair` — which does know both forms — saw an address the caller had declared absent and deleted it. Every "boss" a model wrote was stripped. Now uses `carriesAddress`, with a source-hygiene test forbidding a hard-coded form outside `persona/` |
+| TS2322 | `researchCard.ts:67` | returned `kind: 'result'` against a three-member union | `'result'` added to `ToolCard['kind']`, with an icon and a CSS accent. Not folded into `'brief'`: a brief is Helix summarising state it holds, a result is what someone else's index said. `KIND_ICON` is now `Record<ToolCard['kind'], IconName>`, so a new kind without an icon is a compile error |
+| TS7053 | `ModelsWorkspace.tsx:168` | `VERDICT_TONE` had four keys against a five-member `FitVerdict` | A live defect: `not-right-now` rendered `hx-dot--undefined`, an invisible dot on exactly the row needing attention. Mapped to `warn`, and the map is now `Record<FitVerdict, …>` |
 
-The third is a live rendering defect, not only a type complaint, and it fires on
-exactly the case `resources.ts` was changed to introduce. The second means the
-web-research card's declared type and its actual shape disagree.
+Both `Record` types were checked by adding a member and confirming `tsc` names
+the map and the missing key. The research card went from 0% coverage to 100%,
+which is the real reason its error survived: nothing ran the function.
 
-These are **not fixed here** — this commit adds documentation only, and the
-second needs a decision that is the owner's (does `ToolCard` gain a `'result'`
-kind, or should `researchCard` use an existing one?). But the Phase 2 proof in
-§8 is "`npm run verify` green", so they are the first thing to settle. They are
-listed again as item 0 in §7.
+Two notes on what the fixes do *not* buy. The two `.tsx` files remain at 0%
+coverage — there is no component-rendering test anywhere in the project — so
+their defects are prevented by the compiler rather than by a test. And the
+"boss" bug passed 1203 tests either side of itself; it was found by reading the
+commit that introduced the import, not by running anything.
 
 ## 2. The naming problem, stated first
 
@@ -228,7 +234,7 @@ Five rules. Each is checkable, and Phase 2 adds a test for each.
    Helix's key, it cannot be used as Helix's key, and it authorises a *scope*
    (see §6.5) rather than "everything Helix can do". Revoking AXUM does not
    touch Helix's own relay secret.
-5. **The test count only goes up.** 1195 is the floor. `npm run verify`
+5. **The test count only goes up.** 1221 is the floor. `npm run verify`
    (typecheck + test + build) passes at every commit.
 
 ## 6. Proposed AXUM architecture
@@ -451,11 +457,11 @@ with a weak passphrase is readable by anyone patient. Both get said plainly, and
 
 ## 7. Limitations and unresolved choices
 
-**Blocking Phase 2's own proof:**
+**Settled since this document was written:**
 
-0. Three pre-existing typecheck errors on `main` (§1). `npm run verify` cannot
-   be green until they are settled, and one of the three is a real rendering
-   defect rather than a type complaint.
+0. ~~Three pre-existing typecheck errors on `main`~~ — fixed (§1).
+   `npm run verify` now exits 0: typecheck clean, 1221 tests passing, build
+   green. Phase 2's proof is available.
 
 **Blocking a claim, not the work:**
 
@@ -503,7 +509,7 @@ without a check is a claim.
 
 | Phase | Scope | Proof |
 |---|---|---|
-| 1 | This document | Inspection recorded; 1195 tests green at baseline |
+| 1 | This document | Inspection recorded; 1221 tests green, `npm run verify` exits 0 |
 | 2a | `packages/link` — the protocol, pure | MAC verify, tamper, replay, clock-skew, unknown-version and scope-refusal tests |
 | 2b | Workspace extraction (**DECISION 2**) | `npm run verify` green, test count unchanged |
 | 2c | AXUM core: kernel wiring, settings namespace, persona, tool registry | AXUM boots, says who it is, refuses what it cannot do |
@@ -537,7 +543,7 @@ Why this one:
   platform. Which means it is **fully testable in the browser host, today**,
   with no Rust toolchain and no USB drive — the two things blocking almost
   everything else.
-- It **touches no existing Helix code**, so the 1195-test baseline cannot move.
+- It **touches no existing Helix code**, so the 1221-test baseline cannot move.
 
 Deliverable: a new module with its types, its canonical encoder, sign/verify, a
 replay guard, the scope enumeration and its checker, and tests covering a good

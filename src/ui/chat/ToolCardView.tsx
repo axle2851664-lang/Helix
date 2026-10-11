@@ -1,4 +1,4 @@
-import { Icon } from '../components/Icon.js';
+import { Icon, type IconName } from '../components/Icon.js';
 import type { CardItem, ToolCard } from '../../tools/cards.js';
 
 /**
@@ -15,11 +15,22 @@ import type { CardItem, ToolCard } from '../../tools/cards.js';
  * believed and should not be.
  */
 
-const KIND_ICON = {
+/**
+ * Typed as a total map over the card kinds rather than inferred.
+ *
+ * Inferred, this was a map of three keys against a union that had grown to
+ * four, and the only symptom was `KIND_ICON[card.kind]` handing `undefined` to
+ * an icon. `Record` makes a new kind a compile error here, which is where the
+ * decision belongs - a card type without a chosen icon is an unfinished card
+ * type, not a runtime surprise.
+ */
+const KIND_ICON: Record<ToolCard['kind'], IconName> = {
   brief: 'activity',
   plan: 'check',
   requirement: 'alert',
-} as const;
+  // What a lookup returned, from somewhere outside Helix.
+  result: 'globe',
+};
 
 export function ToolCardView({ card }: { card: ToolCard }) {
   return (

@@ -75,4 +75,53 @@ describe('source hygiene', () => {
 
     expect(offenders, offenders.join('\n')).toEqual([]);
   });
+
+  /**
+   * No form of address is hard-coded outside `persona/`.
+   *
+   * The same shape of failure as the one above: it parses, it runs, and the
+   * only symptom is Helix sounding slightly wrong. `voice.ts` exports
+   * `ADDRESS_FORMS` and `carriesAddress` precisely so that every matcher is
+   * built from one list, and the commit that introduced the second form said
+   * so - naming the orchestrator's rate check among the matchers it had
+   * rebuilt.
+   *
+   * It had not been. Both call sites kept a literal `/\bsir\b/`, which knew
+   * only one of the two forms, and the damage ran both ways: a reply saying
+   * "boss" was reported as unaddressed, so the rolling window under-counted
+   * and the address was allowed more often than its target - while `repair`,
+   * which does know both forms, saw an address the caller had declared absent
+   * and stripped it out. Every "boss" a model produced was deleted. Nothing
+   * failed; 1203 tests passed either side of the fix.
+   *
+   * So the rule is structural rather than remembered. Comments are stripped
+   * first, because the explanation above is allowed to quote the pattern it
+   * forbids.
+   */
+  it('hard-codes no single form of address outside the persona module', () => {
+    const offenders: string[] = [];
+
+    for (const file of files) {
+      const relative = file.replace(ROOT, '').replace(/\\/g, '/');
+      // `persona/` owns the forms and is where the list itself lives.
+      if (relative.startsWith('src/persona/')) continue;
+
+      const withoutComments = readFileSync(file, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/[^\n]*/g, '');
+
+      for (const form of ['sir', 'boss']) {
+        // The shape of the bug: a word-boundary match on one form, in a regex
+        // literal or built by hand, instead of asking `voice.ts`.
+        const pattern = new RegExp('\\\\b' + form + '\\\\b', 'i');
+        if (pattern.test(withoutComments)) {
+          offenders.push(
+            `${relative} matches a hard-coded "${form}" boundary - use carriesAddress() or ADDRESS_FORMS from persona/voice.ts`,
+          );
+        }
+      }
+    }
+
+    expect(offenders, offenders.join('\n')).toEqual([]);
+  });
 });

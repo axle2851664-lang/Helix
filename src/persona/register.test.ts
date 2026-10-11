@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { inspect, repair } from './register.js';
+import { ADDRESS_FORMS, allowAddressInReply, carriesAddress, resetVoice } from './voice.js';
 import { SYSTEM_PROMPT } from './systemPrompt.js';
 
 describe('the measured failure', () => {
@@ -165,6 +166,52 @@ describe('the address rate across replies', () => {
     const plain = 'Canberra.';
     expect(repair(plain, { allowAddress: false }).text).toBe(plain);
     expect(repair(plain, { allowAddress: false }).findings).toEqual([]);
+  });
+
+  /**
+   * The bug this pair exists to stop coming back.
+   *
+   * `repair` recognises both forms of address. Its caller has to decide whether
+   * the reply may keep one, and the orchestrator decided with a literal
+   * `sir` match - which meant a reply saying "boss" was reported as carrying
+   * no address at all. Two consequences, both silent: the rolling window
+   * under-counted, so the address was permitted more often than its target;
+   * and `repair`, told the address was absent while plainly seeing one,
+   * treated it as a rate violation and deleted every "boss" a model wrote.
+   *
+   * Composed here exactly as the orchestrator composes it, so the test fails
+   * if either half regresses.
+   */
+  for (const form of ADDRESS_FORMS) {
+    it(`keeps "${form}" when the window allows it, and counts it either way`, () => {
+      resetVoice();
+      const reply = `I am here, ${form}. What do you need?`;
+
+      // First reply in a fresh window: the rate is 0, so it is allowed.
+      const allow = allowAddressInReply(carriesAddress(reply));
+      expect(allow).toBe(true);
+      expect(repair(reply, { allowAddress: allow }).text).toBe(reply);
+    });
+
+    it(`strips "${form}" only because of the rate, never because it went unseen`, () => {
+      resetVoice();
+      const reply = `Of course, ${form}.`;
+
+      // carriesAddress must see it; the decision then belongs to the window.
+      expect(carriesAddress(reply)).toBe(true);
+
+      const result = repair(reply, { allowAddress: false });
+      expect(result.findings.map((finding) => finding.fault)).toContain('address-rate');
+      expect(carriesAddress(result.text)).toBe(false);
+    });
+  }
+
+  it('never lets one form be recognised while the other is missed', () => {
+    // The asymmetry itself, stated directly: whatever the forms are, they are
+    // all recognised or the list is not being used.
+    for (const form of ADDRESS_FORMS) {
+      expect(carriesAddress(`Right away, ${form}.`)).toBe(true);
+    }
   });
 });
 

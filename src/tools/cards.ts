@@ -45,8 +45,16 @@ export interface CardSection {
 }
 
 export interface ToolCard {
-  /** Used by the UI for the accent colour and icon. */
-  kind: 'brief' | 'plan' | 'requirement';
+  /**
+   * Used by the UI for the accent colour and icon.
+   *
+   * `result` is for a card reporting what a lookup returned - a web search,
+   * most immediately. It is deliberately not folded into `brief`: a brief is
+   * Helix's own summary of state it already holds, a result is what somebody
+   * else's index said, and showing the two with the same icon would blur the
+   * one distinction a user most needs when deciding how much to trust a row.
+   */
+  kind: 'brief' | 'plan' | 'requirement' | 'result';
   title: string;
   subtitle?: string;
   sections: CardSection[];
