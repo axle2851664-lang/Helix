@@ -212,6 +212,15 @@ export const MOTION: Readonly<Record<CoreState, StateMotion>> = {
  * field. `heat` pulls the whole ramp back towards a dull ember, which is what
  * makes a stopped core look stopped rather than merely dimmer.
  */
+/**
+ * The ramp the gold token is taken from.
+ *
+ * `--havoc-gold` in havoc.css is the middle stop below, [255, 172, 68], so
+ * the interface and the sphere are lit by one colour. The stops stay numbers
+ * here rather than being read from CSS: this runs per particle per frame, and
+ * a `getComputedStyle` call in that loop would cost more than the whole rest
+ * of the draw. If the gold changes, it changes here and the token follows.
+ */
 export function fire(t: number, heat: number): [number, number, number] {
   const held = Math.min(1, Math.max(0, t));
   // Three stops, interpolated. More would not be visible at this size.

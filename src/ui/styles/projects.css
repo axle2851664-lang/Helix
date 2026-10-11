@@ -18,7 +18,7 @@
 }
 
 .hx-field__required {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -62,7 +62,7 @@
 
 .hx-btn--danger:hover {
   background: var(--hx-accent);
-  color: #fff;
+  color: var(--havoc-white);
   border-color: var(--hx-accent);
 }
 
@@ -116,7 +116,7 @@
 }
 
 .hx-detailhead .hx-muted {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11.5px;
 }
 
@@ -246,7 +246,7 @@
 }
 
 .hx-tag {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -329,7 +329,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11.5px;
   color: var(--hx-accent);
 }
@@ -344,7 +344,7 @@
 
 .hx-hitlist__meta {
   margin-top: 5px;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10.5px;
   color: var(--hx-text-faint);
 }

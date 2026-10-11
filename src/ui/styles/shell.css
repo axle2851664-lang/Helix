@@ -13,12 +13,18 @@
   height: 100%;
   overflow: hidden;
   /* Driven by the appearance setting. */
-  --helix-accent-strength: 0.7;
+  --havoc-accent-strength: 0.7;
 }
 
+/*
+  A third copy of the midnight override, with a third pair of near-blacks.
+  The background is #000000 now and there is no darker black to offer, so
+  midnight changes the depth above the floor rather than the floor - the same
+  as the one in app.css, and derived from the palette rather than restating a
+  colour.
+*/
 [data-theme='midnight'] {
-  --helix-bg: #05060a;
-  --helix-bg-raised: #0a0c12;
+  --havoc-bg-raised: color-mix(in srgb, var(--havoc-surface) 60%, var(--havoc-black));
 }
 
 [data-reduce-motion='true'] .helix-mark {
@@ -46,7 +52,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 20px 26px 14px;
-  border-bottom: 1px solid var(--helix-panel-border);
+  border-bottom: 1px solid var(--havoc-panel-border);
 }
 
 .helix-main__title {
@@ -59,7 +65,7 @@
 .helix-main__subtitle {
   margin: 2px 0 0;
   font-size: 13px;
-  color: var(--helix-text-dim);
+  color: var(--havoc-text-dim);
 }
 
 .helix-main__content {
@@ -80,7 +86,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 14px 10px;
-  border-right: 1px solid var(--helix-panel-border);
+  border-right: 1px solid var(--havoc-panel-border);
   overflow-y: auto;
 }
 
@@ -93,7 +99,7 @@
   border: 1px solid transparent;
   border-radius: 9px;
   background: transparent;
-  color: var(--helix-text-dim);
+  color: var(--havoc-text-dim);
   font: inherit;
   font-size: 13.5px;
   text-align: left;
@@ -103,13 +109,13 @@
 
 .helix-rail__item:hover {
   background: rgba(255, 255, 255, 0.04);
-  color: var(--helix-text);
+  color: var(--havoc-text);
 }
 
 .helix-rail__item--active {
-  color: var(--helix-text);
-  background: var(--helix-accent-soft);
-  border-color: rgba(224, 36, 52, 0.34);
+  color: var(--havoc-text);
+  background: var(--havoc-accent-soft);
+  border-color: rgba(255, 172, 68, 0.34);
 }
 
 .helix-rail__label {
@@ -117,28 +123,28 @@
 }
 
 .helix-rail__pending {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.04em;
   padding: 2px 5px;
   border-radius: 4px;
-  border: 1px solid var(--helix-panel-border);
-  color: var(--helix-text-faint);
+  border: 1px solid var(--havoc-panel-border);
+  color: var(--havoc-text-faint);
 }
 
 /* ----------------------------- notices ------------------------ */
 .helix-notice {
-  border: 1px solid var(--helix-panel-border);
+  border: 1px solid var(--havoc-panel-border);
   border-radius: 10px;
-  background: var(--helix-panel);
+  background: var(--havoc-panel);
   padding: 11px 14px;
   font-size: 13px;
-  color: var(--helix-text-dim);
+  color: var(--havoc-text-dim);
   line-height: 1.55;
 }
 
 .helix-notice strong {
-  color: var(--helix-text);
+  color: var(--havoc-text);
 }
 
 .helix-notice--warn {
@@ -152,7 +158,7 @@
 }
 
 .helix-badge--pending {
-  color: var(--helix-warn);
+  color: var(--havoc-warn);
   border-color: rgba(210, 153, 34, 0.3);
 }
 
@@ -162,15 +168,15 @@
   font-size: 12px;
   padding: 5px 11px;
   border-radius: 7px;
-  border: 1px solid var(--helix-panel-border);
-  background: var(--helix-panel);
-  color: var(--helix-text-dim);
+  border: 1px solid var(--havoc-panel-border);
+  background: var(--havoc-panel);
+  color: var(--havoc-text-dim);
   cursor: pointer;
   transition: color 150ms ease, border-color 150ms ease;
 }
 
 .helix-btn:hover {
-  color: var(--helix-text);
+  color: var(--havoc-text);
   border-color: rgba(255, 255, 255, 0.22);
 }
 
@@ -201,7 +207,7 @@
 .helix-settings__note {
   margin: 0 0 10px;
   font-size: 12px;
-  color: var(--helix-text-faint);
+  color: var(--havoc-text-faint);
   line-height: 1.5;
 }
 
@@ -217,9 +223,9 @@
   padding: 8px 10px;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--helix-text);
-  border-left: 2px solid var(--helix-accent);
-  background: var(--helix-accent-soft);
+  color: var(--havoc-text);
+  border-left: 2px solid var(--havoc-accent);
+  background: var(--havoc-accent-soft);
   border-radius: 3px;
 }
 
@@ -247,14 +253,14 @@
 
 .helix-setting__label {
   font-size: 13.5px;
-  color: var(--helix-text);
+  color: var(--havoc-text);
   cursor: pointer;
 }
 
 .helix-setting__desc {
   margin: 2px 0 0;
   font-size: 12px;
-  color: var(--helix-text-faint);
+  color: var(--havoc-text-faint);
   line-height: 1.5;
 }
 
@@ -272,9 +278,9 @@
   padding: 6px 10px;
   min-width: 190px;
   border-radius: 8px;
-  border: 1px solid var(--helix-panel-border);
-  background: var(--helix-bg-raised);
-  color: var(--helix-text);
+  border: 1px solid var(--havoc-panel-border);
+  background: var(--havoc-bg-raised);
+  color: var(--havoc-text);
 }
 
 .helix-input {
@@ -284,7 +290,7 @@
 .helix-select:focus-visible,
 .helix-input:focus-visible {
   outline: none;
-  border-color: var(--helix-accent);
+  border-color: var(--havoc-accent);
 }
 
 .helix-select:disabled,
@@ -300,13 +306,13 @@
 
 .helix-number input[type='range'] {
   width: 150px;
-  accent-color: var(--helix-accent);
+  accent-color: var(--havoc-accent);
 }
 
 .helix-number__value {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 12px;
-  color: var(--helix-text-dim);
+  color: var(--havoc-text-dim);
   min-width: 46px;
   text-align: right;
 }
@@ -332,7 +338,7 @@
   height: 21px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--helix-panel-border);
+  border: 1px solid var(--havoc-panel-border);
   transition: background 170ms ease;
   position: relative;
 }
@@ -345,18 +351,18 @@
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: var(--helix-text-dim);
+  background: var(--havoc-text-dim);
   transition: transform 170ms ease, background 170ms ease;
 }
 
 .helix-switch input:checked + .helix-switch__track {
-  background: var(--helix-accent-soft);
-  border-color: var(--helix-accent);
+  background: var(--havoc-accent-soft);
+  border-color: var(--havoc-accent);
 }
 
 .helix-switch input:checked + .helix-switch__track::after {
   transform: translateX(17px);
-  background: var(--helix-accent);
+  background: var(--havoc-accent);
 }
 
 .helix-switch input:disabled + .helix-switch__track {
@@ -365,7 +371,7 @@
 }
 
 .helix-switch input:focus-visible + .helix-switch__track {
-  border-color: var(--helix-accent);
+  border-color: var(--havoc-accent);
 }
 
 /* ------------------------------ system ------------------------ */
@@ -388,22 +394,22 @@
 }
 
 .helix-row__label {
-  color: var(--helix-text-dim);
+  color: var(--havoc-text-dim);
 }
 
 .helix-row__value {
-  color: var(--helix-text);
+  color: var(--havoc-text);
   text-align: right;
   word-break: break-word;
 }
 
 .helix-row__value--mono {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 12px;
 }
 
 .helix-muted {
-  color: var(--helix-text-faint);
+  color: var(--havoc-text-faint);
   font-size: 13px;
   margin: 0;
 }
@@ -422,11 +428,11 @@
 
 /* Log view */
 .helix-log {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11.5px;
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid var(--helix-panel-border);
+  border: 1px solid var(--havoc-panel-border);
   border-radius: 9px;
   background: rgba(0, 0, 0, 0.28);
 }
@@ -437,7 +443,7 @@
   gap: 8px;
   padding: 4px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.035);
-  color: var(--helix-text-dim);
+  color: var(--havoc-text-dim);
 }
 
 .helix-log__row:last-child {
@@ -446,7 +452,7 @@
 
 .helix-log__time,
 .helix-log__scope {
-  color: var(--helix-text-faint);
+  color: var(--havoc-text-faint);
 }
 
 .helix-log__level {
@@ -454,19 +460,19 @@
 }
 
 .helix-log__row--error .helix-log__level {
-  color: var(--helix-error);
+  color: var(--havoc-error);
 }
 
 .helix-log__row--warn .helix-log__level {
-  color: var(--helix-warn);
+  color: var(--havoc-warn);
 }
 
 .helix-log__row--info .helix-log__level {
-  color: var(--helix-ok);
+  color: var(--havoc-ok);
 }
 
 .helix-log__msg {
-  color: var(--helix-text);
+  color: var(--havoc-text);
   word-break: break-word;
 }
 
@@ -479,7 +485,7 @@
   margin: 0;
   padding-left: 19px;
   font-size: 13px;
-  color: var(--helix-text-dim);
+  color: var(--havoc-text-dim);
 }
 
 .helix-list li {
@@ -488,7 +494,7 @@
 }
 
 .helix-list--done li::marker {
-  color: var(--helix-ok);
+  color: var(--havoc-ok);
 }
 
 /* ---------------------------- responsive ---------------------- */

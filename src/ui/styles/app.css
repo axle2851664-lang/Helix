@@ -5,31 +5,46 @@
    =============================================================== */
 
 :root {
-  --hx-bg: #0b0708;
-  --hx-bg-raised: #120d0f;
-  --hx-panel: rgba(255, 255, 255, 0.028);
-  --hx-border: rgba(255, 255, 255, 0.07);
-  --hx-border-strong: rgba(255, 255, 255, 0.12);
+  /*
+    Derived from the palette in havoc.css, every one of them.
+    
+    This block used to carry its own colours - a different black, a different
+    off-white, a red accent - which made two palettes that disagreed about
+    what Havoc looks like. Nothing here is a colour any more; it is a mapping
+    from this prefix onto the five values defined in one place.
+  */
+  --hx-bg: var(--havoc-black);
+  --hx-bg-raised: var(--havoc-surface);
+  --hx-panel: var(--havoc-panel);
+  --hx-border: var(--havoc-panel-border);
+  --hx-border-strong: rgba(255, 255, 255, 0.16);
 
-  --hx-text: #ececee;
-  --hx-text-dim: #9a9299;
-  --hx-text-faint: #6a636a;
+  --hx-text: var(--havoc-white);
+  --hx-text-dim: var(--havoc-gray);
+  --hx-text-faint: var(--havoc-text-faint);
 
-  --hx-accent: #e0243c;
-  --hx-accent-soft: rgba(224, 36, 60, 0.14);
-  --hx-accent-line: rgba(224, 36, 60, 0.32);
+  /* Gold, where this was red. */
+  --hx-accent: var(--havoc-gold);
+  --hx-accent-soft: var(--havoc-gold-glow-soft);
+  --hx-accent-line: var(--havoc-gold-line);
 
-  --hx-ok: #35c759;
-  --hx-warn: #d2a022;
-  --hx-off: #55505a;
+  --hx-ok: var(--havoc-ok);
+  --hx-warn: var(--havoc-warn);
+  /* "Off" is the secondary grey taken well down, not a colour of its own. */
+  --hx-off: color-mix(in srgb, var(--havoc-gray) 34%, var(--havoc-black));
 
   --hx-radius: 14px;
   --hx-radius-lg: 22px;
 }
 
+/*
+  Midnight was a second, bluer black - var(--havoc-black) against var(--havoc-black) - from when
+  the two token sets disagreed. The background is var(--havoc-black) now, and there is
+  no darker black to offer, so this theme changes the depth above it rather
+  than pretending to change the floor.
+*/
 [data-theme='midnight'] {
-  --hx-bg: #05060a;
-  --hx-bg-raised: #0a0c12;
+  --hx-bg-raised: var(--havoc-surface);
 }
 
 /* ------------------------------ shell ------------------------- */
@@ -38,10 +53,10 @@
   height: 100vh;
   overflow: hidden;
   background:
-    radial-gradient(1200px 700px at 22% -10%, rgba(224, 36, 60, 0.06), transparent 60%),
+    radial-gradient(1200px 700px at 22% -10%, var(--havoc-gold-glow-soft), transparent 60%),
     var(--hx-bg);
   color: var(--hx-text);
-  font-family: var(--helix-font);
+  font-family: var(--havoc-font);
 }
 
 .hx-boot {
@@ -56,7 +71,7 @@
 }
 
 .hx-boot__label {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 12px;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -97,21 +112,21 @@
   place-items: center;
   border-radius: 13px;
   border: 1px solid var(--hx-accent-line);
-  background: linear-gradient(160deg, rgba(224, 36, 60, 0.22), rgba(224, 36, 60, 0.07));
-  box-shadow: 0 0 18px rgba(224, 36, 60, 0.16);
+  background: linear-gradient(160deg, rgba(255, 172, 68, 0.22), rgba(255, 172, 68, 0.07));
+  box-shadow: 0 0 18px rgba(255, 172, 68, 0.16);
   cursor: pointer;
   transition: box-shadow 200ms ease, border-color 200ms ease;
 }
 
 .hx-logo:hover {
   border-color: var(--hx-accent);
-  box-shadow: 0 0 24px rgba(224, 36, 60, 0.26);
+  box-shadow: 0 0 24px rgba(255, 172, 68, 0.26);
 }
 
 .hx-logo__glyph {
   font-size: 21px;
   font-weight: 600;
-  color: #fff;
+  color: var(--havoc-white);
   line-height: 1;
 }
 
@@ -168,7 +183,7 @@
 }
 
 .hx-nav__phase {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   padding: 2px 5px;
   border-radius: 4px;
@@ -182,7 +197,7 @@
   gap: 9px;
   padding: 15px 22px;
   border-top: 1px solid var(--hx-border);
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11px;
   letter-spacing: 0.1em;
   color: var(--hx-accent);
@@ -232,7 +247,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10.5px;
   letter-spacing: 0.12em;
 }
@@ -311,7 +326,7 @@
 }
 
 .hx-phasebadge {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10px;
   letter-spacing: 0.1em;
   padding: 4px 9px;
@@ -376,7 +391,7 @@
 }
 
 .hx-msg__role {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -414,7 +429,7 @@
 
 .hx-msg__failure {
   margin-top: 8px;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10.5px;
   letter-spacing: 0.06em;
   color: var(--hx-warn);
@@ -481,7 +496,7 @@
 
 .hx-sendbtn:hover:not(:disabled) {
   background: var(--hx-accent);
-  color: #fff;
+  color: var(--havoc-white);
 }
 
 .hx-sendbtn:disabled {
@@ -522,7 +537,7 @@
 
 .hx-status__title {
   margin: 0;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11px;
   letter-spacing: 0.2em;
   color: var(--hx-text-dim);
@@ -567,7 +582,7 @@
 }
 
 .hx-statusrow__label {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.16em;
   color: var(--hx-text-faint);
@@ -613,7 +628,7 @@
 
 .hx-dot--busy {
   background: var(--hx-accent);
-  box-shadow: 0 0 7px rgba(224, 36, 60, 0.5);
+  box-shadow: 0 0 7px rgba(255, 172, 68, 0.5);
 }
 
 .hx-status__foot {
@@ -702,7 +717,7 @@
 
 .hx-panel__title {
   margin: 0 0 14px;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -933,7 +948,7 @@
   border-radius: 999px;
   border: 1px solid var(--hx-accent);
   background: var(--hx-accent-soft);
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10px;
   letter-spacing: 0.12em;
   color: var(--hx-accent);
@@ -943,7 +958,7 @@
 .hx-camlive--button {
   cursor: pointer;
   font: inherit;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10px;
   letter-spacing: 0.12em;
 }
@@ -1079,7 +1094,7 @@
   border-radius: 12px;
   border: 2px solid transparent;
   object-fit: cover;
-  background: linear-gradient(160deg, rgba(224, 36, 60, 0.22), rgba(224, 36, 60, 0.06));
+  background: linear-gradient(160deg, rgba(255, 172, 68, 0.22), rgba(255, 172, 68, 0.06));
   pointer-events: none;
 }
 
@@ -1096,11 +1111,11 @@
 .hx-obj--selected .hx-obj__image,
 .hx-obj--selected .hx-obj__placeholder {
   border-color: var(--hx-accent);
-  box-shadow: 0 0 22px rgba(224, 36, 60, 0.32);
+  box-shadow: 0 0 22px rgba(255, 172, 68, 0.32);
 }
 
 .hx-obj__label {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10px;
   letter-spacing: 0.06em;
   color: var(--hx-text-dim);
@@ -1123,6 +1138,8 @@
     transparent 0
   );
   opacity: 0.5;
+  /* Not a colour: in a mask, black means opaque. A palette token here would
+     be meaningless, and would break the mask if the palette ever changed. */
   mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0);
 }
@@ -1142,7 +1159,7 @@
 }
 
 .hx-objmenu__title {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1249,7 +1266,7 @@
   border-radius: var(--hx-radius);
   border: 1px solid var(--hx-border);
   background:
-    radial-gradient(800px 500px at 50% 40%, rgba(224, 36, 60, 0.05), transparent 70%),
+    radial-gradient(800px 500px at 50% 40%, rgba(255, 172, 68, 0.05), transparent 70%),
     rgba(0, 0, 0, 0.32);
   overflow: hidden;
   min-height: 340px;
@@ -1314,7 +1331,7 @@
 }
 
 .hx-graph__path {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11px;
   color: var(--hx-text-faint);
   margin: 0 0 8px;
@@ -1329,7 +1346,7 @@
   border-radius: 9px;
   border: 1px solid var(--hx-border);
   background: rgba(0, 0, 0, 0.3);
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11px;
   line-height: 1.6;
   color: var(--hx-text-dim);
@@ -1389,7 +1406,7 @@
 }
 
 .hx-hublist__count {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10.5px;
   color: var(--hx-text-faint);
 }
@@ -1429,7 +1446,7 @@
 }
 
 .hx-filter__count {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10.5px;
 }
 
@@ -1509,7 +1526,7 @@
 
 .hx-card__subtitle {
   margin-left: auto;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10.5px;
   letter-spacing: 0.05em;
   color: var(--hx-text-faint);
@@ -1522,7 +1539,7 @@
 .hx-card__heading {
   margin: 0;
   padding: 11px 16px 3px;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.15em;
@@ -1589,7 +1606,7 @@
 .hx-card__meta {
   margin-left: auto;
   flex: none;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10.5px;
   letter-spacing: 0.03em;
   color: var(--hx-text-faint);
@@ -1611,7 +1628,7 @@
 .hx-card__source {
   display: inline-block;
   margin-top: 5px;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1657,13 +1674,13 @@
 }
 
 @keyframes hx-breathe-core {
-  0%, 100% { filter: drop-shadow(0 0 20px rgba(224, 36, 60, 0.28)); }
-  50%      { filter: drop-shadow(0 0 34px rgba(224, 36, 60, 0.42)); }
+  0%, 100% { filter: drop-shadow(0 0 20px rgba(255, 172, 68, 0.28)); }
+  50%      { filter: drop-shadow(0 0 34px rgba(255, 172, 68, 0.42)); }
 }
 
 @keyframes hx-pulse-core {
-  0%, 100% { filter: drop-shadow(0 0 18px rgba(224, 36, 60, 0.32)); }
-  50%      { filter: drop-shadow(0 0 46px rgba(224, 36, 60, 0.6)); }
+  0%, 100% { filter: drop-shadow(0 0 18px rgba(255, 172, 68, 0.32)); }
+  50%      { filter: drop-shadow(0 0 46px rgba(255, 172, 68, 0.6)); }
 }
 
 /* ======================= standing rules ======================== */
@@ -1714,7 +1731,7 @@
 .hx-rules__tag {
   margin-left: auto;
   flex: none;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1760,7 +1777,7 @@
 .hx-rules__evidence-label {
   display: inline-block;
   margin-right: 8px;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1803,7 +1820,7 @@
 }
 
 .hx-findings__kind {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1817,7 +1834,7 @@
   padding: 7px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11.5px;
   line-height: 1.5;
   color: var(--hx-text-dim);
@@ -1832,7 +1849,7 @@
 /* ========================== storage ============================ */
 .hx-storage__total {
   margin-left: auto;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 15px;
   color: var(--hx-text);
 }
@@ -1889,7 +1906,7 @@
 
 .hx-usage__bytes {
   margin-left: auto;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11.5px;
   color: var(--hx-text-dim);
 }
@@ -1953,7 +1970,7 @@
 }
 
 .hx-reclaim__bytes {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11.5px;
   color: var(--hx-warn);
 }
@@ -1992,7 +2009,7 @@
 
 .hx-row__label {
   flex: none;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2007,7 +2024,7 @@
 }
 
 .hx-row__value--mono {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11.5px;
   color: var(--hx-text-dim);
 }
@@ -2021,7 +2038,7 @@
 }
 
 .hx-earth__field > span {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2068,7 +2085,7 @@
 }
 
 .hx-provider__role {
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2077,7 +2094,7 @@
 
 .hx-provider__state {
   margin-left: auto;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2145,7 +2162,7 @@
 .hx-questions__who {
   display: inline-block;
   margin-right: 9px;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 9.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -2197,7 +2214,7 @@
 
 .hx-restore__counts {
   margin-left: auto;
-  font-family: var(--helix-mono);
+  font-family: var(--havoc-mono);
   font-size: 11px;
   color: var(--hx-text-dim);
 }
@@ -2384,7 +2401,7 @@
   width: 220px;
   max-width: 100%;
   padding: 10px;
-  background: #fff;
+  background: var(--havoc-white);
   border-radius: 8px;
 }
 
@@ -2426,7 +2443,7 @@
    everywhere. */
 .hx-dot--bad {
   background: var(--hx-accent);
-  box-shadow: 0 0 7px rgba(224, 36, 60, 0.5);
+  box-shadow: 0 0 7px rgba(255, 172, 68, 0.5);
 }
 
 .hx-pairing__test {
@@ -3133,7 +3150,7 @@
    for, silent otherwise. */
 .hx-app,
 body {
-  background: #000;
+  background: var(--havoc-black);
 }
 
 .hx-nav__heading,
@@ -3251,18 +3268,18 @@ body {
    them sits beside its own word - ONLINE, VOICE READY, Not configured -
    so the dot was never carrying the meaning on its own. Turning them to
    brightness keeps the signal and finishes the monochrome. */
-.hx-dot--ok { background: #ffffff; }
-.hx-dot--warn { background: #a0a0a0; }
+.hx-dot--ok { background: var(--havoc-white); }
+.hx-dot--warn { background: var(--havoc-gray); }
 .hx-dot--bad,
-.hx-dot--off { background: #555555; }
+.hx-dot--off { background: var(--havoc-text-faint); }
 
 .hx-status__state--online,
 .hx-voicelock--ready {
-  color: #e5e5e5;
+  color: var(--havoc-white);
 }
 
 .hx-voicelock {
-  color: #555555;
+  color: var(--havoc-text-faint);
 }
 
 /* The composer, in the same hairline language as everything else. */
@@ -3278,7 +3295,7 @@ body {
 
 .hx-composer__send {
   border-color: rgba(255, 255, 255, 0.16);
-  color: #e5e5e5;
+  color: var(--havoc-white);
 }
 
 /* ===================== small screens ================================
@@ -3310,18 +3327,18 @@ body {
 /* The two that were left. Both sit beside their own word, so nothing is
    lost by taking the hue out - ONLINE still says ONLINE, and the send
    button is still the only round control on the row. */
-.hx-conn--online { color: #e5e5e5; }
-.hx-conn--offline { color: #a0a0a0; }
+.hx-conn--online { color: var(--havoc-white); }
+.hx-conn--offline { color: var(--havoc-gray); }
 
 .hx-sendbtn {
   border-color: rgba(255, 255, 255, 0.16);
   background: transparent;
-  color: #e5e5e5;
+  color: var(--havoc-white);
 }
 
 .hx-sendbtn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  color: var(--havoc-white);
 }
 
 /* ============ technical markings and the scan sweep ==================
@@ -3343,6 +3360,7 @@ body {
   background-size: 96px 96px;
   /* Faded at the edges so the grid does not end in a hard line against
      the sidebar and the composer. */
+  /* Opacity, not colour - see the note on the other mask above. */
   mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
   -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
 }
@@ -3438,7 +3456,7 @@ body {
   font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #8a8a8a;
+  color: var(--havoc-gray);
   transition: opacity 320ms ease;
 }
 
@@ -3498,7 +3516,7 @@ body {
   border: 0;
   border-radius: 2px;
   background: transparent;
-  color: #8a8a8a;
+  color: var(--havoc-gray);
   font: inherit;
   font-size: 11px;
   letter-spacing: 0.1em;
@@ -3508,16 +3526,16 @@ body {
 
 .hx-pad__verb:hover {
   background: rgba(255, 255, 255, 0.06);
-  color: #e5e5e5;
+  color: var(--havoc-white);
 }
 
 .hx-pad__verb--on {
-  color: #ffffff;
+  color: var(--havoc-white);
   background: rgba(255, 255, 255, 0.1);
 }
 
 .hx-pad__verb--quiet:hover {
-  color: #e5e5e5;
+  color: var(--havoc-white);
 }
 
 .hx-pad__state {
@@ -3525,7 +3543,7 @@ body {
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #8a8a8a;
+  color: var(--havoc-gray);
 }
 
 .hx-pad__confirm,
@@ -3541,7 +3559,7 @@ body {
   gap: 10px;
   flex-wrap: wrap;
   font-size: 13px;
-  color: #e5e5e5;
+  color: var(--havoc-white);
 }
 
 /* The page itself. */
@@ -3560,7 +3578,7 @@ body {
   width: 100%;
   border: 0;
   background: transparent;
-  color: #e5e5e5;
+  color: var(--havoc-white);
   font-family: inherit;
   padding: 0;
 }
@@ -3580,7 +3598,7 @@ body {
 
 .hx-pad__title::placeholder,
 .hx-pad__body::placeholder {
-  color: #4a4a4a;
+  color: var(--havoc-text-faint);
 }
 
 .hx-pad__body {
@@ -3599,7 +3617,7 @@ body {
   padding: 12px 0 16px;
   font-size: 11px;
   line-height: 1.6;
-  color: #555555;
+  color: var(--havoc-text-faint);
 }
 
 /* --- the switcher: the other notes, summoned and dismissed --- */
@@ -3626,7 +3644,7 @@ body {
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 3px;
-  background: #0a0a0a;
+  background: var(--havoc-black);
   overflow: hidden;
 }
 
@@ -3636,7 +3654,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.02);
-  color: #e5e5e5;
+  color: var(--havoc-white);
   font: inherit;
   font-size: 13px;
 }
@@ -3690,7 +3708,7 @@ body {
 .hx-pad__row-when {
   flex: none;
   font-size: 11px;
-  color: #8a8a8a;
+  color: var(--havoc-gray);
 }
 
 .hx-pad__empty {
@@ -3698,7 +3716,7 @@ body {
   padding: 8px 9px;
   font-size: 12.5px;
   line-height: 1.6;
-  color: #8a8a8a;
+  color: var(--havoc-gray);
 }
 
 @media (max-width: 560px) {
@@ -3807,14 +3825,14 @@ body {
   font-weight: 200;
   letter-spacing: -0.02em;
   line-height: 1;
-  color: #fff6e6;
+  color: var(--havoc-white);
   /* The core's warmth, behind the digits rather than on them, breathing
      very slightly so the display feels live without anything moving. The
      glow varies; the digits themselves never do, because they have to
      stay the most readable thing on the screen. */
   text-shadow:
-    0 0 40px rgba(255, 150, 50, 0.3),
-    0 0 110px rgba(255, 120, 30, 0.18);
+    0 0 40px var(--havoc-gold-halo),
+    0 0 110px var(--havoc-gold-halo-far);
   animation:
     hx-time-resolve 420ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both,
     hx-time-breathe 5.5s ease-in-out 900ms infinite;
@@ -3842,7 +3860,7 @@ body {
   width: 0.1em;
   height: 0.1em;
   border-radius: 50%;
-  background: #fff6e6;
+  background: var(--havoc-white);
   opacity: 0.4;
 }
 
@@ -3853,7 +3871,7 @@ body {
   font-size: 0.22em;
   font-weight: 300;
   letter-spacing: 0.14em;
-  color: #fff6e6;
+  color: var(--havoc-white);
   opacity: 0.55;
 }
 
@@ -3872,9 +3890,9 @@ body {
      which pushes the group off centre by half a space. */
   text-indent: 0.22em;
   line-height: 1;
-  color: #ffac44;
+  color: var(--havoc-gold);
   opacity: 0.8;
-  text-shadow: 0 0 24px rgba(255, 140, 40, 0.25);
+  text-shadow: 0 0 24px var(--havoc-gold-halo-far);
   animation: hx-time-resolve 300ms ease-out 300ms both;
 }
 
@@ -3899,7 +3917,7 @@ body {
   letter-spacing: 0.42em;
   text-indent: 0.42em;
   text-transform: uppercase;
-  color: #cfc6ba;
+  color: var(--havoc-gray);
 }
 
 .hx-time__date {
@@ -3908,7 +3926,7 @@ body {
   letter-spacing: 0.34em;
   text-indent: 0.34em;
   text-transform: uppercase;
-  color: #8a8276;
+  color: var(--havoc-gray);
 }
 
 .hx-time__zone {
@@ -3917,7 +3935,7 @@ body {
   letter-spacing: 0.3em;
   text-indent: 0.3em;
   text-transform: uppercase;
-  color: #5d574f;
+  color: var(--havoc-text-faint);
 }
 
 /* Only present when the clock is coarser than three digits imply. Said
@@ -3927,7 +3945,7 @@ body {
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #4a443d;
+  color: var(--havoc-text-faint);
   animation: hx-time-resolve 300ms ease-out 620ms both;
 }
 
@@ -3949,7 +3967,7 @@ body {
   letter-spacing: 0.34em;
   text-indent: 0.34em;
   text-transform: uppercase;
-  color: #cfc6ba;
+  color: var(--havoc-gray);
 }
 
 /* What this number is. Without it a bare 04:31 could be a countdown, an
@@ -3961,18 +3979,18 @@ body {
   letter-spacing: 0.3em;
   text-indent: 0.3em;
   text-transform: uppercase;
-  color: #6f6962;
+  color: var(--havoc-text-faint);
 }
 
 /* Going off. The glow swells and the colour warms - the digits themselves
    still do not move, because this is the moment they most need reading. */
 .hx-time__keeper--ringing .hx-time__clock {
-  color: #ffd9a8;
+  color: var(--havoc-white);
   animation: hx-time-alert 900ms ease-in-out infinite;
 }
 
 .hx-time__keeper--ringing .hx-time__kind {
-  color: #ffac44;
+  color: var(--havoc-gold);
 }
 
 /* The wall clock once something else is the subject. Small enough to be
@@ -4009,11 +4027,11 @@ body {
 }
 
 .hx-time__alarm-at {
-  color: #cfc6ba;
+  color: var(--havoc-gray);
 }
 
 .hx-time__alarm-label {
-  color: #8a8276;
+  color: var(--havoc-gray);
 }
 
 /* The honest part. There is no operating-system scheduling behind an
@@ -4022,19 +4040,19 @@ body {
 .hx-time__alarm-note {
   font-size: 0.82em;
   letter-spacing: 0.16em;
-  color: #5d574f;
+  color: var(--havoc-text-faint);
 }
 
 @keyframes hx-time-alert {
   0%, 100% {
     text-shadow:
-      0 0 44px rgba(255, 170, 70, 0.45),
-      0 0 120px rgba(255, 130, 40, 0.3);
+      0 0 44px var(--havoc-gold-glow),
+      0 0 120px var(--havoc-gold-halo);
   }
   50% {
     text-shadow:
-      0 0 70px rgba(255, 190, 110, 0.75),
-      0 0 190px rgba(255, 140, 50, 0.45);
+      0 0 70px var(--havoc-gold-halo-bright),
+      0 0 190px var(--havoc-gold-glow);
   }
 }
 
@@ -4090,13 +4108,13 @@ body {
 @keyframes hx-time-breathe {
   0%, 100% {
     text-shadow:
-      0 0 40px rgba(255, 150, 50, 0.3),
-      0 0 110px rgba(255, 120, 30, 0.18);
+      0 0 40px var(--havoc-gold-halo),
+      0 0 110px var(--havoc-gold-halo-far);
   }
   50% {
     text-shadow:
-      0 0 52px rgba(255, 160, 60, 0.4),
-      0 0 140px rgba(255, 120, 30, 0.26);
+      0 0 52px var(--havoc-gold-glow),
+      0 0 140px var(--havoc-gold-halo-far);
   }
 }
 
@@ -4152,14 +4170,14 @@ body {
   margin: 3px 0;
   font-size: 11.5px;
   line-height: 1.5;
-  color: #9a9a9a;
+  color: var(--havoc-gray);
   word-break: break-all;
 }
 
 .helix-settings__detail {
   margin-top: 8px;
   font-size: 12px;
-  color: #8a8a8a;
+  color: var(--havoc-gray);
 }
 
 .helix-settings__detail summary {
@@ -4187,7 +4205,7 @@ body {
 
 .helix-keys__label {
   font-size: 13px;
-  color: #ddd6cc;
+  color: var(--havoc-white);
 }
 
 /* Whether the key is there, and where from. "set outside Havoc" is a
@@ -4200,15 +4218,15 @@ body {
 }
 
 .helix-keys__state--saved {
-  color: #7fc48a;
+  color: var(--havoc-ok);
 }
 
 .helix-keys__state--environment {
-  color: #c9a24a;
+  color: var(--havoc-gold);
 }
 
 .helix-keys__state--none {
-  color: #6b6b6b;
+  color: var(--havoc-text-faint);
 }
 
 .helix-keys__controls {
@@ -4229,7 +4247,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.35);
-  color: #e8e2d8;
+  color: var(--havoc-white);
   font-size: 13px;
   /* A key is long and has no words in it; a proportional face makes it
      impossible to compare against what the provider showed you. */
@@ -4239,11 +4257,11 @@ body {
 
 .helix-keys__input:focus {
   outline: none;
-  border-color: rgba(255, 150, 50, 0.5);
+  border-color: var(--havoc-gold-halo-bright);
 }
 
 .helix-keys__input::placeholder {
-  color: #6b6560;
+  color: var(--havoc-text-faint);
   letter-spacing: normal;
   font-family: inherit;
 }
@@ -4255,22 +4273,22 @@ body {
   margin-top: 6px;
   font-size: 10px;
   letter-spacing: 0.1em;
-  color: #5a564f;
+  color: var(--havoc-text-faint);
 }
 
 .helix-keys__note {
   margin: 0 0 12px;
   padding: 8px 10px;
-  border-left: 2px solid #c9802a;
+  border-left: 2px solid var(--havoc-gold);
   background: rgba(200, 120, 40, 0.07);
   font-size: 12px;
   line-height: 1.5;
-  color: #d8cfc2;
+  color: var(--havoc-gray);
 }
 
 /* A subsystem that works with a caveat. Between the yes and no dots,
    because "partly" is a real answer and showing it as either of the other
    two would be a false one. */
 .helix-cap__dot--partial {
-  background: #c9a24a;
+  background: var(--havoc-gold);
 }

@@ -25,8 +25,8 @@ export function HavocMark({ status, size = 96 }: HavocMarkProps) {
     >
       <defs>
         <linearGradient id="helix-strand" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--helix-mark-top)" />
-          <stop offset="100%" stopColor="var(--helix-mark-bottom)" />
+          <stop offset="0%" stopColor="var(--havoc-mark-top)" />
+          <stop offset="100%" stopColor="var(--havoc-mark-bottom)" />
         </linearGradient>
       </defs>
 
@@ -52,7 +52,7 @@ export function HavocMark({ status, size = 96 }: HavocMarkProps) {
       <path
         className="helix-mark__bar"
         d="M31 50 L69 50"
-        stroke="var(--helix-accent)"
+        stroke="var(--havoc-accent)"
         strokeWidth="7"
         strokeLinecap="round"
       />
