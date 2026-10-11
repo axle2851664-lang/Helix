@@ -1,20 +1,20 @@
 import { HavocError } from '../core/HavocError.js';
 import type { KeyValueStore } from './KeyValueStore.js';
 
+const DB_NAME = 'havoc';
+
 /**
- * RENAMED TO HAVOC, EXCEPT HERE. This name is deliberately still 'helix'.
+ * The database this profile used before the rename.
  *
- * It is not branding. It is the key the browser stores this profile's entire
- * database under - settings, notes, memory, projects, timers. Changing it does
- * not rename that database; it opens a different, empty one, and all of it is
- * gone with no error to show for it. Nothing the user sees comes from this
- * string.
+ * Renaming the constant alone would not have renamed the database - it would
+ * have opened a different, empty one, with settings, notes, memory, projects
+ * and timers all still on disk and none of them reachable. So the rename comes
+ * with the copy that makes it true, in `#importLegacy` below.
  *
- * If it ever must change, that is a migration - open the old database, copy
- * every namespace across, keep the old one until the copy is verified - and
- * not an edit to this line.
+ * The old database is never deleted. A copy that went wrong and a copy that
+ * went right look identical from here, and only one of them is recoverable.
  */
-const DB_NAME = 'helix';
+const LEGACY_DB_NAME = 'helix';
 const DB_VERSION = 1;
 const OBJECT_STORE = 'records';
 
@@ -57,11 +57,20 @@ export class IndexedDbStore implements KeyValueStore {
 
     this.#opening = new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
+      /**
+       * Whether this call brought the database into existence.
+       *
+       * The signal the migration turns on. A database that already existed is
+       * one this profile has been using, and copying into it could overwrite
+       * newer records with older ones.
+       */
+      let created = false;
 
       request.onupgradeneeded = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains(OBJECT_STORE)) {
           db.createObjectStore(OBJECT_STORE);
+          created = true;
         }
       };
 
@@ -74,7 +83,19 @@ export class IndexedDbStore implements KeyValueStore {
           this.#db = null;
         };
         this.#db = db;
-        resolve(db);
+
+        if (!created) {
+          resolve(db);
+          return;
+        }
+
+        // Brand new, so there may be a database from before the rename to
+        // bring across. A failure here must not stop Havoc starting: an empty
+        // Havoc is bad, an unopenable one is worse, and the old database is
+        // still on disk either way.
+        void this.#importLegacy(db)
+          .catch(() => undefined)
+          .then(() => resolve(db));
       };
 
       request.onerror = () =>
@@ -103,6 +124,104 @@ export class IndexedDbStore implements KeyValueStore {
     });
 
     return this.#opening;
+  }
+
+  /**
+   * Copy everything out of the pre-rename database, once.
+   *
+   * Only ever called for a database this code just created, so there is
+   * nothing here to overwrite. The old one is left exactly as it was.
+   *
+   * The awkward part is finding out whether the old database exists at all:
+   * `indexedDB.open` creates what it cannot find, so asking the question the
+   * obvious way invents the thing being asked about. `databases()` answers it
+   * properly and exists in every engine Havoc actually runs in; where it does
+   * not, the fallback opens the name and treats "it had no records store" as
+   * "it did not exist", then deletes the empty database it just made rather
+   * than leaving litter behind.
+   */
+  async #importLegacy(target: IDBDatabase): Promise<number> {
+    const legacy = await IndexedDbStore.#openLegacy();
+    if (!legacy) return 0;
+
+    try {
+      const entries = await new Promise<Array<[IDBValidKey, unknown]>>((resolve, reject) => {
+        const read = legacy.transaction(OBJECT_STORE, 'readonly').objectStore(OBJECT_STORE);
+        const keys = read.getAllKeys();
+        const values = read.getAll();
+        let gotKeys: IDBValidKey[] | null = null;
+        let gotValues: unknown[] | null = null;
+
+        const settle = () => {
+          if (gotKeys === null || gotValues === null) return;
+          resolve(gotKeys.map((key, index) => [key, (gotValues as unknown[])[index]]));
+        };
+        keys.onsuccess = () => {
+          gotKeys = keys.result;
+          settle();
+        };
+        values.onsuccess = () => {
+          gotValues = values.result;
+          settle();
+        };
+        keys.onerror = () => reject(keys.error);
+        values.onerror = () => reject(values.error);
+      });
+
+      if (entries.length === 0) return 0;
+
+      await new Promise<void>((resolve, reject) => {
+        const write = target.transaction(OBJECT_STORE, 'readwrite');
+        const store = write.objectStore(OBJECT_STORE);
+        // The key is written back as it was read: a compound [namespace, key]
+        // array, which is what every range query in this file depends on.
+        for (const [key, value] of entries) store.put(value, key);
+        write.oncomplete = () => resolve();
+        write.onerror = () => reject(write.error);
+        write.onabort = () => reject(write.error);
+      });
+
+      return entries.length;
+    } finally {
+      legacy.close();
+    }
+  }
+
+  /** The old database, or null when there is none. Never creates one. */
+  static async #openLegacy(): Promise<IDBDatabase | null> {
+    const lister = (indexedDB as { databases?: () => Promise<Array<{ name?: string }>> })
+      .databases;
+    if (typeof lister === 'function') {
+      try {
+        const known = await lister.call(indexedDB);
+        if (!known.some((entry) => entry.name === LEGACY_DB_NAME)) return null;
+      } catch {
+        // Fall through to the probe below.
+      }
+    }
+
+    return new Promise<IDBDatabase | null>((resolve) => {
+      // No version: opens whatever is there without upgrading it, and creates
+      // version 1 when there is nothing.
+      const request = indexedDB.open(LEGACY_DB_NAME);
+      let invented = false;
+      request.onupgradeneeded = () => {
+        invented = true;
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        if (invented || !db.objectStoreNames.contains(OBJECT_STORE)) {
+          db.close();
+          // Clean up the empty database this probe just made.
+          indexedDB.deleteDatabase(LEGACY_DB_NAME);
+          resolve(null);
+          return;
+        }
+        resolve(db);
+      };
+      request.onerror = () => resolve(null);
+      request.onblocked = () => resolve(null);
+    });
   }
 
   /** Half-open range covering exactly one namespace. */

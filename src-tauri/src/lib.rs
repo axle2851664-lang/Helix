@@ -24,6 +24,7 @@
 
 mod env_file;
 mod keys;
+mod migrate;
 mod google;
 mod web;
 mod inference;
@@ -143,6 +144,10 @@ pub fn run() {
     // `std::env::var` at the moment it is needed, so this only has to happen
     // once and only has to happen first. A variable already in the
     // environment always wins - see env_file.
+    // Before the web view exists, because the web view's storage is inside the
+    // directory this moves. See migrate.rs for what it guarantees.
+    migrate::profile();
+
     env_file::load();
 
     tauri::Builder::default()
@@ -167,6 +172,7 @@ pub fn run() {
             listen::phone_reply,
             vault::vault_documents,
             env_file::env_file_report,
+            migrate::profile_migration,
             keys::key_status,
             keys::save_key,
             keys::forget_key,

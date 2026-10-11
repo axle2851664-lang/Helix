@@ -152,15 +152,26 @@ describeStoreContract('MemoryKeyValueStore', () => new MemoryKeyValueStore());
 describeStoreContract(
   'IndexedDbStore',
   () => new IndexedDbStore(),
-  // IndexedDB genuinely persists between store instances, so each test starts
-  // from a freshly deleted database.
-  () =>
-    new Promise<void>((resolve, reject) => {
-      const request = indexedDB.deleteDatabase('helix');
-      request.onsuccess = () => resolve();
-      request.onblocked = () => resolve();
-      request.onerror = () => reject(request.error);
-    }),
+  /**
+   * IndexedDB genuinely persists between store instances, so each test starts
+   * from a freshly deleted database.
+   *
+   * Both names. 'havoc' is the database now; 'helix' is the one the migration
+   * reads, and leaving it behind means the next test's brand-new database
+   * imports whatever a previous test seeded - which is exactly how this
+   * started failing with three keys where one was expected.
+   */
+  async () => {
+    const drop = (name: string) =>
+      new Promise<void>((resolve) => {
+        const request = indexedDB.deleteDatabase(name);
+        request.onsuccess = () => resolve();
+        request.onblocked = () => resolve();
+        request.onerror = () => resolve();
+      });
+    await drop('havoc');
+    await drop('helix');
+  },
 );
 
 describe('store durability flags', () => {
@@ -170,5 +181,131 @@ describe('store durability flags', () => {
 
   it('IndexedDbStore advertises durability', () => {
     expect(new IndexedDbStore().durable).toBe(true);
+  });
+});
+
+/**
+ * The rename of the database itself, and the copy that makes it true.
+ *
+ * Renaming the constant alone would have opened a different, empty database
+ * with everything still on disk and none of it reachable - no error, no
+ * warning, just an assistant that had forgotten everything. These tests are
+ * the difference between that and a migration.
+ */
+describe('migrating from the pre-rename database', () => {
+  const OLD = 'helix';
+  const NEW = 'havoc';
+
+  const wipe = (name: string) =>
+    new Promise<void>((resolve) => {
+      const request = indexedDB.deleteDatabase(name);
+      request.onsuccess = () => resolve();
+      request.onerror = () => resolve();
+      request.onblocked = () => resolve();
+    });
+
+  /** Write records the way the old build wrote them: compound [ns, key]. */
+  const seedLegacy = (entries: Array<[string, string, unknown]>) =>
+    new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open(OLD, 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('records');
+      request.onsuccess = () => {
+        const db = request.result;
+        const write = db.transaction('records', 'readwrite');
+        for (const [namespace, key, value] of entries) {
+          write.objectStore('records').put(value, [namespace, key]);
+        }
+        write.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        write.onerror = () => reject(write.error);
+      };
+      request.onerror = () => reject(request.error);
+    });
+
+  beforeEach(async () => {
+    await wipe(OLD);
+    await wipe(NEW);
+  });
+
+  it('brings every namespace across on first open', async () => {
+    await seedLegacy([
+      ['settings', 'theme', 'dark'],
+      ['notes', 'n1', { title: 'Supplier', body: 'late again' }],
+      ['memory', 'm1', { text: 'the project is called AXUM' }],
+    ]);
+
+    const store = new IndexedDbStore();
+    expect(await store.get('settings', 'theme')).toBe('dark');
+    expect(await store.get<{ title: string }>('notes', 'n1')).toMatchObject({
+      title: 'Supplier',
+    });
+    expect(await store.get<{ text: string }>('memory', 'm1')).toMatchObject({
+      text: 'the project is called AXUM',
+    });
+    await store.close();
+  });
+
+  /** Range queries depend on the compound key surviving the copy intact. */
+  it('keeps the keys usable, not just the values', async () => {
+    await seedLegacy([
+      ['notes', 'a', { title: 'one' }],
+      ['notes', 'b', { title: 'two' }],
+      ['settings', 'theme', 'dark'],
+    ]);
+
+    const store = new IndexedDbStore();
+    expect((await store.keys('notes')).sort()).toEqual(['a', 'b']);
+    expect(await store.entries('notes')).toHaveLength(2);
+    // And a namespace query does not bleed into its neighbour.
+    expect(await store.keys('settings')).toEqual(['theme']);
+    await store.close();
+  });
+
+  /**
+   * The old database is never deleted. A copy that went wrong and a copy that
+   * went right look identical from here, and only one of them is recoverable.
+   */
+  it('leaves the old database where it was', async () => {
+    await seedLegacy([['settings', 'theme', 'dark']]);
+    const store = new IndexedDbStore();
+    await store.get('settings', 'theme');
+    await store.close();
+
+    const still = await new Promise<boolean>((resolve) => {
+      const request = indexedDB.open(OLD);
+      request.onsuccess = () => {
+        const has = request.result.objectStoreNames.contains('records');
+        request.result.close();
+        resolve(has);
+      };
+      request.onerror = () => resolve(false);
+    });
+    expect(still).toBe(true);
+  });
+
+  /**
+   * A second launch must not copy again. By then the user may have changed
+   * something, and re-importing would quietly replace it with the older value.
+   */
+  it('does not copy a second time over newer records', async () => {
+    await seedLegacy([['settings', 'theme', 'dark']]);
+
+    const first = new IndexedDbStore();
+    await first.get('settings', 'theme');
+    await first.set('settings', 'theme', 'light');
+    await first.close();
+
+    const second = new IndexedDbStore();
+    expect(await second.get('settings', 'theme')).toBe('light');
+    await second.close();
+  });
+
+  it('starts empty and invents nothing when there is no old database', async () => {
+    const store = new IndexedDbStore();
+    expect(await store.get('settings', 'theme')).toBeUndefined();
+    expect(await store.keys('settings')).toEqual([]);
+    await store.close();
   });
 });

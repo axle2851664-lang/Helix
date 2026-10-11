@@ -54,7 +54,7 @@ export function manifestText(plan: PortablePlan, when: Date): string {
       ? '  Open the "app" folder and run Havoc from there. It needs nothing installed.'
       : '  This copy holds data only. Install Havoc on the other machine first.',
     plan.include.some((item) => item.id !== 'app')
-      ? '  Then use Settings > Storage > Restore, and choose data.helix.json from this folder.'
+      ? '  Then use Settings > Storage > Restore, and choose data.havoc.json from this folder.'
       : '',
     '',
     '  You will need to sign in to Google again on the other machine. That is on purpose:',

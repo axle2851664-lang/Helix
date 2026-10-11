@@ -127,12 +127,28 @@ fn token_path() -> Result<PathBuf, String> {
         .or_else(|_| std::env::var("HOME"))
         .map_err(|_| "Cannot locate an application data directory.".to_string())?;
 
-    // RENAMED TO HAVOC, EXCEPT HERE. Still "Helix" on purpose: this is where
-        // the Google refresh token already sits. A new folder means a signed-in
-        // user is silently signed out and has to authorise again.
-        let dir = PathBuf::from(base).join("Helix");
+    let dir = PathBuf::from(&base).join("Havoc");
     std::fs::create_dir_all(&dir).map_err(|error| format!("Cannot create {dir:?}: {error}"))?;
-    Ok(dir.join("google-tokens.json"))
+    let path = dir.join("google-tokens.json");
+
+    // Carry the sign-in across the rename, once.
+    //
+    // The refresh token was written under the old folder. Moving to a new one
+    // without this means a signed-in user is silently signed out and has to
+    // authorise Google again - which looks like Havoc losing their account
+    // rather than like a folder changing name.
+    //
+    // Copied, not moved, and only when there is nothing at the new path to
+    // overwrite. The old file is left where it is: re-authorising is a
+    // nuisance, but a half-finished move that loses the only copy is worse.
+    if !path.exists() {
+        let legacy = PathBuf::from(&base).join("Helix").join("google-tokens.json");
+        if legacy.is_file() {
+            let _ = std::fs::copy(&legacy, &path);
+        }
+    }
+
+    Ok(path)
 }
 
 fn load_tokens() -> Option<StoredTokens> {

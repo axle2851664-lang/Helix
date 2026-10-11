@@ -6,7 +6,10 @@ import {
   archiveFileName,
   buildArchive,
   decodeBase64,
+  decodeBinary,
   encodeBase64,
+  encodeBinary,
+  isEncodedBlob,
   isArchivable,
   parseArchive,
   planRestore,
@@ -437,5 +440,37 @@ describe('a backup written before the rename', () => {
   it('while a file that is not a backup at all is still refused', () => {
     expect(() => parseArchive(archive('something.else'))).toThrow(/not a Havoc backup/i);
     expect(() => parseArchive(archive('something.else'))).toThrow(ArchiveError);
+  });
+});
+
+/**
+ * An attachment inside a backup written before the rename.
+ *
+ * `isEncodedBlob` is what a restore uses to tell an attachment from an
+ * ordinary object. Renaming the tag alone let an old backup restore and report
+ * success with every image and file turned into a meaningless object - the
+ * worst shape this failure has, because nothing says anything went wrong.
+ */
+describe('an attachment tagged before the rename', () => {
+  it('is still recognised and decoded', () => {
+    const legacy = { __helixBinary: true, type: 'image/png', base64: 'TWFu' };
+    expect(isEncodedBlob(legacy)).toBe(true);
+    const blob = decodeBinary(legacy as never);
+    expect(blob.type).toBe('image/png');
+    expect(blob.size).toBe(3);
+  });
+
+  it('as is one tagged since', async () => {
+    const encoded = await encodeBinary(new Blob(['Man'], { type: 'image/png' }));
+    expect(encoded.__havocBinary).toBe(true);
+    expect(isEncodedBlob(encoded)).toBe(true);
+    expect(decodeBinary(encoded).size).toBe(3);
+  });
+
+  /** Recognising both tags must not mean recognising anything. */
+  it('while an ordinary object is still not an attachment', () => {
+    expect(isEncodedBlob({ type: 'image/png', base64: 'TWFu' })).toBe(false);
+    expect(isEncodedBlob({ __havocBinary: true })).toBe(false);
+    expect(isEncodedBlob(null)).toBe(false);
   });
 });

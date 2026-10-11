@@ -133,38 +133,54 @@ export function decodeBase64(text: string): Uint8Array {
 /**
  * How a blob travels: tagged, so a restore knows to turn it back.
  *
- * RENAMED TO HAVOC, EXCEPT HERE. The tag is deliberately still
- * `__helixBinary`. It is not branding - it is written into every export this
- * program has ever made, and `isEncodedBlob` below is what a restore uses to
- * tell an attachment from an ordinary object. Rename it and every existing
- * backup still restores, silently, with its images and files turned into
- * meaningless objects. Nobody ever sees this string.
+ * Two tags, because the old one is written into every export made before the
+ * rename and `isEncodedBlob` is what a restore uses to tell an attachment from
+ * an ordinary object. Renaming it alone would have let every existing backup
+ * restore silently with its images and files turned into meaningless objects -
+ * the worst shape of failure here, because the restore reports success.
+ *
+ * The new tag is written; either is read. Nobody ever sees either string.
  */
 export interface EncodedBlob {
+  __havocBinary: true;
+  type: string;
+  base64: string;
+}
+
+/** The tag written before the rename. Read, never written. */
+interface LegacyEncodedBlob {
   __helixBinary: true;
   type: string;
   base64: string;
 }
 
-export function isEncodedBlob(value: unknown): value is EncodedBlob {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    (value as EncodedBlob).__helixBinary === true &&
-    typeof (value as EncodedBlob).base64 === 'string'
-  );
+/**
+ * Either tag, for the places that only need the payload.
+ *
+ * Decoding reads `base64` and `type`, which both shapes carry - so the reader
+ * is widened rather than the old tag being cast into the new one. A cast would
+ * have claimed the field was there.
+ */
+export type AnyEncodedBlob = EncodedBlob | LegacyEncodedBlob;
+
+export function isEncodedBlob(value: unknown): value is AnyEncodedBlob {
+  if (typeof value !== 'object' || value === null) return false;
+  const tagged =
+    (value as EncodedBlob).__havocBinary === true ||
+    (value as LegacyEncodedBlob).__helixBinary === true;
+  return tagged && typeof (value as EncodedBlob).base64 === 'string';
 }
 
 export async function encodeBinary(value: Blob | ArrayBuffer): Promise<EncodedBlob> {
   const buffer = value instanceof Blob ? await value.arrayBuffer() : value;
   return {
-    __helixBinary: true,
+    __havocBinary: true,
     type: value instanceof Blob ? value.type : 'application/octet-stream',
     base64: encodeBase64(new Uint8Array(buffer)),
   };
 }
 
-export function decodeBinary(value: EncodedBlob): Blob {
+export function decodeBinary(value: AnyEncodedBlob): Blob {
   return new Blob([decodeBase64(value.base64) as BlobPart], { type: value.type });
 }
 

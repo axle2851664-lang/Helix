@@ -24,6 +24,20 @@ interface EnvReport {
 }
 
 /**
+ * What the profile migration did on this start.
+ *
+ * Shown because it touches the directory holding everything the user has, and
+ * "it probably worked" is not something to leave unsaid about that. Empty when
+ * there was nothing to carry across, which is the normal case after the first
+ * run.
+ */
+interface ProfileMigration {
+  copied: string[];
+  skipped: string[];
+  failed: string[];
+}
+
+/**
  * System status (spec 3, 16, 17).
  *
  * Everything shown here is measured at runtime. Where a value cannot be
@@ -105,11 +119,17 @@ export function SystemWorkspace() {
   }, [ai, config, knowledge, memory, platform, projects, store, voice]);
   /** Null until the shell answers, and in a browser for ever. */
   const [env, setEnv] = useState<EnvReport | null>(null);
+  const [migration, setMigration] = useState<ProfileMigration | null>(null);
 
   useEffect(() => {
     const invoke = tauriInvoke();
     if (!invoke) return;
     let cancelled = false;
+    void invoke<ProfileMigration>('profile_migration')
+      .then((report) => {
+        if (!cancelled) setMigration(report);
+      })
+      .catch(() => undefined);
     void invoke<EnvReport>('env_file_report')
       .then((report) => {
         if (!cancelled) setEnv(report);
@@ -251,6 +271,37 @@ export function SystemWorkspace() {
         guessing between them. The shell knows which paths it tried and which
         it read, so it says.
       */}
+      {migration !== null
+        && (migration.copied.length > 0 || migration.failed.length > 0) && (
+        <section className="helix-panel">
+          <h2 className="helix-panel__title">Profile moved for the rename</h2>
+          <p className="helix-settings__note">
+            Havoc&rsquo;s own folder changed name with it. The old one was copied across and
+            left exactly where it was, so nothing here is lost if this went wrong.
+          </p>
+          {migration.copied.length > 0 && (
+            <ul className="helix-settings__paths">
+              {migration.copied.map((entry) => (
+                <li key={entry}>copied <code>{entry}</code></li>
+              ))}
+            </ul>
+          )}
+          {migration.failed.length > 0 && (
+            <>
+              <p className="helix-keys__note">
+                Some of it did not copy. The old folder is untouched, so nothing is lost -
+                but Havoc may have started without your data.
+              </p>
+              <ul className="helix-settings__paths">
+                {migration.failed.map((entry) => (
+                  <li key={entry}><code>{entry}</code></li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
+
       <section className="helix-panel">
         <h2 className="helix-panel__title">Keys from the environment</h2>
         {env === null ? (

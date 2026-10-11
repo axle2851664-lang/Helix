@@ -39,14 +39,22 @@ pub struct RemovableDrive {
 
 /// The folder Havoc writes into. One name, in one place, used by every path
 /// this module builds - so "where did it put things" has a single answer.
-/// RENAMED TO HAVOC, EXCEPT HERE. Still "Helix" on purpose.
+pub const FOLDER: &str = "Havoc";
+
+/// The folder written before the rename, still recognised on a drive.
 ///
-/// This is the folder name on a drive the user has already written to. Change
-/// it and Havoc stops finding the copies it made - the data is still on the
-/// stick, and Havoc reports an empty drive. The name is visible only to
-/// someone browsing the drive, which is a far smaller cost than silently
-/// failing to read it.
-pub const FOLDER: &str = "Helix";
+/// Read, never written. A stick the user has already copied to carries the old
+/// name, and renaming the constant alone would have made Havoc report that
+/// drive as empty with every file still sitting on it. `layout` prefers
+/// whichever folder is actually there, so an old stick keeps working and a new
+/// one is branded correctly.
+pub const LEGACY_FOLDER: &str = "Helix";
+
+/// The data file's name, and the one it had before the rename.
+///
+/// Same rule: either is read, only the first is written.
+pub const DATA_FILE: &str = "data.havoc.json";
+pub const LEGACY_DATA_FILE: &str = "data.helix.json";
 
 /// Where each piece goes on the disk.
 ///
@@ -55,8 +63,26 @@ pub const FOLDER: &str = "Helix";
 /// is what keeps a mount point with a space or a trailing slash from
 /// producing something that is not a path at all.
 pub fn layout(mount: &Path) -> (PathBuf, PathBuf, PathBuf) {
-    let root = mount.join(FOLDER);
-    let data = root.join("data.helix.json");
+    // Whichever folder is on the disk wins, so a stick written before the
+    // rename is still found. A disk with neither gets the new name, because
+    // nothing is there to disagree with.
+    let renamed = mount.join(FOLDER);
+    let root = if !renamed.exists() && mount.join(LEGACY_FOLDER).exists() {
+        mount.join(LEGACY_FOLDER)
+    } else {
+        renamed
+    };
+
+    // And the same for the file inside it: an old folder holds an old file
+    // name, and writing a second file beside it would leave two copies with
+    // only one of them current.
+    let renamed_data = root.join(DATA_FILE);
+    let data = if !renamed_data.exists() && root.join(LEGACY_DATA_FILE).exists() {
+        root.join(LEGACY_DATA_FILE)
+    } else {
+        renamed_data
+    };
+
     let manifest = root.join("what-is-here.txt");
     (root, data, manifest)
 }
@@ -236,9 +262,57 @@ mod tests {
         for mount in ["/media/My Stick", "/media/My Stick/", "E:", "E:\\"] {
             let (root, data, _) = layout(Path::new(mount));
             assert!(root.ends_with(FOLDER), "{mount}");
-            assert_eq!(data.file_name().unwrap(), "data.helix.json", "{mount}");
+            assert_eq!(data.file_name().unwrap(), DATA_FILE, "{mount}");
             assert!(data.starts_with(&root), "{mount}");
         }
+    }
+
+    /// A stick written before the rename.
+    ///
+    /// The folder and the file both carry the old name on a drive the user has
+    /// already copied to. Renaming the constants alone would have made Havoc
+    /// report that drive as empty with every file still on it, so `layout`
+    /// prefers whatever is actually there.
+    #[test]
+    fn an_old_stick_is_still_found() {
+        let base = std::env::temp_dir().join(format!("havoc-old-{}", std::process::id()));
+        let old = base.join(LEGACY_FOLDER);
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::write(old.join(LEGACY_DATA_FILE), b"{}").unwrap();
+
+        let (root, data, _) = layout(&base);
+        assert_eq!(root, old, "the old folder is used when it is the one present");
+        assert_eq!(data.file_name().unwrap(), LEGACY_DATA_FILE);
+
+        std::fs::remove_dir_all(&base).ok();
+    }
+
+    /// And a drive with the new folder is not dragged back to the old one,
+    /// even when both happen to exist.
+    #[test]
+    fn the_new_folder_wins_when_both_are_present() {
+        let base = std::env::temp_dir().join(format!("havoc-both-{}", std::process::id()));
+        std::fs::create_dir_all(base.join(LEGACY_FOLDER)).unwrap();
+        std::fs::create_dir_all(base.join(FOLDER)).unwrap();
+
+        let (root, data, _) = layout(&base);
+        assert_eq!(root, base.join(FOLDER));
+        assert_eq!(data.file_name().unwrap(), DATA_FILE);
+
+        std::fs::remove_dir_all(&base).ok();
+    }
+
+    /// A clean drive gets the new names, because nothing is there to disagree.
+    #[test]
+    fn a_clean_drive_gets_the_new_names() {
+        let base = std::env::temp_dir().join(format!("havoc-clean-{}", std::process::id()));
+        std::fs::create_dir_all(&base).unwrap();
+
+        let (root, data, _) = layout(&base);
+        assert_eq!(root, base.join(FOLDER));
+        assert_eq!(data.file_name().unwrap(), DATA_FILE);
+
+        std::fs::remove_dir_all(&base).ok();
     }
 
     #[test]
